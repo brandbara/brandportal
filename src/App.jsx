@@ -15,6 +15,9 @@ import {
   Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
   FileArchive, DownloadCloud
 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
+import { supabase } from './supabaseClient';
+
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -2127,17 +2130,45 @@ const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
 const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const safeT = t || TRANSLATIONS.ES;
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
     if (!isLogin && !acceptedTerms) return;
-    // Aquí iría la lógica real de autenticación con tu backend
-    onAuthenticate();
+
+    if (!supabase) {
+      setErrorMsg("Error: Supabase no está conectado.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      if (isLogin) {
+        // LOGIN REAL
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onAuthenticate(data.user);
+      } else {
+        // REGISTRO REAL
+        const { data, error } = await supabase.auth.signUp({
+          email, password, options: { data: { full_name: name } }
+        });
+        if (error) throw error;
+        onAuthenticate(data.user);
+      }
+    } catch (error) {
+      setErrorMsg(error.message === "Invalid login credentials" ? "Credenciales incorrectas." : error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -2157,10 +2188,10 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
         </div>
 
         <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl mb-6">
-          <button onClick={() => setIsLogin(true)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <button type="button" onClick={() => {setIsLogin(true); setErrorMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {safeT.auth.loginBtn}
           </button>
-          <button onClick={() => setIsLogin(false)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <button type="button" onClick={() => {setIsLogin(false); setErrorMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {safeT.auth.registerBtn}
           </button>
         </div>
@@ -2171,7 +2202,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
               <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.name}</label>
               <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <User size={18} className="opacity-50 mr-3" />
-                <input type="text" placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
               </div>
             </div>
           )}
@@ -2188,9 +2219,11 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
             <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.password}</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
+
+          {errorMsg && <p className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg">{errorMsg}</p>}
 
           {!isLogin && (
             <label className="flex items-start gap-3 mt-4 cursor-pointer group">
@@ -2207,20 +2240,159 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
 
           <button 
             type="submit" 
-            disabled={!isLogin && !acceptedTerms}
-            className={`w-full mt-6 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(!isLogin && !acceptedTerms) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
+            disabled={isLoading || (!isLogin && !acceptedTerms)}
+            className={`w-full mt-6 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(isLoading || (!isLogin && !acceptedTerms)) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
           >
-            {isLogin ? safeT.auth.loginBtn : safeT.auth.registerBtn}
+            {isLoading ? "Cargando..." : (isLogin ? safeT.auth.loginBtn : safeT.auth.registerBtn)}
           </button>
         </form>
       </div>
     </div>
   );
 };
+const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
+  if (!isOpen) return null;
 
+  const content = {
+    terms: {
+      title: "Términos y Condiciones de Uso",
+      text: (
+        <>
+          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
+          <p>Bienvenido a BrandBara. Al registrarse, acceder o utilizar nuestro Constructor de Portales de Marca (SaaS), usted acepta estar legalmente vinculado por los siguientes Términos de Uso. Si no está de acuerdo, no debe utilizar nuestros servicios.</p>
+          
+          <h3 className="font-bold text-base mt-6 text-indigo-500">1. Descripción del Servicio y Modalidades</h3>
+          <p>BrandBara proporciona un entorno WYSIWYG interactivo para la centralización del ADN visual de marcas y un sistema de Gestión de Activos (DAM).</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Plan FREE:</strong> Uso gratuito limitado a 12MB. Los portales incluirán marca de agua de BrandBara.</li>
+            <li><strong>Plan PRO:</strong> Suscripción de pago (5€/mes). Elimina marca de agua, añade protección por contraseña y exportación a PDF.</li>
+          </ul>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">2. Cláusula de Indemnidad y Responsabilidad de Activos</h3>
+          <p>Usted retiene todos los derechos sobre el contenido que sube. Sin embargo, garantiza poseer el 100% de los permisos necesarios.</p>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Safe Harbor:</strong> BrandBara actúa exclusivamente como proveedor de alojamiento pasivo.</li>
+            <li><strong>Indemnidad Absoluta:</strong> Usted asume la responsabilidad única por infracciones de copyright y exime a BrandBara de cualquier reclamación o sanción.</li>
+          </ul>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">3. Protocolo de Moderación Activa y "Strikes"</h3>
+          <p>BrandBara se reserva el derecho de suspender cuentas por: Phishing o Fraude, Abuso de Recursos (Hotlinking como CDN), o Sabotaje Técnico (scraping, inyección de código).</p>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">4. Limitación de Responsabilidad</h3>
+          <p>El software se proporciona "tal cual". No somos responsables de la corrupción de datos. La responsabilidad máxima se limita a la cantidad pagada en los últimos 3 meses.</p>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">5. Propiedad y Pagos</h3>
+          <p>Las cuotas se facturan por adelantado sin reembolsos parciales. Al alcanzar el límite de almacenamiento, se bloquearán nuevas subidas dinámicamente.</p>
+        </>
+      )
+    },
+    privacy: {
+      title: "Política de Privacidad y Datos",
+      text: (
+        <>
+          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
+          <p>En BrandBara construimos herramientas para profesionales con un enfoque en <em>Security by Design</em>, minimizando la recolección de datos.</p>
+          
+          <h3 className="font-bold text-base mt-6 text-indigo-500">1. Datos que Recopilamos</h3>
+          <ul className="list-disc pl-5 mt-2 space-y-1">
+            <li><strong>Identificación:</strong> Nombre, email, rol y contraseña encriptada irreversiblemente.</li>
+            <li><strong>Activos:</strong> Logotipos, textos, colores y multimedia alojados en su portal.</li>
+            <li><strong>Técnicos:</strong> Tipografías, idioma, notificaciones y cookies.</li>
+            <li><strong>Transacción:</strong> Procesados íntegramente por terceros (Stripe). No almacenamos tarjetas.</li>
+          </ul>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">2. Cómo Utilizamos sus Datos</h3>
+          <p>Para renderizar el portal, validar URLs y discernir entre propietario e invitado (Dualidad de Interfaz) activando o no el Editor WYSIWYG.</p>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">3. Seguridad (RLS)</h3>
+          <p>Infraestructura en Vercel y Supabase. Aplicamos Row Level Security (RLS) para interceptar accesos no autorizados y redirigirlos silenciosamente al panel principal.</p>
+
+          <h3 className="font-bold text-base mt-6 text-indigo-500">4. Derechos del Usuario (RGPD)</h3>
+          <p>Tiene derecho a acceder, rectificar o eliminar sus datos desde la pestaña "Cuenta". En caso de baneo por "Strike", conservaremos datos técnicos mínimos (IP, hash) para evitar la evasión del bloqueo.</p>
+        </>
+      )
+    },
+    cookies: {
+      title: "Política de Cookies",
+      text: (
+        <>
+          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
+          <h3 className="font-bold text-base mt-6 text-indigo-500">Almacenamiento Local y Sesión</h3>
+          <p><strong>Guardado Optimista (Local Storage):</strong> BrandBara utiliza activamente la memoria de su navegador para guardar el estado de sus ediciones de forma transaccional. Esto permite que, ante una pérdida de conexión a Internet, sus modificaciones se conserven.</p>
+          <p className="mt-4"><strong>Gestión de Cookies:</strong> Utilizamos cookies técnicas estrictamente necesarias para mantener la sesión abierta, y cookies analíticas anónimas. Puede gestionar sus preferencias desde el panel inferior de la aplicación.</p>
+        </>
+      )
+    }
+  };
+
+  const current = content[page] || content.privacy;
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className={`relative w-full max-w-2xl max-h-[80vh] flex flex-col rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
+          <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
+        </button>
+        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar">
+          <h2 className="text-3xl font-black mb-6">{current.title}</h2>
+          <div className="text-sm leading-relaxed opacity-80">
+            {current.text}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className={`relative w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row ${isDarkMode ? 'bg-[#151924] border border-white/10' : 'bg-white border border-slate-200'} rounded-3xl`}>
+        <button onClick={onClose} className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+          <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
+        </button>
+        <div className={`w-full md:w-5/12 p-8 flex flex-col justify-center ${isDarkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
+          <div className="flex items-center gap-2 mb-6 text-indigo-600 dark:text-indigo-400">
+            <Zap size={20} fill="currentColor" />
+            <span className="text-xs font-black uppercase tracking-[0.2em]">PRO Plan</span>
+          </div>
+          <h2 className={`text-3xl font-black mb-4 leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            Desbloquea todo el potencial.
+          </h2>
+        </div>
+        <div className="w-full md:w-7/12 p-8 flex flex-col justify-center items-center">
+          <table className={`w-full mb-8 text-left text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-white/10">
+                <th className="pb-4 font-bold opacity-40 uppercase text-[10px]">Características</th>
+                <th className="pb-4 font-bold text-center">FREE</th>
+                <th className="pb-4 font-bold text-center text-indigo-600">PRO</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              <tr><td className="py-4 font-medium opacity-80">Espacio máximo</td><td className="py-4 text-center">12MB</td><td className="py-4 text-center font-bold text-indigo-600">60MB</td></tr>
+              <tr><td className="py-4 font-medium opacity-80">Marca de agua</td><td className="py-4 text-center">Sí</td><td className="py-4 text-center font-bold text-indigo-600">No</td></tr>
+            </tbody>
+          </table>
+          <div className="flex gap-4 w-full">
+            <button onClick={() => { onUpgrade(); onClose(); }} className={`w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2`}>
+              <Zap size={16} fill="currentColor"/> 5€ / Mes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const App = () => {
   const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
   const [isDarkMode, setIsDarkMode] = useState(false); 
+const [userPlan, setUserPlan] = useState('FREE');
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+const [activeLegalPage, setActiveLegalPage] = useState(null);
+  const [limitMessage, setLimitMessage] = useState("");
+const [showSubscriptionModal, setShowSubscriptionModal] = useState(false); // Esta es la de la tabla
   
   // Detección automática del idioma al cargar si no hay guardado en local
   const [language, setLanguage] = useState(() => {
@@ -2253,12 +2425,121 @@ const App = () => {
   const [showFontSelector, setShowFontSelector] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+  const [toastMessage, setToastMessage] = useState(null);
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) { setCurrentUser(session.user); setIsAuthenticated(true); }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Estado para el banner de cookies
   const [showCookieBanner, setShowCookieBanner] = useState(false);
 
   const [profileContent, setProfileContent] = useState({});
+  // --- ESCÁNER MÁGICO DE IMÁGENES (Con Compresión Automática) ---
+  const processBlobsInObject = async (obj, userId) => {
+    let hasChanges = false;
+    const traverse = async (node) => {
+      if (!node) return node;
+      
+      if (typeof node === 'string' && node.startsWith('blob:')) {
+        hasChanges = true;
+        try {
+          const response = await fetch(node);
+          let blob = await response.blob();
+          
+          // COMPRESIÓN: Solo si es una imagen (y no un SVG vectorial)
+          if (blob.type.startsWith('image/') && blob.type !== 'image/svg+xml') {
+            const file = new File([blob], "temp_image", { type: blob.type });
+            const options = {
+              maxSizeMB: 0.8, // Máximo 800 KB por imagen (calidad HD, peso pluma)
+              maxWidthOrHeight: 1920,
+              useWebWorker: true,
+            };
+            try {
+              blob = await imageCompression(file, options);
+            } catch (compressError) {
+              console.error("Error comprimiendo, se usará la original.", compressError);
+            }
+          }
 
+          const fileExt = blob.type.split('/')[1] || 'png';
+          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `${userId}/${fileName}`; 
+          
+          const { error } = await supabase.storage.from('portals_assets').upload(filePath, blob);
+          if (error) throw error;
+          
+          const { data } = supabase.storage.from('portals_assets').getPublicUrl(filePath);
+          return data.publicUrl; 
+        } catch (e) {
+          console.error("Error subiendo imagen:", e);
+          return node;
+        }
+      }
+      if (Array.isArray(node)) {
+        const newArr = [];
+        for (let item of node) newArr.push(await traverse(item));
+        return newArr;
+      }
+      if (typeof node === 'object') {
+        const newObj = {};
+        for (let key in node) newObj[key] = await traverse(node[key]);
+        return newObj;
+      }
+      return node;
+    };
+    const result = await traverse(obj);
+    return { result, hasChanges };
+  };
+const savePortalData = async (isManual = false) => {
+    // 1. Guardado en LocalStorage (Copia de seguridad instantánea)
+    const dataToSave = { canvasItems, design, profileContent, isDarkMode, language, currentFont };
+    localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
+
+    // 2. Guardado en Supabase (Solo si está configurado y el usuario está logueado)
+    if (supabase && isAuthenticated && currentUser) {
+      try {
+        if (isManual) showToast("Procesando imágenes y publicando portal...");
+
+        // Pasa el escáner para subir las imágenes nuevas solo cuando pulsamos "Publicar"
+        const processedCanvas = isManual ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
+        const processedProfile = isManual ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
+
+        // Si se subieron imágenes, actualizamos la interfaz con las URLs reales
+        if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
+        if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
+
+        const { error } = await supabase
+          .from('portals')
+          .upsert({ 
+            id: currentUser.id,
+            canvas_items: processedCanvas.result,
+            design_settings: design,
+            profile_content: processedProfile.result,
+            updated_at: new Date()
+          });
+        if (error) throw error;
+        
+        if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
+      } catch (err) {
+        console.error("Error de sincronización:", err.message);
+        if (isManual) showToast("Error al publicar: " + err.message);
+      }
+    }
+  };
   const [canvasItems, setCanvasItems] = useState([
     { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
     { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
@@ -2313,20 +2594,12 @@ const App = () => {
     }
   };
 
-  // Save to LocalStorage on change
+  // NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL)
   useEffect(() => {
-    const dataToSave = {
-      canvasItems,
-      design,
-      profileContent,
-      isDarkMode,
-      language,
-      currentFont
-    };
-    localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
-  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont]);
+    savePortalData();
+  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated]);
 
-  // Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
+// Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
   const usedStorage = React.useMemo(() => {
     let size = 0;
     // Profile Avatar (approx 0.5MB)
@@ -2378,8 +2651,36 @@ const App = () => {
         if (c.extraBlocks) size += (c.extraBlocks || []).filter(b => b.type === 'image' && b.src).length * 0.8;
     });
     
-    return Math.min(size, 12).toFixed(1);
-  }, [canvasItems, profileContent]);
+    // --- CÁLCULO DEL LÍMITE SEGÚN EL PLAN ---
+    const limit = userPlan === 'FREE' ? 12 : 60;
+    return Math.min(size, limit).toFixed(1);
+  }, [canvasItems, profileContent, userPlan]); 
+
+  // --- INTERCEPTOR DE SUBIDAS (BLOQUEADOR) ---
+// --- INTERCEPTOR DE SUBIDAS INVULNERABLE ---
+  useEffect(() => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+
+    window.URL.createObjectURL = function(file) {
+      if (file instanceof File || file instanceof Blob) {
+        const fileSizeMB = file.size / (1024 * 1024);
+        const currentLimit = userPlan === 'FREE' ? 12 : 60;
+        const currentUsed = parseFloat(usedStorage);
+        const remainingSpace = currentLimit - currentUsed;
+
+        if (currentUsed >= currentLimit || fileSizeMB > remainingSpace) {
+          setLimitMessage(`El archivo pesa ${fileSizeMB.toFixed(1)} MB y solo tienes ${Math.max(0, remainingSpace).toFixed(1)} MB disponibles.`);
+          setIsManageModalOpen(true);
+          return ""; 
+        }
+      }
+      return originalCreateObjectURL.apply(this, arguments);
+    };
+
+    return () => {
+      window.URL.createObjectURL = originalCreateObjectURL;
+    };
+  }, [userPlan, usedStorage]);
   
   // Actualizador de traducciones DEEP
   useEffect(() => {
@@ -2675,103 +2976,177 @@ const App = () => {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        onAuthenticate={() => {
+        onAuthenticate={(user) => {
+          setCurrentUser(user);
           setIsAuthenticated(true);
           setIsAuthModalOpen(false);
-          alert(t.auth?.success || "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal.");
-        }}
+showToast("¡Bienvenido, " + (user?.user_metadata?.full_name || user?.email) + "!");        }}
         isDarkMode={isDarkMode} 
         t={t}
       />
+      {/* NOTIFICACIONES BONITAS (TOAST) */}
+      {toastMessage && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={`px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+            <div className="bg-emerald-500/20 p-1 rounded-full"><Check size={14} className="text-emerald-500" /></div>
+            {toastMessage}
+          </div>
+        </div>
+      )}
 
-      {/* SIDEBAR */}
-      {!isPreview && (
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col h-full border-r transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDarkMode ? 'bg-[#0f111a] border-white/5' : 'bg-white border-slate-200'}`}>
-          <div className="p-8 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-10">
-                {/* Fixed BrandBara Logo for Platform Sidebar */}
-                <h1 className={`text-xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>BrandBara</h1>
-                <span className={`px-2 py-1 text-[9px] font-black rounded ${isDarkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>BETA</span>
-            </div>
-            <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
-              <div className="shrink-0 space-y-4">
-                <button onClick={generateRandomStyle} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-95 group"><Wand2 size={18} className="group-hover:rotate-12 transition-transform" /><span>{t.ui.generate}</span></button>
-                <div className="relative"><button onClick={() => setShowDonations(!showDonations)} className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 border border-yellow-500/20 transition-all text-xs uppercase tracking-widest shadow-sm hover:shadow-md"><Coffee size={16} className="text-slate-900" /><span>{t.ui.coffee}</span></button>{showDonations && (<div className={`absolute top-full left-0 right-0 mt-2 p-2 border rounded-xl flex gap-2 z-50 animate-in fade-in slide-in-from-top-2 shadow-xl ${isDarkMode ? 'bg-[#1e2533] border-white/10' : 'bg-white border-slate-200'}`}><a href="#" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-center rounded-lg text-xs font-bold transition-colors">5€</a><a href="#" className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-center rounded-lg text-xs font-bold transition-colors">10€</a></div>)}</div>
+{/* MODAL DE AVISO DE LÍMITE EXCEDIDO */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'} border p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200`}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="text-amber-500" size={32} />
               </div>
+              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Límite de espacio</h3>
+              <p className={`text-sm mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                {limitMessage}
+              </p>
               
-              {/* STYLES SECTION - ACCORDION STYLE */}
-              <div className="flex-none overflow-hidden flex flex-col mb-4 pt-4 border-t border-slate-200 dark:border-white/5">
-                <h3 className={`text-[10px] font-black uppercase tracking-[0.25em] mb-4 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.styles}</h3>
-                <div className="space-y-3 px-1">
-                   {/* Layout Accordion */}
-                   <div className="border-b border-slate-100 dark:border-white/5 pb-2">
-                      <button onClick={() => toggleAccordion('layout')} className={`w-full flex items-center justify-between py-2 text-xs font-bold uppercase tracking-widest hover:text-indigo-500 transition-colors ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                        <div className="flex items-center gap-2"><LayoutTemplate size={14} className="opacity-50" /> <span>{design.style?.name}</span></div>
-                        <ChevronDown size={12} className={`transition-transform duration-300 ${activeAccordion === 'layout' ? 'rotate-180' : ''}`} />
-                      </button>
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${activeAccordion === 'layout' ? 'max-h-60 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                          <div className="grid grid-cols-1 gap-1 pl-2">
-                            {Object.keys(DESIGN_STYLES).map(key => (
-                                <button key={key} onClick={() => changeLayout(key)} className={`text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${design.style?.id === key ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>{DESIGN_STYLES[key].name}</button>
-                            ))}
-                          </div>
+              <div className="flex flex-col w-full gap-3">
+                <button 
+                  onClick={() => {
+                    setIsManageModalOpen(false);
+                    setShowSubscriptionModal(true); // Esto abre la tabla de precios
+                  }}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  Gestionar Plan
+                </button>
+                <button 
+                  onClick={() => setIsManageModalOpen(false)}
+                  className={`w-full py-3 rounded-xl font-semibold transition-colors ${isDarkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE SUSCRIPCIÓN (LA TABLA) */}
+      <ManageSubscriptionModal 
+        isOpen={showSubscriptionModal} 
+        onClose={() => setShowSubscriptionModal(false)} 
+onUpgrade={() => { setUserPlan('PRO'); showToast("¡Plan actualizado a PRO! Ahora tienes 60MB."); }}        isDarkMode={isDarkMode}
+      />
+      {/* MODAL DE TEXTOS LEGALES */}
+      <LegalModal 
+        isOpen={!!activeLegalPage} 
+        page={activeLegalPage} 
+        onClose={() => setActiveLegalPage(null)} 
+        isDarkMode={isDarkMode} 
+      />
+{/* SIDEBAR */}
+      {!isPreview && (
+       <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col h-full border-r transition-transform duration-300 lg:relative lg:translate-x-0 shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDarkMode ? 'bg-[#0f111a] border-white/5' : 'bg-white border-slate-200'}`}>
+        <div className="p-8 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-8">
+              <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>BrandBara</h1>
+              <span className={`px-2 py-1 text-[9px] font-black rounded ${isDarkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>BETA</span>
+          </div>
+          
+          <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
+            {/* ZONA SUPERIOR FIJA */}
+            <div className="shrink-0 space-y-4">
+              <button onClick={generateRandomStyle} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all">
+                <Wand2 size={18} /><span>{t.ui.generate}</span>
+              </button>
+
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2 text-indigo-500">
+                    <DownloadCloud size={14} />
+                    <span className="text-[10px] font-black uppercase">Storage</span>
+                  </div>
+                  <span className={`text-[10px] font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{usedStorage} / {userPlan === 'FREE' ? '12.0' : '60.0'} MB</span>
+                </div>
+                <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
+                  <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(parseFloat(usedStorage) / (userPlan === 'FREE' ? 12 : 60)) * 100}%` }}></div>
+                </div>
+                <button onClick={() => setIsManageModalOpen(true)} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">
+                  Gestionar Plan
+                </button>
+              </div>
+            </div>
+
+            {/* ZONA INFERIOR CON SCROLL (EVITA CORTES) */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-2 pt-2 border-t border-slate-200 dark:border-white/5 space-y-6 pb-6 pr-2">
+              
+              {/* STYLES SECTION */}
+              <div>
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.styles}</h3>
+                <div className="space-y-2">
+                  
+                  {/* Layout Selector */}
+                  <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
+                    <button onClick={() => toggleAccordion('layout')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <div className="flex items-center gap-3"><LayoutTemplate size={16} /><span className="text-xs font-bold uppercase tracking-widest">{design.style.name}</span></div>
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'layout' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'layout' ? 'max-h-[500px]' : 'max-h-0'}`}>
+                      <div className={`p-2 space-y-1 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                        {Object.keys(DESIGN_STYLES).map(k => (
+                          <button key={k} onClick={() => changeLayout(k)} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${design.style.id === k ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`}>{DESIGN_STYLES[k].name}</button>
+                        ))}
                       </div>
-                   </div>
+                    </div>
+                  </div>
 
-                   {/* Font Accordion */}
-                   <div className="border-b border-slate-100 dark:border-white/5 pb-2">
-                       <button onClick={() => toggleAccordion('font')} className={`w-full flex items-center justify-between py-2 text-xs font-bold uppercase tracking-widest hover:text-indigo-500 transition-colors ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                          <div className="flex items-center gap-2"><Type size={14} className="opacity-50" /> <span>{currentFont}</span></div>
-                          <ChevronDown size={12} className={`transition-transform duration-300 ${activeAccordion === 'font' ? 'rotate-180' : ''}`} />
-                       </button>
-                       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${activeAccordion === 'font' ? 'max-h-60 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                           <div className="grid grid-cols-1 gap-1 pl-2">
-                               {FONTS.map(font => (
-                                 <button key={font} onClick={() => { setCurrentFont(font); setDesign(prev => ({...prev, font})); }} className={`text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${currentFont === font ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`} style={{fontFamily: font}}>{font}</button>
-                               ))}
-                           </div>
-                       </div>
-                   </div>
+                  {/* Font Selector */}
+                  <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
+                    <button onClick={() => toggleAccordion('font')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <div className="flex items-center gap-3"><Type size={16} /><span className="text-xs font-bold uppercase tracking-widest">{currentFont}</span></div>
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'font' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'font' ? 'max-h-[500px]' : 'max-h-0'}`}>
+                      <div className={`p-2 space-y-1 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                        {FONTS.map(f => (
+                          <button key={f} onClick={() => { setCurrentFont(f); setDesign(prev => ({ ...prev, font: f })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${currentFont === f ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`} style={{ fontFamily: f }}>{f}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-                   {/* Spacing Accordion */}
-                   <div className="border-b border-slate-100 dark:border-white/5 pb-2">
-                        <button onClick={() => toggleAccordion('spacing')} className={`w-full flex items-center justify-between py-2 text-xs font-bold uppercase tracking-widest hover:text-indigo-500 transition-colors ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                           <div className="flex items-center gap-2"><ArrowUpDown size={14} className="opacity-50" /> <span>{design.spacing?.name}</span></div>
-                           <ChevronDown size={12} className={`transition-transform duration-300 ${activeAccordion === 'spacing' ? 'rotate-180' : ''}`} />
-                        </button>
-                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${activeAccordion === 'spacing' ? 'max-h-60 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                           <div className="grid grid-cols-1 gap-1 pl-2">
-                              {Object.values(SPACING_OPTIONS).map(opt => (
-                                 <button key={opt.id} onClick={() => { setDesign(prev => ({...prev, spacing: opt})); setActiveAccordion(null); }} className={`text-left px-3 py-1.5 text-xs rounded-lg transition-colors ${design.spacing?.id === opt.id ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}>{opt.name}</button>
-                              ))}
-                           </div>
-                        </div>
-                   </div>
+                  {/* Spacing Selector */}
+                  <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
+                    <button onClick={() => toggleAccordion('spacing')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <div className="flex items-center gap-3"><ArrowUpDown size={16} /><span className="text-xs font-bold uppercase tracking-widest">{design.spacing.name}</span></div>
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'spacing' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'spacing' ? 'max-h-[500px]' : 'max-h-0'}`}>
+                      <div className={`p-2 space-y-1 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                        {Object.values(SPACING_OPTIONS).map(s => (
+                          <button key={s.id} onClick={() => { setDesign(prev => ({ ...prev, spacing: s })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${design.spacing.id === s.id ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`}>{s.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* TOOLS SECTION */}
-              <div className="flex-1 overflow-hidden flex flex-col mt-4 border-t border-slate-200 dark:border-white/5 pt-4">
-                <h3 className={`text-[10px] font-black uppercase tracking-[0.25em] mb-4 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.tools}</h3>
-                <div className="grid grid-cols-2 gap-3 custom-scrollbar overflow-y-auto pb-4 pr-1">
+              <div>
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.tools}</h3>
+                <div className="grid grid-cols-2 gap-3">
                   <DraggableTool type="identity" icon={Fingerprint} label={t.ui.identity} />
                   <DraggableTool type="logo" icon={Layers} label={t.ui.logo} />
                   <DraggableTool type="color" icon={Palette} label={t.ui.color} />
                   <DraggableTool type="typography" icon={Type} label={t.ui.typography} />
                   <DraggableTool type="image" icon={ImageIcon} label={t.ui.image} />
                   <DraggableTool type="bento" icon={LayoutGrid} label={t.ui.bento} />
-                  <DraggableTool type="layout" icon={Grid3X3} label={t.ui.layout} />
-                  <DraggableTool type="editorial" icon={FileText} label={t.ui.editorial} />
-                  <DraggableTool type="icons" icon={Hash} label={t.ui.icons} />
-                  <DraggableTool type="web" icon={Globe} label={t.ui.web} />
-                  <DraggableTool type="social" icon={Share2} label={t.ui.social} />
-                  <DraggableTool type="cobranding" icon={Users} label={t.ui.cobranding} />
-                  <DraggableTool type="assets" icon={FileArchive} label={t.ui.assets} />
                 </div>
               </div>
+
             </div>
           </div>
-        </aside>
+        </div>
+      </aside>
       )}
 
       {/* CANVAS */}
@@ -2808,7 +3183,7 @@ const App = () => {
                   if (!isAuthenticated) {
                     setIsAuthModalOpen(true);
                   } else {
-                    alert("Publicando contenido... (Acción mockeada)");
+                    savePortalData(true);
                   }
                 }} 
                 className="px-5 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold text-xs rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center gap-2"
@@ -2836,10 +3211,9 @@ const App = () => {
                 &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
              </div>
              <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
-                <a href="#" className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</a>
-                <a href="#" className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</a>
-                <a href="#" className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Configuración de Cookies</a>
-             </div>
+<button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
+                <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</button>
+                <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>             </div>
           </div>
         </div>
       </main>
