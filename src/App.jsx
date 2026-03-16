@@ -520,38 +520,126 @@ const GridOverlay = ({ type }) => (
 
 const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const handleBgChange = (type, value) => { update({ ...content, bgType: type, bgValue: value }); setShowColorPicker(false); };
-  const handleImageUpload = (e) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); handleBgChange('image', url); } };
-  let bgStyle = {}; if (content?.bgType === 'image' && content?.bgValue) bgStyle = { backgroundImage: `url(${content.bgValue})`, backgroundSize: 'cover', backgroundPosition: 'center' }; else if (content?.bgType === 'color' && content?.bgValue) bgStyle = { backgroundColor: content.bgValue };
+  const [activeTab, setActiveTab] = useState('bg'); // 'bg' o 'text'
+
+  const updateContent = (changes) => { update({ ...content, ...changes }); };
+  
+  const handleImageUpload = (e) => { 
+      const file = e.target.files[0]; 
+      if (file) { 
+          const url = URL.createObjectURL(file); 
+          updateContent({ bgType: 'image', bgValue: url });
+          setShowColorPicker(false); 
+      } 
+  };
+
+  let bgStyle = {}; 
+  if (content?.bgType === 'image' && content?.bgValue) {
+      bgStyle = { backgroundImage: `url(${content.bgValue})`, backgroundSize: 'cover', backgroundPosition: 'center' }; 
+  } else if (content?.bgType === 'color' && content?.bgValue) {
+      bgStyle = { backgroundColor: content.bgValue };
+  }
+
+  const isDarkBg = isDarkMode || content?.bgType === 'image';
+  const titleColorClass = isDarkBg ? 'text-white' : 'text-slate-900';
+  const subtitleColorClass = isDarkBg ? 'text-white/90' : 'text-slate-600';
+
+  const customTextColor = content?.textColor ? { color: content.textColor } : {};
+
   return (
     <div className="w-full min-h-[50vh] flex flex-col items-center justify-center p-12 text-center relative group overflow-hidden" style={bgStyle}>
-      {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/20' : 'bg-gradient-to-b from-slate-50'}`} />}
+      {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/10' : 'bg-gradient-to-b from-slate-50'}`} />}
       {content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0" />}
+      
       {!isPreview && (
         <div className="absolute top-4 right-4 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-white dark:bg-black/80 backdrop-blur p-1 rounded-xl shadow-lg border border-slate-200 dark:border-white/10 flex gap-1 relative">
-            <button onClick={() => setShowColorPicker(!showColorPicker)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><PaintBucket size={16} /></button>
-            <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"><ImagePlus size={16} /></button>
+          
+          <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-full shadow-2xl border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
+            <button onClick={() => setShowColorPicker(!showColorPicker)} className={`p-2.5 rounded-full transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={18} /></button>
+            <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors"><ImagePlus size={18} /></button>
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+            
             {showColorPicker && (
-              <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-xl shadow-xl border w-48 z-50">
-                <div className="grid grid-cols-6 gap-2"> {PRESET_COLORS.map(c => <button key={c} onClick={() => handleBgChange('color', c)} className="w-6 h-6 rounded-full border" style={{backgroundColor:c}} />)} </div>
+              <div className="absolute top-full right-0 mt-3 p-5 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-5 animate-in fade-in slide-in-from-top-3 duration-200">
+                
+                {/* 1. SEGMENTED CONTROL - FONDO / TEXTO */}
+                <div className="bg-slate-100 dark:bg-white/5 p-1 rounded-full flex gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <button onClick={() => setActiveTab('bg')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'bg' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.background || 'Fondo'}</button>
+                    <button onClick={() => setActiveTab('text')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'text' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.text || 'Texto'}</button>
+                </div>
+
+                {/* 2. SELECTOR DE FONDO */}
+                {activeTab === 'bg' && (
+                    <div className="flex flex-col gap-4 animate-in fade-in duration-150">
+                        {/* UNIFIED HEX INPUT */}
+                        <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                            <input type="color" value={content?.bgType === 'color' ? (content?.bgValue || '#ffffff') : '#ffffff'} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
+                            <input type="text" value={content?.bgType === 'color' ? content?.bgValue : ''} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} placeholder="#HEX" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
+                        </div>
+                        {/* COLOR PRESETS */}
+                        <div>
+                           <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Presets</span>
+                           <div className="grid grid-cols-8 gap-1.5">
+                             {PRESET_COLORS.map(c => <button key={c} onClick={() => {updateContent({ bgType: 'color', bgValue: c }); setShowColorPicker(false);}} className={`w-5 h-5 rounded-full border border-slate-200 dark:border-white/10 shadow-sm hover:scale-110 transition-transform ${content?.bgValue === c && content?.bgType === 'color' ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-950' : ''}`} style={{backgroundColor:c}} />)}
+                           </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 3. SELECTOR DE TEXTO */}
+                {activeTab === 'text' && (
+                    <div className="flex flex-col gap-4 animate-in fade-in duration-150">
+                        <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                            <input type="color" value={content?.textColor || (isDarkBg ? '#ffffff' : '#111111')} onChange={(e) => updateContent({ textColor: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
+                            <input type="text" value={content?.textColor || ''} onChange={(e) => updateContent({ textColor: e.target.value })} placeholder="Auto" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
+                        </div>
+                        {content?.textColor && (
+                            <button onClick={() => updateContent({ textColor: null })} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 rounded-xl text-xs font-bold transition-colors">
+                                <X size={14}/> {t.ui.reset || 'Restaurar automático'}
+                            </button>
+                        )}
+                        {!content?.textColor && (
+                           <div className="text-center py-6 px-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                              <span className="text-3xl block mb-2">🤖</span>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">El color del texto se ajusta automáticamente según el fondo.</p>
+                           </div>
+                        )}
+                    </div>
+                )}
+
               </div>
             )}
           </div>
         </div>
       )}
-      <div className="relative z-10 max-w-5xl">
-        <div className={`mb-6 inline-flex items-center gap-2 px-6 py-2 rounded-full border text-xs font-black uppercase tracking-[0.3em] ${isDarkMode || content?.bgType === 'image' ? 'bg-white/10 text-white' : 'bg-white/60 text-indigo-600'}`}>
-          <Globe size={14} /> V1.0
+      
+      <div className="relative z-10 max-w-5xl w-full">
+        <div 
+            className={`mb-6 inline-flex items-center gap-2.5 px-6 py-2 rounded-full border text-xs font-black uppercase tracking-[0.3em] ${isDarkBg ? 'bg-white/10 text-white' : 'bg-white/60 text-indigo-600'}`} 
+            style={content?.textColor ? { color: content.textColor, borderColor: `${content.textColor}30`, backgroundColor: `${content.textColor}05` } : {}}
+        >
+          <Globe size={15} /> V1.0
         </div>
-        <EditableText text={t.modules.hero.title} className={`text-4xl md:text-6xl lg:text-8xl font-black mb-6 ${isDarkMode || content?.bgType === 'image' ? 'text-white' : 'text-slate-900'}`} tag="h1" isPreview={isPreview} />
-        <EditableText text={content?.subtitle || t.modules.hero.subtitle} className={`text-lg md:text-2xl font-medium max-w-3xl mx-auto leading-relaxed ${isDarkMode || content?.bgType === 'image' ? 'text-white/90' : 'text-slate-600'}`} tag="p" isPreview={isPreview} onChange={(v) => update({...content, subtitle: v})} />
+        <EditableText 
+            text={content?.title || t.modules.hero.title} 
+            className={`text-5xl md:text-7xl lg:text-9xl font-black mb-7 tracking-tighter ${content?.textColor ? '' : titleColorClass}`} 
+            tag="h1" 
+            isPreview={isPreview} 
+            onChange={(v) => update({...content, title: v})} 
+            style={customTextColor} 
+        />
+        <EditableText 
+            text={content?.subtitle || t.modules.hero.subtitle} 
+            className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} 
+            tag="p" 
+            isPreview={isPreview} 
+            onChange={(v) => update({...content, subtitle: v})} 
+            style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} 
+        />
       </div>
     </div>
   );
 });
-
 const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const [editingIconId, setEditingIconId] = useState(null);
 
@@ -695,63 +783,61 @@ const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isP
 const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems, t, isPreview }) => {
   const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) update({ ...content, logo: URL.createObjectURL(file) }); };
   const scrollToModule = (id) => { const element = document.getElementById(`module-${id}`); if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+  
+  // 1. Filtramos módulos activos (quitamos cabecera y pie) [cite: 1758]
   const navItems = allItems.filter(i => i.type !== 'header' && i.type !== 'footer');
+
+  // 2. Lógica para obtener el nombre exacto que el usuario ve en el portal [cite: 1614-1621]
+  const getModuleDisplayName = (item) => {
+    // Si el usuario editó el título manualmente en el módulo, usamos ese
+    if (item.content?.title && typeof item.content.title === 'string' && item.content.title.trim() !== "") return item.content.title;
+    // Si no, buscamos el título oficial en la traducción de módulos (Ej: "Iconografía", "Web")
+    if (t.modules[item.type]?.title) return t.modules[item.type].title;
+    // Fallback: Nombre de la herramienta en UI o tipo capitalizado
+    return t.ui[item.type] || item.type.charAt(0).toUpperCase() + item.type.slice(1);
+  };
   
   return (
-    <div className={`w-full p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-6 mb-8 relative z-20 transition-all duration-300 ${design.radius} ${design.border} ${design.shadow} ${isDarkMode ? design.cardBgDark || 'bg-[#161b26] border-white/10' : design.cardBg}`}>
+    <div className={`w-full p-4 md:p-5 flex flex-col md:flex-row justify-between items-center gap-6 relative z-20 transition-all duration-500 backdrop-blur-xl ${design.radius} ${design.border} ${design.shadow} ${isDarkMode ? 'bg-slate-950/80 border-white/10 shadow-2xl' : 'bg-white/80 border-white/40 shadow-xl'}`}>
       <div className={`flex items-center gap-4 flex-shrink-0`}>
-        <div onClick={() => !isPreview && document.getElementById('header-logo-upload').click()} className={`relative h-12 w-12 md:h-14 md:w-14 flex-shrink-0 ${!isPreview ? 'cursor-pointer' : ''} group rounded-xl overflow-hidden border flex items-center justify-center transition-all ${isDarkMode ? 'border-white/10 hover:border-indigo-500/50 bg-white/5' : 'border-slate-200 hover:border-indigo-500/50 bg-slate-50'}`}>
-          {content?.logo ? (
-            <img 
-              src={content.logo} 
-              alt="Brand Logo" 
-              className="w-full h-full object-contain p-1.5 transition-all duration-300" 
-              style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }}
-            /> 
-          ) : (
-            <ImageIcon size={20} className={`opacity-40 group-hover:opacity-100 transition-opacity ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
-          )}
+        <div onClick={() => !isPreview && document.getElementById('header-logo-upload').click()} className={`relative h-12 w-12 md:h-14 md:w-14 flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden border flex items-center justify-center transition-all ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+          {content?.logo ? <img src={content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={20} className="opacity-40" />}
           {!isPreview && <input id="header-logo-upload" type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />}
         </div>
         <div className="flex flex-col">
-            <EditableText text={content?.title || t.modules.header.title} className={`text-xl font-bold leading-tight whitespace-nowrap ${isDarkMode ? 'text-white' : 'text-slate-900'}`} onChange={(val) => update({...content, title: val})} isDarkMode={isDarkMode} isPreview={isPreview} />
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.modules.header.subtitle}</span>
+            <EditableText text={content?.title || t.modules.header.title} className={`text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`} onChange={(val) => update({...content, title: val})} isDarkMode={isDarkMode} isPreview={isPreview} />
+            <span className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t.modules.header.subtitle}</span>
         </div>
       </div>
 
       <div className="w-full md:w-auto relative group z-30 lg:ml-4">
-        <button className={`w-full md:w-56 flex items-center justify-between px-5 py-2.5 rounded-full border text-left transition-all ${isDarkMode ? 'bg-black/20 border-white/10 hover:bg-black/40 text-slate-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'}`}>
+        <button className={`w-full md:w-56 flex items-center justify-between px-5 py-2.5 rounded-full border text-left transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
           <div className="flex items-center gap-2">
             <Anchor size={14} className="opacity-50" />
             <span className="text-[10px] font-bold uppercase tracking-wide">{t.ui.navigate}</span>
           </div>
           <ChevronDown size={14} className="opacity-50 group-hover:rotate-180 transition-transform" />
         </button>
-        <div className={`absolute top-full right-0 mt-2 w-full py-2 rounded-2xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top ${isDarkMode ? 'bg-[#1e2330] border-white/10' : 'bg-white border-slate-200'}`}>
-          {navItems.length > 0 ? (
-            <div className="max-h-60 overflow-y-auto custom-scrollbar">
-              {navItems.map((item, i) => (
-                <button 
-                  key={item.id} 
-                  onClick={() => scrollToModule(item.id)} 
-                  className={`w-full text-left px-4 py-3 text-xs font-medium border-l-2 border-transparent hover:border-indigo-500 transition-all flex items-center gap-2 ${isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}
-                >
-                  <span className="opacity-50 w-4">{i + 1}.</span> {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className={`px-4 py-3 text-[10px] text-center italic opacity-50 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-              {t.ui.noModules}
-            </div>
-          )}
+        
+        {/* LISTADO DINÁMICO MEJORADO */}
+        <div className={`absolute top-full right-0 mt-2 w-full py-2 rounded-2xl border shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+          <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+            {navItems.map((item, i) => (
+              <button 
+                key={item.id} 
+                onClick={() => scrollToModule(item.id)} 
+                className={`w-full text-left px-4 py-2.5 text-xs font-bold border-l-4 border-transparent hover:border-indigo-500 transition-all flex items-center gap-3 ${isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}
+              >
+                <span className="opacity-30 font-mono text-[10px] w-4">{String(i + 1).padStart(2, '0')}</span> 
+                <span className="truncate">{getModuleDisplayName(item)}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
-});
-
-const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
+});const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
   const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
@@ -1858,8 +1944,13 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
   );
 });
 
-const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace }) => {
+// ==============================================================================
+// === FILE: UserProfileModal.tsx ===
+// ==============================================================================
+
+const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark }) => {  
   const [activeTab, setActiveTab] = useState('profile');
+  const [showDangerZone, setShowDangerZone] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
   
   useEffect(() => {
@@ -1867,12 +1958,10 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
       ...content, 
       name: "Alex Designer", 
       role: "Product Designer",
-      email: "alex@brandbara.com",
       location: "Madrid, Spain",
       bio: "Creating digital experiences.",
       joinDate: new Date().toLocaleDateString(),
       notifications: { email: true, push: false },
-      // Solo forzamos ES si content.language no está definido en absoluto
       language: content.language || 'ES'
     });
   }, []);
@@ -1893,28 +1982,21 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
     { id: 'preferences', label: safeT.profileTabs.preferences, icon: Sliders },
   ];
 
-  const maxSpace = 12; 
+  const maxSpace = userPlan === 'FREE' ? 20 : 1024;
   const usagePercent = Math.min((usedSpace / maxSpace) * 100, 100);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className={`relative w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row ${isDarkMode ? 'bg-[#0f111a] border border-white/10 text-slate-300' : 'bg-white text-slate-900'}`}>
         
-        {/* Sidebar Navigation */}
         <div className={`w-full md:w-64 p-6 border-b md:border-b-0 md:border-r ${isDarkMode ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50'}`}>
            <h2 className="text-xl font-bold mb-8 flex items-center gap-2"><div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white"><User size={18}/></div> {safeT.profileTabs.title}</h2>
+  
            <nav className="space-y-2">
               {tabs.map(tab => (
-                 <button 
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600')}`}
-                 >
-                    <tab.icon size={18} /> {tab.label}
-                 </button>
+                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-bold ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600')}`}><tab.icon size={18} /> {tab.label}</button>
               ))}
            </nav>
-           
            <div className="mt-auto pt-8">
               <div className={`p-4 rounded-xl mb-4 ${isDarkMode ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100'}`}>
                   <div className="flex justify-between items-end mb-2">
@@ -1922,75 +2004,63 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                       <span className={`text-[10px] font-bold ${usagePercent > 90 ? 'text-rose-500' : 'text-indigo-500'}`}>{usedSpace}MB / {maxSpace}MB</span>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden mb-2">
-                     <div 
-                        className={`h-full rounded-full transition-all duration-500 ${usagePercent > 90 ? 'bg-rose-500' : 'bg-indigo-500'}`} 
-                        style={{ width: `${usagePercent}%` }}
-                     ></div>
+                     <div className={`h-full rounded-full transition-all duration-500 ${usagePercent > 90 ? 'bg-rose-500' : 'bg-indigo-500'}`} style={{ width: `${usagePercent}%` }}></div>
                   </div>
                   <p className="text-[10px] opacity-70">{safeT.profileTabs.filesMsg}</p>
               </div>
-
-              <button onClick={() => { if(onLogout) onLogout(); onClose(); }} className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors px-4">
-                 <LogOut size={16} /> {safeT.profileTabs.logout}
-              </button>
-           </div>
+<button onClick={() => { 
+    if(window.confirm("¿Seguro que quieres cerrar sesión? Si tienes cambios sin 'Publicar', podrían perderse.")) {
+        if(onLogout) onLogout(); 
+        onClose(); 
+    }
+}} className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors px-4">
+    <LogOut size={16} /> {safeT.profileTabs.logout}
+</button>           </div>
         </div>
 
-        {/* Content Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-           <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
-                <X size={24} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
-           </button>
+           <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10"><X size={24} className={isDarkMode ? 'text-white' : 'text-slate-900'} /></button>
 
            <div className="p-8 md:p-12 max-w-3xl">
-              
               {activeTab === 'profile' && (
                  <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div>
-                        <h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.public}</h3>
-                        <p className="opacity-60 text-sm">{safeT.profileTabs.publicDesc}</p>
-                    </div>
-
+                    <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.public}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.publicDesc}</p></div>
+                  
                     <div className="flex flex-col md:flex-row items-start gap-8">
                         <div className="relative group/avatar shrink-0">
                             <div className={`w-32 h-32 rounded-full overflow-hidden border-4 shadow-xl ${isDarkMode ? 'border-indigo-500/30' : 'border-indigo-500/10'}`}>
                                 {content.avatar ? <img src={content.avatar} className="w-full h-full object-cover"/> : <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-400'}`}><User size={48}/></div>}
                             </div>
-                            <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2.5 rounded-full cursor-pointer hover:scale-110 transition-transform shadow-lg border-4 border-white dark:border-[#0f111a]">
-                                <Upload size={16}/>
-                                <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload}/>
-                            </label>
+                            <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2.5 rounded-full cursor-pointer hover:scale-110 transition-transform shadow-lg border-4 border-white dark:border-[#0f111a]"><Upload size={16}/><input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload}/></label>
                         </div>
                         <div className="flex-1 space-y-6 w-full">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.name}</label>
-                                    <input 
-                                        type="text" 
-                                        value={content.name || ''} 
-                                        onChange={(e) => updateData('name', e.target.value)}
-                                        className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} 
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.role}</label>
-                                    <input 
-                                        type="text" 
-                                        value={content.role || ''} 
-                                        onChange={(e) => updateData('role', e.target.value)}
-                                        className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} 
-                                    />
-                                </div>
+                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.name}</label><input type="text" value={content.name || ''} onChange={(e) => updateData('name', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
+                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.role}</label><input type="text" value={content.role || ''} onChange={(e) => updateData('role', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                             </div>
+                            
+                            {/* CAMPO: URL PERSONALIZADA (SLUG) */}
                             <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label>
-                                <textarea 
-                                    value={content.bio || ''} 
-                                    onChange={(e) => updateData('bio', e.target.value)}
-                                    rows={4}
-                                    className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} 
+                              <label className="text-xs font-bold uppercase tracking-wider opacity-50">URL Personalizada</label>
+                              <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                                <span className="opacity-50 text-sm mr-1 hidden sm:inline">brandbara.com/</span>
+                                <span className="opacity-50 text-sm mr-1 sm:hidden">.../</span>
+                                <input 
+                                  type="text" 
+                                  value={content.slug || ''} 
+                                  onChange={(e) => {
+                                    // Forzamos minúsculas y cambiamos espacios por guiones para que sea una URL válida
+                                    const cleanSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                                    updateData('slug', cleanSlug);
+                                  }} 
+                                  placeholder="mi-agencia" 
+                                  className={`w-full py-3 bg-transparent outline-none font-bold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} 
                                 />
+                              </div>
+                              <p className="text-[10px] opacity-60">Este será el enlace público que compartirás con tus clientes.</p>
                             </div>
+
+                            <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label><textarea value={content.bio || ''} onChange={(e) => updateData('bio', e.target.value)} rows={4} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                         </div>
                     </div>
                  </div>
@@ -1998,103 +2068,129 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
 
               {activeTab === 'account' && (
                   <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                      <div>
-                        <h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.account}</h3>
-                        <p className="opacity-60 text-sm">{safeT.profileTabs.accountDesc}</p>
-                      </div>
-
+                      <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.account}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.accountDesc}</p></div>
                       <div className="space-y-6 max-w-lg">
+                          
                           <div className="space-y-2">
-                              <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.email}</label>
-                              <div className={`flex items-center px-4 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                                  <Mail size={18} className="opacity-50 mr-3"/>
-                                  <input 
-                                      type="email" 
-                                      value={content.email || ''} 
-                                      onChange={(e) => updateData('email', e.target.value)}
-                                      className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} 
-                                  />
-                              </div>
+                            <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.email}</label>
+                            <div className={`flex items-center px-4 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                              <Mail size={18} className="opacity-50 mr-3"/>
+                              <input type="email" value={content.email || ''} readOnly className={`w-full py-3 bg-transparent outline-none opacity-70 cursor-not-allowed ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
+                            </div>
+                            <p className="text-[10px] opacity-60">El email no se puede cambiar por motivos de seguridad.</p>
                           </div>
                           
                           <div className="pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
-                              <h4 className="font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {safeT.auth.password}</h4>
-                              <button className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}>{safeT.profileTabs.changePass}</button>
+                            <h4 className="font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {safeT.auth.password}</h4>
+                            <button onClick={() => alert("Se enviaría un email a " + content.email + " para restablecer la contraseña.")} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}>
+                              {safeT.profileTabs.changePass}
+                            </button>
                           </div>
+
+<div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
+                        <button 
+                            onClick={() => setShowDangerZone(!showDangerZone)}
+                            className="w-full flex items-center justify-between group"
+                        >
+                            <h4 className="font-bold flex items-center gap-2 text-rose-500 group-hover:text-rose-600 transition-colors">
+                                <AlertCircle size={16}/> Zona de Peligro
+                            </h4>
+                            <ChevronDown size={16} className={`text-rose-500 transition-transform duration-300 ${showDangerZone ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+                                <p className="text-xs opacity-80 mb-4 text-rose-600 dark:text-rose-400 font-medium">
+                                    Una vez que borres tu cuenta, no hay vuelta atrás. Tus datos y portales serán eliminados permanentemente.
+                                </p>
+                                <button onClick={() => {
+                                  if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
+                                    alert("Cuenta borrada con éxito (Simulación)");
+                                    if(onLogout) onLogout();
+                                    onClose();
+                                  }
+                                }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                                  Eliminar mi cuenta definitivamente
+                                </button>
+                            </div>
+                        </div>
+                      </div>
                       </div>
                   </div>
               )}
 
               {activeTab === 'preferences' && (
                   <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
-                      <div>
-                        <h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.preferences}</h3>
-                        <p className="opacity-60 text-sm">{safeT.profileTabs.prefDesc}</p>
-                      </div>
-
+                      <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.preferences}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.prefDesc}</p></div>
                       <div className="space-y-6">
-                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div>
-                                  <div>
-                                      <h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4>
-                                      <p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p>
-                                  </div>
-                              </div>
-                              <select 
-                                value={content.language || 'ES'} 
-                                onChange={(e) => updateData('language', e.target.value)}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
-                              >
-                                  <option value="ES">Español</option>
-                                  <option value="EN">English</option>
-                              </select>
+                          
+                          {/* OPCIÓN PRO: MARCA DE AGUA */}
+                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Fingerprint size={20} className="text-indigo-500"/></div><div><h4 className="font-bold text-sm">Marca de agua "BrandBara"</h4><p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Muestra u oculta el crédito en el footer." : "Solo disponible en el Plan PRO."}</p></div></div>
+                              <button disabled={userPlan !== 'PRO'} onClick={() => setShowWatermark(!showWatermark)} className={`w-12 h-6 rounded-full p-1 transition-colors ${showWatermark ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${showWatermark ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
 
-                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Bell size={20}/></div>
-                                  <div>
-                                      <h4 className="font-bold text-sm">{safeT.profileTabs.notif}</h4>
-                                      <p className="text-xs opacity-60">{safeT.profileTabs.notifDesc}</p>
+                          {/* NUEVA OPCIÓN PRO: PROTECCIÓN POR CONTRASEÑA */}
+                          <div className={`p-4 rounded-xl border flex flex-col gap-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'bg-slate-50 border-slate-200'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}>
+                                    <Lock size={20} className="text-indigo-500"/>
                                   </div>
+                                  <div>
+                                    <h4 className="font-bold text-sm">Acceso Privado</h4>
+                                    <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Protege tu portal con una clave global para visitantes." : "Solo disponible en el Plan PRO."}</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  disabled={userPlan !== 'PRO'} 
+                                  onClick={() => updateData('isPasswordProtected', !content.isPasswordProtected)} 
+                                  className={`w-12 h-6 rounded-full p-1 transition-colors ${content.isPasswordProtected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-white/20'}`}
+                                >
+                                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.isPasswordProtected ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </button>
                               </div>
-                              <button 
-                                onClick={() => toggleNotification('email')}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.email ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}
-                              >
-                                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.email ? 'translate-x-6' : 'translate-x-0'}`} />
-                              </button>
+                              
+                              {content.isPasswordProtected && userPlan === 'PRO' && (
+                                <div className="relative group animate-in slide-in-from-top-2 duration-200">
+                                  <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
+                                  <input 
+                                    type="text" 
+                                    value={content.portalPassword || ''} 
+                                    onChange={(e) => updateData('portalPassword', e.target.value)}
+                                    placeholder="Define la contraseña de acceso..."
+                                    className={`w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border outline-none transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white focus:border-indigo-500' : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'}`}
+                                  />
+                                </div>
+                              )}
                           </div>
 
+                          {/* IDIOMA */}
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Cookie size={20}/></div>
-                                  <div>
-                                      <h4 className="font-bold text-sm">{safeT.profileTabs.cookies}</h4>
-                                      <p className="text-xs opacity-60">{safeT.profileTabs.cookiesDesc}</p>
-                                  </div>
-                              </div>
-                              <button 
-                                onClick={() => toggleNotification('cookies')}
-                                className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.cookies !== false ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}
-                              >
-                                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.cookies !== false ? 'translate-x-6' : 'translate-x-0'}`} />
-                              </button>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4><p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p></div></div>
+                              <select value={content.language || 'ES'} onChange={(e) => updateData('language', e.target.value)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><option value="ES">Español</option><option value="EN">English</option></select>
+                          </div>
+
+                          {/* NOTIFICACIONES */}
+                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Bell size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.notif}</h4><p className="text-xs opacity-60">{safeT.profileTabs.notifDesc}</p></div></div>
+                              <button onClick={() => toggleNotification('email')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.email ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.email ? 'translate-x-6' : 'translate-x-0'}`} /></button>
+                          </div>
+
+                          {/* COOKIES */}
+                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Cookie size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.cookies}</h4><p className="text-xs opacity-60">{safeT.profileTabs.cookiesDesc}</p></div></div>
+                              <button onClick={() => toggleNotification('cookies')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.cookies !== false ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.cookies !== false ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
                       </div>
                   </div>
               )}
-
            </div>
         </div>
       </div>
     </div>
   );
 });
-
-// --- COMPONENTES GLOBALES Y MODALES ---
-
 const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
   const safeT = t || TRANSLATIONS.ES;
   return (
@@ -2126,7 +2222,6 @@ const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
     </div>
   );
 };
-
 const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -2370,11 +2465,25 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade }) => 
                 <th className="pb-4 font-bold text-center text-indigo-600">PRO</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              <tr><td className="py-4 font-medium opacity-80">Espacio máximo</td><td className="py-4 text-center">12MB</td><td className="py-4 text-center font-bold text-indigo-600">60MB</td></tr>
-              <tr><td className="py-4 font-medium opacity-80">Marca de agua</td><td className="py-4 text-center">Sí</td><td className="py-4 text-center font-bold text-indigo-600">No</td></tr>
+<tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              <tr>
+                <td className="py-4 font-medium opacity-80">Espacio máximo</td>
+                <td className="py-4 text-center">20MB</td>
+                <td className="py-4 text-center font-bold text-indigo-600">1GB (1024MB)</td>
+              </tr>
+              <tr>
+                <td className="py-4 font-medium opacity-80">Marca de agua</td>
+                <td className="py-4 text-center">Sí</td>
+                <td className="py-4 text-center font-bold text-indigo-600">No</td>
+              </tr>
+              {/* NUEVA FILA: PROTECCIÓN CON CONTRASEÑA */}
+              <tr>
+                <td className="py-4 font-medium opacity-80">Protección con contraseña</td>
+                <td className="py-4 text-center">No</td>
+                <td className="py-4 text-center font-bold text-indigo-600">Sí</td>
+              </tr>
             </tbody>
-          </table>
+                      </table>
           <div className="flex gap-4 w-full">
             <button onClick={() => { onUpgrade(); onClose(); }} className={`w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2`}>
               <Zap size={16} fill="currentColor"/> 5€ / Mes
@@ -2385,15 +2494,24 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade }) => 
     </div>
   );
 };
+
 const App = () => {
   const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
-  const [isDarkMode, setIsDarkMode] = useState(false); 
-const [userPlan, setUserPlan] = useState('FREE');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [userPlan, setUserPlan] = useState('FREE');
+  const [showWatermark, setShowWatermark] = useState(true);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-const [activeLegalPage, setActiveLegalPage] = useState(null);
+  const [activeLegalPage, setActiveLegalPage] = useState(null);
   const [limitMessage, setLimitMessage] = useState("");
-const [showSubscriptionModal, setShowSubscriptionModal] = useState(false); // Esta es la de la tabla
-  
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+const [showBetaModal, setShowBetaModal] = useState(false);
+const [pendingUpgrade, setPendingUpgrade] = useState(false);
+const [isUnlocked, setIsUnlocked] = useState(false);
+  const [accessInput, setAccessInput] = useState("");
+  const [isPublicView, setIsPublicView] = useState(false);
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
   // Detección automática del idioma al cargar si no hay guardado en local
   const [language, setLanguage] = useState(() => {
     try {
@@ -2432,21 +2550,126 @@ const [showSubscriptionModal, setShowSubscriptionModal] = useState(false); // Es
   };
 const [currentUser, setCurrentUser] = useState(null);
 
+// 1. EFECTO DE AUTENTICACIÓN (Supabase)
   useEffect(() => {
     if (!supabase) return;
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { setCurrentUser(session.user); setIsAuthenticated(true); }
+      if (session) { 
+        setCurrentUser(session.user); 
+        setIsAuthenticated(true);
+        // NUEVO: Cogemos el email del usuario de Supabase para mostrarlo en el perfil
+        setProfileContent(prev => ({...prev, email: session.user.email})); 
+      }
     });
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user || null);
       setIsAuthenticated(!!session);
     });
+    
     return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY)
+  useEffect(() => {
+    const path = window.location.pathname.replace('/', '');
+    
+    if (path && path !== '') {
+      setIsPublicView(true);
+      setIsPreview(true);
+      setIsLoadingPortal(true);
+      
+      const fetchPortal = async () => {
+        if (!supabase) return;
+        const { data, error } = await supabase
+          .from('portals')
+          .select('*')
+          .eq('slug', path)
+          .single();
+          
+        if (error || !data) {
+          setNotFound(true);
+        } else {
+          const canvasData = data.canvas_data || {};
+          if (canvasData.items) setCanvasItems(canvasData.items);
+          if (canvasData.design) setDesign(canvasData.design);
+          if (canvasData.profile) setProfileContent(canvasData.profile);
+          
+          if (data.is_protected) {
+            setProfileContent(prev => ({
+              ...prev, 
+              isPasswordProtected: true, 
+              portalPassword: data.password_hash || prev.portalPassword 
+            }));
+          }
+        }
+        setIsLoadingPortal(false);
+      };
+      fetchPortal();
+    }
   }, []);
 
   // Estado para el banner de cookies
   const [showCookieBanner, setShowCookieBanner] = useState(false);
+// 1. EFECTO DE AUTENTICACIÓN (Supabase)
+  useEffect(() => {
+    if (!supabase) return;
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) { setCurrentUser(session.user); setIsAuthenticated(true); }
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || null);
+      setIsAuthenticated(!!session);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
+  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY)
+  useEffect(() => {
+    // Leemos la URL actual quitando la barra inicial (ej: "localhost:5173/mi-slug" -> "mi-slug")
+    const path = window.location.pathname.replace('/', '');
+    
+    // Si hay texto en la URL, asumimos que es una visita a un portal público
+    if (path && path !== '') {
+      setIsPublicView(true);
+      setIsPreview(true); // Forzamos el modo visualización
+      setIsLoadingPortal(true);
+      
+      const fetchPortal = async () => {
+        if (!supabase) return;
+        const { data, error } = await supabase
+          .from('portals')
+          .select('*')
+          .eq('slug', path)
+          .single();
+          
+        if (error || !data) {
+          setNotFound(true);
+        } else {
+          const canvasData = data.canvas_data || {};
+          if (canvasData.items) setCanvasItems(canvasData.items);
+          if (canvasData.design) setDesign(canvasData.design);
+          if (canvasData.profile) setProfileContent(canvasData.profile);
+          
+          // Ajustamos el candado si el portal es privado
+          if (data.is_protected) {
+            setProfileContent(prev => ({
+              ...prev, 
+              isPasswordProtected: true, 
+              portalPassword: data.password_hash || prev.portalPassword 
+            }));
+          }
+        }
+        setIsLoadingPortal(false);
+      };
+      fetchPortal();
+    }
+  }, []);
+  
   const [profileContent, setProfileContent] = useState({});
   // --- ESCÁNER MÁGICO DE IMÁGENES (Con Compresión Automática) ---
   const processBlobsInObject = async (obj, userId) => {
@@ -2522,15 +2745,36 @@ const savePortalData = async (isManual = false) => {
         if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
         if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
 
+// --- SOLUCIÓN AL ERROR FOREIGN KEY ---
+        // 1. Primero nos aseguramos de que el usuario exista en la tabla profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({ 
+            id: currentUser.id,
+            updated_at: new Date() 
+          });
+          
+        if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
+        // ------------------------------------
+
+        // 2. Ahora sí, guardamos el portal con total seguridad
         const { error } = await supabase
           .from('portals')
           .upsert({ 
             id: currentUser.id,
-            canvas_items: processedCanvas.result,
-            design_settings: design,
-            profile_content: processedProfile.result,
+            user_id: currentUser.id,
+            // Aquí mantenemos la lógica de la URL personalizada que añadimos antes:
+            slug: processedProfile.result?.slug || currentUser.id,
+            brand_name: processedProfile.result?.name || 'Mi Marca',
+            canvas_data: {
+              items: processedCanvas.result,
+              design: design,
+              profile: processedProfile.result
+            },
+is_protected: processedProfile.result?.isPasswordProtected || false,
             updated_at: new Date()
           });
+
         if (error) throw error;
         
         if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
@@ -2540,8 +2784,9 @@ const savePortalData = async (isManual = false) => {
       }
     }
   };
+
   const [canvasItems, setCanvasItems] = useState([
-    { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
+        { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
     { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
     { id: 'identity', type: 'identity', content: {} }, // Nuevo módulo insertado aquí
     { id: 'logo', type: 'logo', content: {} },
@@ -2652,7 +2897,7 @@ const savePortalData = async (isManual = false) => {
     });
     
     // --- CÁLCULO DEL LÍMITE SEGÚN EL PLAN ---
-    const limit = userPlan === 'FREE' ? 12 : 60;
+    const limit = userPlan === 'FREE' ? 20 : 1024;
     return Math.min(size, limit).toFixed(1);
   }, [canvasItems, profileContent, userPlan]); 
 
@@ -2664,7 +2909,7 @@ const savePortalData = async (isManual = false) => {
     window.URL.createObjectURL = function(file) {
       if (file instanceof File || file instanceof Blob) {
         const fileSizeMB = file.size / (1024 * 1024);
-        const currentLimit = userPlan === 'FREE' ? 12 : 60;
+        const currentLimit = userPlan === 'FREE' ? 20 : 1024;
         const currentUsed = parseFloat(usedStorage);
         const remainingSpace = currentLimit - currentUsed;
 
@@ -2865,7 +3110,7 @@ const savePortalData = async (isManual = false) => {
 
     if (item.type === 'header') {
       return (
-         <div id={`module-${item.id}`} key={item.id} className="mb-8">
+         <div id={`module-${item.id}`} key={item.id} className="sticky top-6 z-[45] mb-12 mx-auto w-full max-w-7xl px-4 md:px-0 print:relative print:top-0">
             <HeaderModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} allItems={canvasItems} t={t} isPreview={isPreview} />
          </div>
       );
@@ -2916,19 +3161,7 @@ const savePortalData = async (isManual = false) => {
             case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
             case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
             case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
-            case 'profile': return (
-                <UserProfileModal 
-                    design={design.style} 
-                    isDarkMode={isDarkMode} 
-                    content={item.content} 
-                    update={(c) => updateComponent(item.id, c)} 
-                    t={t} 
-                    isPreview={isPreview} 
-                    isOpen={isProfileOpen} 
-                    onClose={() => setIsProfileOpen(false)} 
-                    usedSpace={usedStorage}
-                />
-            );
+            case 'profile': return null;
             default: return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
           }
         })()}
@@ -2942,6 +3175,65 @@ const savePortalData = async (isManual = false) => {
       <span className={`text-[10px] font-bold uppercase tracking-widest text-center transition-colors ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-900'}`}>{label}</span>
     </div>
   );
+
+  // =========================================================================
+  // PANTALLAS DE INTERCEPCIÓN (VISTA PÚBLICA Y MURO DE CONTRASEÑA)
+  // =========================================================================
+
+  if (isLoadingPortal) {
+    return <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><Wand2 className="animate-spin text-indigo-500 mb-4" size={40} /><p className="font-bold">Cargando portal...</p></div>;
+  }
+
+  if (notFound) {
+    return <div className={`flex h-screen w-full items-center justify-center flex-col ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><AlertCircle size={60} className="text-rose-500 mb-4"/><h1 className="text-2xl font-black mb-2">Portal no encontrado</h1><p className="opacity-60">Esta URL no existe o ha sido eliminada.</p></div>;
+  }
+
+  // EL MURO DE CONTRASEÑA (Ruta 2)
+  if (isPublicView && profileContent?.isPasswordProtected && !isUnlocked) {
+    return (
+      <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}>
+        <div className={`w-full max-w-md p-8 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-200'} text-center animate-in zoom-in-95 duration-300`}>
+          <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock size={32} className="text-indigo-500" />
+          </div>
+          <h2 className="text-2xl font-black mb-2">Portal Privado</h2>
+          <p className={`text-sm mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            Este portal está protegido. Introduce la contraseña de acceso proporcionada por la marca.
+          </p>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (accessInput === profileContent.portalPassword) {
+              setIsUnlocked(true);
+            } else {
+              showToast("Contraseña incorrecta");
+              setAccessInput("");
+            }
+          }} className="space-y-4">
+            <input
+              type="password"
+              value={accessInput}
+              onChange={(e) => setAccessInput(e.target.value)}
+              placeholder="Escribe la contraseña..."
+              className={`w-full p-4 rounded-xl text-center font-mono tracking-widest outline-none border transition-all ${isDarkMode ? 'bg-black/20 border-white/10 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 focus:border-indigo-500'}`}
+              autoFocus
+            />
+            <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+              <Key size={18} /> Desbloquear Portal
+            </button>
+          </form>
+        </div>
+        {/* Renderizamos el Toast aquí por si fallan la contraseña */}
+        {toastMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
+            <div className={`px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+              <div className="bg-rose-500/20 p-1 rounded-full"><AlertCircle size={14} className="text-rose-500" /></div>
+              {toastMessage}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex h-screen font-sans overflow-hidden select-none ${isDarkMode ? 'bg-[#0a0c10] text-slate-300' : 'bg-white text-slate-900'}`}>
@@ -2972,19 +3264,49 @@ const savePortalData = async (isManual = false) => {
         usedSpace={usedStorage}
       />
 
-      {/* Auth Modal para Publicar */}
+{/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setPendingUpgrade(false);
+        }} 
         onAuthenticate={(user) => {
           setCurrentUser(user);
           setIsAuthenticated(true);
           setIsAuthModalOpen(false);
-showToast("¡Bienvenido, " + (user?.user_metadata?.full_name || user?.email) + "!");        }}
+          
+          // Si venia de intentar comprar, mostramos la Beta ahora que tiene sesion
+          if (pendingUpgrade) {
+            setShowBetaModal(true);
+            setPendingUpgrade(false);
+          } else {
+            showToast("Sesion iniciada con exito");
+          }
+        }}
         isDarkMode={isDarkMode} 
         t={t}
       />
-      {/* NOTIFICACIONES BONITAS (TOAST) */}
+
+      {/* MODAL DE SUSCRIPCION - INTERCEPTOR DE SEGURIDAD */}
+      <ManageSubscriptionModal 
+        isOpen={showSubscriptionModal} 
+        onClose={() => setShowSubscriptionModal(false)} 
+        onUpgrade={() => { 
+          setShowSubscriptionModal(false);
+          
+          if (!isAuthenticated) {
+            // OBLIGATORIO: Si no hay login, guardamos intencion y abrimos login
+            setPendingUpgrade(true);
+            setIsAuthModalOpen(true);
+          } else {
+            // SI YA ESTA LOGUEADO: Directo al mensaje de Beta
+            setShowBetaModal(true);
+          }
+        }} 
+        isDarkMode={isDarkMode}
+      />
+            {/* NOTIFICACIONES BONITAS (TOAST) */}
       {toastMessage && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className={`px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -3029,14 +3351,51 @@ showToast("¡Bienvenido, " + (user?.user_metadata?.full_name || user?.email) + "
         </div>
       )}
 
-      {/* MODAL DE SUSCRIPCIÓN (LA TABLA) */}
+{/* MODAL DE SUSCRIPCIÓN (LA TABLA) */}
       <ManageSubscriptionModal 
         isOpen={showSubscriptionModal} 
         onClose={() => setShowSubscriptionModal(false)} 
-onUpgrade={() => { setUserPlan('PRO'); showToast("¡Plan actualizado a PRO! Ahora tienes 60MB."); }}        isDarkMode={isDarkMode}
+        onUpgrade={() => { 
+          setShowSubscriptionModal(false); // Cerramos la tabla
+          
+          if (!isAuthenticated) {
+            // SI NO ESTÁ LOGUEADO: Recordamos la intención y pedimos registro
+            setPendingUpgrade(true);
+            setIsAuthModalOpen(true);
+            showToast("🔒 Crea una cuenta para continuar con el Plan PRO.");
+          } else {
+            // SI YA ESTÁ LOGUEADO: Directo al mensaje de Beta Cerrada
+            setShowBetaModal(true);
+          }
+        }} 
+        isDarkMode={isDarkMode}
       />
+            {/* MODAL BONITO DE BETA CERRADA (FAKE DOOR) */}
+      {showBetaModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'} border p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200`}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                <span className="text-4xl">🚀</span>
+              </div>
+              <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Beta Cerrada</h3>
+              <p className={`text-sm mb-8 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                ¡Nos encanta tu interés! Actualmente estamos en fase de Beta Cerrada y las plazas <strong>PRO</strong> están llenas. Te avisaremos en cuanto abramos nuevos cupos.
+              </p>
+              
+              <button 
+                onClick={() => setShowBetaModal(false)}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 active:scale-95 uppercase tracking-widest text-xs"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE TEXTOS LEGALES */}
-      <LegalModal 
+      <LegalModal
         isOpen={!!activeLegalPage} 
         page={activeLegalPage} 
         onClose={() => setActiveLegalPage(null)} 
@@ -3064,7 +3423,7 @@ onUpgrade={() => { setUserPlan('PRO'); showToast("¡Plan actualizado a PRO! Ahor
                     <DownloadCloud size={14} />
                     <span className="text-[10px] font-black uppercase">Storage</span>
                   </div>
-                  <span className={`text-[10px] font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{usedStorage} / {userPlan === 'FREE' ? '12.0' : '60.0'} MB</span>
+                  <span className={`text-[10px] font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{usedStorage} / {userPlan === 'FREE' ? '20.0' : '1024.0'} MB</span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
                   <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(parseFloat(usedStorage) / (userPlan === 'FREE' ? 12 : 60)) * 100}%` }}></div>
@@ -3194,10 +3553,8 @@ onUpgrade={() => { setUserPlan('PRO'); showToast("¡Plan actualizado a PRO! Ahor
           </header>
         )}
 
-        {isPreview && <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4"><Edit3 size={16} /> {t.ui.backToEdit}</button>}
-
-        <div id="canvas-scroll-area" className={`flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-24 custom-scrollbar`}>
-          <div className="max-w-7xl mx-auto min-h-[500px]">
+{isPreview && !isPublicView && <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4"><Edit3 size={16} /> {t.ui.backToEdit}</button>}
+<div id="canvas-scroll-area" className={`flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-12 custom-scrollbar`}>          <div className="max-w-7xl mx-auto min-h-[500px]">
             {canvasItems.map((item, index) => (
               <React.Fragment key={item.id}>
                 {renderCanvasItem(item, index)}
