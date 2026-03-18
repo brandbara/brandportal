@@ -1952,12 +1952,12 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
 // === FILE: UserProfileModal.tsx ===
 // ==============================================================================
 
-const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark }) => {  
+const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas }) => {  
   const [activeTab, setActiveTab] = useState('profile');
   const [showDangerZone, setShowDangerZone] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
   
-useEffect(() => {
+  useEffect(() => {
     // Solo rellenamos datos de relleno si el perfil está completamente vacío (usuario nuevo sin registro)
     if (!content.name && !content.email) {
       update({
@@ -2015,14 +2015,15 @@ useEffect(() => {
                   </div>
                   <p className="text-[10px] opacity-70">{safeT.profileTabs.filesMsg}</p>
               </div>
-<button onClick={() => { 
-    if(window.confirm("¿Seguro que quieres cerrar sesión? Si tienes cambios sin 'Publicar', podrían perderse.")) {
-        if(onLogout) onLogout(); 
-        onClose(); 
-    }
-}} className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors px-4">
-    <LogOut size={16} /> {safeT.profileTabs.logout}
-</button>           </div>
+              <button onClick={() => { 
+                  if(window.confirm("¿Seguro que quieres cerrar sesión? Si tienes cambios sin 'Publicar', podrían perderse.")) {
+                      if(onLogout) onLogout(); 
+                      onClose(); 
+                  }
+              }} className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors px-4">
+                  <LogOut size={16} /> {safeT.profileTabs.logout}
+              </button>
+           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
@@ -2046,7 +2047,6 @@ useEffect(() => {
                                 <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.role}</label><input type="text" value={content.role || ''} onChange={(e) => updateData('role', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                             </div>
                             
-                            {/* CAMPO: URL PERSONALIZADA (SLUG) */}
                             <div className="space-y-2">
                               <label className="text-xs font-bold uppercase tracking-wider opacity-50">URL Personalizada</label>
                               <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
@@ -2056,7 +2056,6 @@ useEffect(() => {
                                   type="text" 
                                   value={content.slug || ''} 
                                   onChange={(e) => {
-                                    // Forzamos minúsculas y cambiamos espacios por guiones para que sea una URL válida
                                     const cleanSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
                                     updateData('slug', cleanSlug);
                                   }} 
@@ -2094,34 +2093,43 @@ useEffect(() => {
                             </button>
                           </div>
 
-<div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
-                        <button 
-                            onClick={() => setShowDangerZone(!showDangerZone)}
-                            className="w-full flex items-center justify-between group"
-                        >
-                            <h4 className="font-bold flex items-center gap-2 text-rose-500 group-hover:text-rose-600 transition-colors">
-                                <AlertCircle size={16}/> Zona de Peligro
-                            </h4>
-                            <ChevronDown size={16} className={`text-rose-500 transition-transform duration-300 ${showDangerZone ? 'rotate-180' : ''}`} />
-                        </button>
+                          <div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
+<button 
+                                onClick={() => setShowDangerZone(!showDangerZone)}
+                                className="w-full flex items-center justify-between group"
+                            >
+                                <h4 className={`font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>
+                                    <Settings size={16} className="opacity-50" /> Ajustes Avanzados
+                                </h4>
+                                <ChevronDown size={16} className={`transition-transform duration-300 opacity-50 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} ${showDangerZone ? 'rotate-180' : ''}`} />
+                            </button>
 
-                        <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
-                                <p className="text-xs opacity-80 mb-4 text-rose-600 dark:text-rose-400 font-medium">
-                                    Una vez que borres tu cuenta, no hay vuelta atrás. Tus datos y portales serán eliminados permanentemente.
-                                </p>
-                                <button onClick={() => {
-                                  if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
-                                    alert("Cuenta borrada con éxito (Simulación)");
-                                    if(onLogout) onLogout();
-                                    onClose();
-                                  }
-                                }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
-                                  Eliminar mi cuenta definitivamente
-                                </button>
+                            <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-80 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <div className={`p-5 rounded-2xl border space-y-5 shadow-inner ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                                    {/* BOTÓN NARANJA AÑADIDO AQUÍ */}
+                                    <div>
+                                        <p className={`text-[10px] opacity-70 mb-2 font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Reiniciar Diseño</p>
+                                        <button 
+                                            onClick={onResetCanvas}
+                                            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 font-bold text-xs transition-all shadow-sm active:scale-95"
+                                        >
+                                            <Wand2 size={14} /> Empezar de cero (Resetear)
+                                        </button>
+                                    </div>
+                                    <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+                                        <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                        <button onClick={() => {
+                                          if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
+                                            alert("Cuenta borrada con éxito (Simulación)");
+                                            if(onLogout) onLogout();
+                                            onClose();
+                                          }
+                                        }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                                          Eliminar mi cuenta definitivamente
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                      </div>
+                          </div>
                       </div>
                   </div>
               )}
@@ -2131,60 +2139,54 @@ useEffect(() => {
                       <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.preferences}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.prefDesc}</p></div>
                       <div className="space-y-6">
                           
-                          {/* OPCIÓN PRO: MARCA DE AGUA */}
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Fingerprint size={20} className="text-indigo-500"/></div><div><h4 className="font-bold text-sm">Marca de agua "BrandBara"</h4><p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Muestra u oculta el crédito en el footer." : "Solo disponible en el Plan PRO."}</p></div></div>
                               <button disabled={userPlan !== 'PRO'} onClick={() => setShowWatermark(!showWatermark)} className={`w-12 h-6 rounded-full p-1 transition-colors ${showWatermark ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${showWatermark ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
-
-                          {/* NUEVA OPCIÓN PRO: PROTECCIÓN POR CONTRASEÑA */}
+                          
                           <div className={`p-4 rounded-xl border flex flex-col gap-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'bg-slate-50 border-slate-200'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}>
-                                    <Lock size={20} className="text-indigo-500"/>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-sm">Acceso Privado</h4>
-                                    <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Protege tu portal con una clave global para visitantes." : "Solo disponible en el Plan PRO."}</p>
-                                  </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}>
+                                  <Lock size={20} className="text-indigo-500"/>
                                 </div>
-                                <button 
-                                  disabled={userPlan !== 'PRO'} 
-                                  onClick={() => updateData('isPasswordProtected', !content.isPasswordProtected)} 
-                                  className={`w-12 h-6 rounded-full p-1 transition-colors ${content.isPasswordProtected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-white/20'}`}
-                                >
-                                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.isPasswordProtected ? 'translate-x-6' : 'translate-x-0'}`} />
-                                </button>
+                                <div>
+                                  <h4 className="font-bold text-sm">Acceso Privado</h4>
+                                  <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Protege tu portal con una clave global para visitantes." : "Solo disponible en el Plan PRO."}</p>
+                                </div>
                               </div>
-                              
-                              {content.isPasswordProtected && userPlan === 'PRO' && (
-                                <div className="relative group animate-in slide-in-from-top-2 duration-200">
-                                  <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
-                                  <input 
-                                    type="text" 
-                                    value={content.portalPassword || ''} 
-                                    onChange={(e) => updateData('portalPassword', e.target.value)}
-                                    placeholder="Define la contraseña de acceso..."
-                                    className={`w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border outline-none transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white focus:border-indigo-500' : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'}`}
-                                  />
-                                </div>
-                              )}
+                              <button 
+                                disabled={userPlan !== 'PRO'} 
+                                onClick={() => updateData('isPasswordProtected', !content.isPasswordProtected)} 
+                                className={`w-12 h-6 rounded-full p-1 transition-colors ${content.isPasswordProtected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-white/20'}`}
+                              >
+                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.isPasswordProtected ? 'translate-x-6' : 'translate-x-0'}`} />
+                              </button>
+                            </div>
+                            {content.isPasswordProtected && userPlan === 'PRO' && (
+                              <div className="relative group animate-in slide-in-from-top-2 duration-200">
+                                <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
+                                <input 
+                                  type="password" 
+                                  value={content.portalPassword || ''} 
+                                  onChange={(e) => updateData('portalPassword', e.target.value)} 
+                                  placeholder="Define la contraseña de acceso..." 
+                                  className={`w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border outline-none transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white focus:border-indigo-500' : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'}`}
+                                />
+                              </div>
+                            )}
                           </div>
 
-                          {/* IDIOMA */}
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4><p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p></div></div>
                               <select value={content.language || 'ES'} onChange={(e) => updateData('language', e.target.value)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><option value="ES">Español</option><option value="EN">English</option></select>
                           </div>
-
-                          {/* NOTIFICACIONES */}
+                          
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Bell size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.notif}</h4><p className="text-xs opacity-60">{safeT.profileTabs.notifDesc}</p></div></div>
                               <button onClick={() => toggleNotification('email')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.email ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.email ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
-
-                          {/* COOKIES */}
+                          
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Cookie size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.cookies}</h4><p className="text-xs opacity-60">{safeT.profileTabs.cookiesDesc}</p></div></div>
                               <button onClick={() => toggleNotification('cookies')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.cookies !== false ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.cookies !== false ? 'translate-x-6' : 'translate-x-0'}`} /></button>
@@ -2198,6 +2200,7 @@ useEffect(() => {
     </div>
   );
 });
+
 const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
   const safeT = t || TRANSLATIONS.ES;
   return (
@@ -3235,20 +3238,63 @@ if (item.type === 'header') {
         />
       )}
 
-      {/* User Profile Modal */}
+{/* User Profile Modal */}
       <UserProfileModal 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
-        onLogout={() => setIsAuthenticated(false)}
+        onLogout={() => {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }}
         isDarkMode={isDarkMode} 
         t={t} 
         content={profileContent} 
         update={setProfileContent}
         design={design.style}
         usedSpace={usedStorage}
-      />
+        // ESTA ES LA FUNCIÓN QUE FALTA:
+onResetCanvas={() => {
+            if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
+                // 1. Restaurar todos los módulos por defecto
+                const defaultCanvas = [
+                    { id: 'header-1', type: 'header', content: { title: profileContent.name || "Portal de Marca", logo: null, layout: 'standard' } },
+                    { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
+                    { id: 'identity', type: 'identity', content: {} },
+                    { id: 'logo', type: 'logo', content: {} },
+                    { id: 'color', type: 'color', content: { colors: [] } },
+                    { id: 'typography', type: 'typography', content: { levels: [] } },
+                    { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
+                    { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
+                    { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
+                    { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
+                    { id: 'icons', type: 'icons', content: {} },
+                    { id: 'web', type: 'web', content: {} },
+                    { id: 'social', type: 'social', content: {} },
+                    { id: 'cobranding', type: 'cobranding', content: {} },
+                    { id: 'assets', type: 'assets', content: {} },
+                    { id: 'footer-1', type: 'footer', content: { copyright: `© ${new Date().getFullYear()} ${profileContent.name || 'BrandBara'}` } }
+                ];
+                setCanvasItems(defaultCanvas);
 
-      {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
+                // 2. Restaurar diseño (Color, bordes, sombras)
+                setDesign({ 
+                    style: DESIGN_STYLES.crystal, 
+                    palette: COLOR_PALETTES[0], 
+                    font: 'Inter', 
+                    canvasBg: 'bg-slate-50', 
+                    spacing: SPACING_OPTIONS.normal 
+                });
+
+                // 3. Restaurar tipografía
+                setCurrentFont('Inter');
+
+                // 4. Cerrar modal y avisar
+                setIsProfileOpen(false);
+if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
+            }
+        }}
+      />                
+        {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => {
