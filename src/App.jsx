@@ -3509,7 +3509,7 @@ if (item.type === 'header') {
                     </div>
                   </div>
 
-              {/* TOOLS SECTION */}
+{/* TOOLS SECTION */}
               <div>
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.tools}</h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -3519,9 +3519,14 @@ if (item.type === 'header') {
                   <DraggableTool type="typography" icon={Type} label={t.ui.typography} />
                   <DraggableTool type="image" icon={ImageIcon} label={t.ui.image} />
                   <DraggableTool type="bento" icon={LayoutGrid} label={t.ui.bento} />
+                  <DraggableTool type="editorial" icon={FileText} label={t.ui.editorial} />
+                  <DraggableTool type="icons" icon={Smile} label={t.ui.icons} />
+                  <DraggableTool type="web" icon={Laptop} label={t.ui.web} />
+                  <DraggableTool type="social" icon={Instagram} label={t.ui.social} />
+                  <DraggableTool type="cobranding" icon={Users} label={t.ui.cobranding} />
+                  <DraggableTool type="assets" icon={FileArchive} label={t.ui.assets} />
                 </div>
               </div>
-
             </div>
           </div>
         </div>
