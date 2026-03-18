@@ -1108,11 +1108,16 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
 
                     {!isPreview && (
                         <>
-                            <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button onClick={() => updateVariation(variant.id, 'bg', variant.bg === 'light' ? 'dark' : 'light')} className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 shadow-md touch-manipulation"><SunMoon size={16}/></button>
-                                <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation"><Trash2 size={16}/></button>
-                            </div>
-                            <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
+<div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <button 
+            onClick={() => updateVariation(variant.id, 'bg', variant.bg === 'light' ? 'dark' : 'light')} 
+            className={`p-2 backdrop-blur-md rounded-full shadow-md touch-manipulation transition-colors ${variant.bg === 'dark' ? 'bg-white/20 text-white hover:bg-white/40' : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
+            title="Cambiar fondo"
+        >
+            <SunMoon size={16}/>
+        </button>
+        <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation" title="Eliminar"><Trash2 size={16}/></button>
+    </div>                            <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
                             <input id={`var-up-${variant.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleVariationUpload(e, variant.id)} />
                         </>
                     )}
