@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { 
   Wand2, Coffee, Type, Image as ImageIcon,
   LayoutGrid, Globe, Sun, Moon, Eye, ChevronDown, 
-  Plus, Trash2, X,
-  Upload, Check, AlertCircle, Grid, Smartphone,
+  Plus, Trash2, X, Upload, Check, AlertCircle, Grid, Smartphone,
   Layers, Palette, Hash, FileText, ImagePlus, 
   PaintBucket, Copy, ExternalLink,
   ChevronUp, Shuffle, LayoutTemplate, Menu, Anchor,
@@ -12,12 +11,11 @@ import {
   Home, Search, User, Settings, Bell, Mail, Twitter, Linkedin, Facebook,
   Link2, SunMoon, Grid3X3, Columns, Video,
   Sliders, CreditCard, LogOut, Lock, Cookie,
-  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
-  FileArchive, DownloadCloud
+ Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
+  FileArchive, DownloadCloud, Loader2, Save
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
-
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -235,7 +233,7 @@ const isVideoUrl = (url) => {
 };
 
 // ==============================================================================
-// === FILE: UserProfileModal.tsx ===
+// === FILE: UserProfileModal.tsx === (O donde tengas el EditableText)
 // ==============================================================================
 
 const EditableText = ({ text, className = '', tag = 'div', placeholder = '', isDarkMode, onChange, isPreview, style = {} }) => {
@@ -252,7 +250,8 @@ const EditableText = ({ text, className = '', tag = 'div', placeholder = '', isD
       suppressContentEditableWarning
       role="textbox" 
       aria-multiline="true"
-      className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-slate-400 focus:bg-current/5 rounded px-2 -mx-2 transition-colors cursor-text ${finalClass} break-words max-w-full`}
+      // CAMBIOS AQUÍ: Añadimos hover:bg y hover:ring para que se vea que es editable al pasar el ratón
+      className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-slate-400 focus:bg-indigo-500/10 hover:bg-slate-500/5 dark:hover:bg-white/5 hover:ring-1 hover:ring-dashed hover:ring-slate-400/50 rounded px-2 -mx-2 transition-all cursor-text ${finalClass} break-words max-w-full`}
       placeholder={placeholder}
       style={style}
       onBlur={(e) => onChange && onChange(e.currentTarget.textContent)}
@@ -1953,17 +1952,20 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
   const [showDangerZone, setShowDangerZone] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
   
-  useEffect(() => {
-    if (!content.name) update({
-      ...content, 
-      name: "Alex Designer", 
-      role: "Product Designer",
-      location: "Madrid, Spain",
-      bio: "Creating digital experiences.",
-      joinDate: new Date().toLocaleDateString(),
-      notifications: { email: true, push: false },
-      language: content.language || 'ES'
-    });
+useEffect(() => {
+    // Solo rellenamos datos de relleno si el perfil está completamente vacío (usuario nuevo sin registro)
+    if (!content.name && !content.email) {
+      update({
+        ...content, 
+        name: content.name || "Tu Nombre / Marca", 
+        role: content.role || "Diseño / Marketing",
+        location: content.location || "Madrid, Spain",
+        bio: content.bio || "Creando experiencias digitales.",
+        joinDate: content.joinDate || new Date().toLocaleDateString(),
+        notifications: content.notifications || { email: true, push: false },
+        language: content.language || 'ES'
+      });
+    }
   }, []);
 
   const handleAvatarUpload = (e) => { 
@@ -2549,23 +2551,41 @@ const [isUnlocked, setIsUnlocked] = useState(false);
     setTimeout(() => setToastMessage(null), 3000);
   };
 const [currentUser, setCurrentUser] = useState(null);
+const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
 
 // 1. EFECTO DE AUTENTICACIÓN (Supabase)
   useEffect(() => {
     if (!supabase) return;
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const handleSession = (session) => {
       if (session) { 
         setCurrentUser(session.user); 
         setIsAuthenticated(true);
-        // NUEVO: Cogemos el email del usuario de Supabase para mostrarlo en el perfil
-        setProfileContent(prev => ({...prev, email: session.user.email})); 
+        
+        // Magia UX: Extraemos el nombre con el que se acaba de registrar
+        const fullName = session.user.user_metadata?.full_name || '';
+        
+        setProfileContent(prev => {
+          const isDefaultName = !prev.name || prev.name === 'Alex Designer' || prev.name === 'Tu Nombre / Marca';
+          return {
+            ...prev, 
+            email: session.user.email,
+            // Si no tiene nombre o tiene el por defecto, le ponemos su nombre real
+            name: (isDefaultName && fullName) ? fullName : (prev.name || 'Mi Marca'),
+            // Autogeneramos una URL amigable (slug) basada en su nombre si no tiene una
+            slug: (!prev.slug && fullName) ? fullName.toLowerCase().replace(/[^a-z0-9-]/g, '-') : (prev.slug || '')
+          };
+        }); 
+      } else {
+        setCurrentUser(null);
+        setIsAuthenticated(false);
       }
-    });
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => handleSession(session));
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user || null);
-      setIsAuthenticated(!!session);
+      handleSession(session);
     });
     
     return () => subscription.unsubscribe();
@@ -2611,66 +2631,9 @@ const [currentUser, setCurrentUser] = useState(null);
   }, []);
 
   // Estado para el banner de cookies
-  const [showCookieBanner, setShowCookieBanner] = useState(false);
-// 1. EFECTO DE AUTENTICACIÓN (Supabase)
-  useEffect(() => {
-    if (!supabase) return;
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) { setCurrentUser(session.user); setIsAuthenticated(true); }
-    });
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user || null);
-      setIsAuthenticated(!!session);
-    });
-    
-    return () => subscription.unsubscribe();
-  }, []);
+const [showCookieBanner, setShowCookieBanner] = useState(false);
+const [profileContent, setProfileContent] = useState({}); // <--- AÑADE ESTA LÍNEA
 
-  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY)
-  useEffect(() => {
-    // Leemos la URL actual quitando la barra inicial (ej: "localhost:5173/mi-slug" -> "mi-slug")
-    const path = window.location.pathname.replace('/', '');
-    
-    // Si hay texto en la URL, asumimos que es una visita a un portal público
-    if (path && path !== '') {
-      setIsPublicView(true);
-      setIsPreview(true); // Forzamos el modo visualización
-      setIsLoadingPortal(true);
-      
-      const fetchPortal = async () => {
-        if (!supabase) return;
-        const { data, error } = await supabase
-          .from('portals')
-          .select('*')
-          .eq('slug', path)
-          .single();
-          
-        if (error || !data) {
-          setNotFound(true);
-        } else {
-          const canvasData = data.canvas_data || {};
-          if (canvasData.items) setCanvasItems(canvasData.items);
-          if (canvasData.design) setDesign(canvasData.design);
-          if (canvasData.profile) setProfileContent(canvasData.profile);
-          
-          // Ajustamos el candado si el portal es privado
-          if (data.is_protected) {
-            setProfileContent(prev => ({
-              ...prev, 
-              isPasswordProtected: true, 
-              portalPassword: data.password_hash || prev.portalPassword 
-            }));
-          }
-        }
-        setIsLoadingPortal(false);
-      };
-      fetchPortal();
-    }
-  }, []);
-  
-  const [profileContent, setProfileContent] = useState({});
   // --- ESCÁNER MÁGICO DE IMÁGENES (Con Compresión Automática) ---
   const processBlobsInObject = async (obj, userId) => {
     let hasChanges = false;
@@ -2728,42 +2691,48 @@ const [currentUser, setCurrentUser] = useState(null);
     return { result, hasChanges };
   };
 const savePortalData = async (isManual = false) => {
-    // 1. Guardado en LocalStorage (Copia de seguridad instantánea)
+    // 1. Guardado en LocalStorage (Copia de seguridad instantánea anti-pérdidas)
     const dataToSave = { canvasItems, design, profileContent, isDarkMode, language, currentFont };
     localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
 
-    // 2. Guardado en Supabase (Solo si está configurado y el usuario está logueado)
-    if (supabase && isAuthenticated && currentUser) {
+    // Si es un autoguardado y no está logueado, no hacemos nada en la DB
+    if (!isManual && (!isAuthenticated || !currentUser)) return;
+    
+    // Si le dio a "Publicar" a mano y no está logueado, abrimos modal
+    if (isManual && (!isAuthenticated || !currentUser)) {
+        setIsAuthModalOpen(true);
+        return;
+    }
+
+    // INICIO DEL CHIVATO
+    setSaveStatus('saving');
+
+    if (supabase) {
       try {
         if (isManual) showToast("Procesando imágenes y publicando portal...");
-
-        // Pasa el escáner para subir las imágenes nuevas solo cuando pulsamos "Publicar"
+        
+        // Pasa el escáner para subir las imágenes nuevas solo cuando pulsamos "Publicar" o guardar
         const processedCanvas = isManual ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
         const processedProfile = isManual ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
 
-        // Si se subieron imágenes, actualizamos la interfaz con las URLs reales
-        if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
-        if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
-
-// --- SOLUCIÓN AL ERROR FOREIGN KEY ---
-        // 1. Primero nos aseguramos de que el usuario exista en la tabla profiles
+        // --- SOLUCIÓN AL ERROR FOREIGN KEY ---
+        // 1. Nos aseguramos de que el usuario exista en la tabla profiles con formato ISO
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({ 
             id: currentUser.id,
-            updated_at: new Date() 
+            updated_at: new Date().toISOString() 
           });
           
         if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
         // ------------------------------------
 
-        // 2. Ahora sí, guardamos el portal con total seguridad
+        // 2. Guardamos el portal con total seguridad y formato ISO
         const { error } = await supabase
           .from('portals')
           .upsert({ 
             id: currentUser.id,
             user_id: currentUser.id,
-            // Aquí mantenemos la lógica de la URL personalizada que añadimos antes:
             slug: processedProfile.result?.slug || currentUser.id,
             brand_name: processedProfile.result?.name || 'Mi Marca',
             canvas_data: {
@@ -2771,20 +2740,33 @@ const savePortalData = async (isManual = false) => {
               design: design,
               profile: processedProfile.result
             },
-is_protected: processedProfile.result?.isPasswordProtected || false,
-            updated_at: new Date()
+            is_protected: processedProfile.result?.isPasswordProtected || false,
+            password_hash: processedProfile.result?.portalPassword || null, // Soluciona el bug del muro de contraseña
+            updated_at: new Date().toISOString() // Formato estricto para evitar fallos de Supabase
           });
 
         if (error) throw error;
         
-        if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
+        // Actualizamos la UI si el escáner cambió blobs locales por URLs de Supabase
+        if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
+        if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
+
+        // Feedback Visual
+        setSaveStatus('saved');
+        if (isManual) {
+           showToast("¡Portal publicado y sincronizado con éxito!");
+        } 
+        
+        // Ocultar el check verde después de 2.5 segundos
+        setTimeout(() => setSaveStatus('idle'), 2500);
+
       } catch (err) {
         console.error("Error de sincronización:", err.message);
+        setSaveStatus('error');
         if (isManual) showToast("Error al publicar: " + err.message);
       }
     }
   };
-
   const [canvasItems, setCanvasItems] = useState([
         { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
     { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
@@ -2839,9 +2821,23 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
     }
   };
 
-  // NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL)
+// NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL MEJORADO)
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
-    savePortalData();
+    // 1. Evitamos que guarde una página vacía nada más actualizar (El borrado fantasma)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // 2. Esperamos 1.5 segundos después de la última tecla antes de guardar (Debounce)
+    const debounceTimer = setTimeout(() => {
+      savePortalData();
+    }, 1500);
+
+    // Si el usuario vuelve a teclear antes de 1.5s, cancelamos el temporizador anterior
+    return () => clearTimeout(debounceTimer);
   }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated]);
 
 // Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
@@ -2899,8 +2895,7 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
     // --- CÁLCULO DEL LÍMITE SEGÚN EL PLAN ---
     const limit = userPlan === 'FREE' ? 20 : 1024;
     return Math.min(size, limit).toFixed(1);
-  }, [canvasItems, profileContent, userPlan]); 
-
+}, [canvasItems, profileContent, userPlan]);
   // --- INTERCEPTOR DE SUBIDAS (BLOQUEADOR) ---
 // --- INTERCEPTOR DE SUBIDAS INVULNERABLE ---
   useEffect(() => {
@@ -2952,16 +2947,11 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
      }));
   }, [language, t]);
 
-  const generateRandomStyle = () => {
-    // Random Design
+const generateRandomStyle = () => {
     const styleKeys = Object.keys(DESIGN_STYLES);
     const randomStyleKey = styleKeys[Math.floor(Math.random() * styleKeys.length)];
     const randomStyle = DESIGN_STYLES[randomStyleKey];
-    
-    // Random Palette
     const randomPalette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
-    
-    // Random Font
     const randomFont = FONTS[Math.floor(Math.random() * FONTS.length)];
     
     setDesign({ 
@@ -2973,7 +2963,6 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
     });
     setCurrentFont(randomFont);
 
-    // Update Bento logic in Magic Remix to support ANY number of items
     setCanvasItems(prevItems => prevItems.map(item => {
         if (item.type === 'header') return { ...item, content: { ...item.content, layout: Math.random() > 0.5 ? 'center' : 'standard' } };
         if (item.type === 'logo') return { ...item, content: { ...item.content, layout: Math.random() > 0.5 ? 'center' : 'standard' } };
@@ -2986,24 +2975,18 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
                 'col-span-2 md:col-span-2 md:row-span-1',
                 'col-span-2 md:col-span-2 md:row-span-2',
             ];
-            
-            // Randomly assign spans to existing items
             const newItems = (item.content.items || []).map(it => ({
                 ...it,
                 span: spanOptions[Math.floor(Math.random() * spanOptions.length)]
             }));
-
-            // Force hero for first item if exists
             if (newItems.length > 0) {
                  newItems[0].span = Math.random() > 0.5 ? 'col-span-2 md:col-span-2 md:row-span-2' : 'col-span-2 md:col-span-2 md:row-span-1';
             }
-
             return { ...item, content: { ...item.content, items: newItems } };
         }
         return item;
     }));
-  };
-  
+  };  
   const changeLayout = (layoutKey) => {
     const selectedLayout = DESIGN_STYLES[layoutKey];
     setDesign(prev => ({ ...prev, style: selectedLayout, font: selectedLayout.font }));
@@ -3108,14 +3091,10 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
     const currentShadow = style.shadow;
     const cardClasses = `relative group transition-all duration-500 ease-in-out ${style.radius} ${style.border} ${currentShadow} ${currentBg} ${isDarkMode ? 'border-white/5' : palette.border} ${spacingClass} overflow-hidden`;
 
-    if (item.type === 'header') {
-      return (
-         <div id={`module-${item.id}`} key={item.id} className="sticky top-6 z-[45] mb-12 mx-auto w-full max-w-7xl px-4 md:px-0 print:relative print:top-0">
-            <HeaderModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} allItems={canvasItems} t={t} isPreview={isPreview} />
-         </div>
-      );
+if (item.type === 'header') {
+      return null;
     }
-    
+
     if (item.type === 'footer') {
         return (
           <React.Fragment key={item.id}>
@@ -3264,7 +3243,7 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
         usedSpace={usedStorage}
       />
 
-{/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
+      {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => {
@@ -3488,6 +3467,42 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
                   </div>
                 </div>
               </div>
+              {/* Selector de Fondo Personalizado */}
+                  <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
+                    <button onClick={() => toggleAccordion('bg')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                      <div className="flex items-center gap-3"><PaintBucket size={16} /><span className="text-xs font-bold uppercase tracking-widest">Fondo Canvas</span></div>
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'bg' ? 'rotate-180' : ''}`} />
+                    </button>
+                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'bg' ? 'max-h-[500px]' : 'max-h-0'}`}>
+                      <div className={`p-4 space-y-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+
+                        {/* Color Modo Claro */}
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Sun size={12}/> Modo Claro</label>
+                           <div className="flex items-center gap-2 p-1 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5">
+                              <input type="color" value={design.customBgLight || '#f8fafc'} onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0" />
+                              <input type="text" value={design.customBgLight || ''} onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} placeholder="Por defecto" className="flex-1 text-xs p-2 rounded-lg bg-transparent outline-none uppercase font-mono" />
+                           </div>
+                        </div>
+
+                        {/* Color Modo Oscuro */}
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Moon size={12}/> Modo Oscuro</label>
+                           <div className="flex items-center gap-2 p-1 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5">
+                              <input type="color" value={design.customBgDark || '#0a0c10'} onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0" />
+                              <input type="text" value={design.customBgDark || ''} onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} placeholder="Por defecto" className="flex-1 text-xs p-2 rounded-lg bg-transparent outline-none uppercase font-mono" />
+                           </div>
+                        </div>
+
+                        {/* Botón Restaurar */}
+                        {(design.customBgLight || design.customBgDark) && (
+                           <button onClick={() => setDesign(prev => ({...prev, customBgLight: null, customBgDark: null}))} className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                              Restaurar por defecto
+                           </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
               {/* TOOLS SECTION */}
               <div>
@@ -3508,53 +3523,132 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
       </aside>
       )}
 
-      {/* CANVAS */}
-      <main className={`flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden ${isDarkMode ? 'bg-[#0a0c10]' : design.canvasBg}`} style={{ fontFamily: currentFont }}>
-        {!isPreview && (
-          <header className="absolute top-0 w-full h-20 flex items-center justify-end px-6 lg:px-12 z-30 pointer-events-none">
-            <div className="flex items-center gap-4 pointer-events-auto">
-              <button onClick={() => setMobileMenuOpen(true)} className={`lg:hidden p-2 rounded-xl border ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-700'}`}><Menu size={20} /></button>
-            </div>
+{/* CANVAS */}
+      <main 
+        className="flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden" 
+        style={{ 
+          fontFamily: currentFont, 
+          backgroundColor: isDarkMode ? (design.customBgDark || '#0a0c10') : (design.customBgLight || '#f8fafc') 
+        }}
+      >        
+{/* --- HEADER RESPONSIVE (ESTILO WETRANSFER MINIMALISTA) --- */}
+        {(() => {
+          const headerItem = canvasItems.find(i => i.type === 'header') || { id: 'header-1', content: {} };
+          const updateHeader = (newContent) => updateComponent(headerItem.id, newContent);
+          const navItems = canvasItems.filter(i => i.type !== 'header' && i.type !== 'footer');
+          const getModuleDisplayName = (item) => {
+              if (item.content?.title && typeof item.content.title === 'string' && item.content.title.trim() !== "") return item.content.title;
+              if (t.modules[item.type]?.title) return t.modules[item.type].title;
+              return t.ui[item.type] || item.type.charAt(0).toUpperCase() + item.type.slice(1);
+          };
 
-            <div className="flex gap-4 pointer-events-auto">
-              <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-bold uppercase transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>{language}</button>
-              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2.5 rounded-xl border transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-yellow-400 hover:bg-white/10' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>{isDarkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+          return (
+            <div className="absolute top-4 lg:top-8 left-0 right-0 z-[60] flex justify-center pointer-events-none px-4 lg:px-8">
               
-              {/* Profile Button */}
-              <button 
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setIsAuthModalOpen(true);
-                  } else {
-                    setIsProfileOpen(true);
-                  }
-                }} 
-                className={`p-2.5 rounded-xl border transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:text-indigo-600'}`} 
-                title={t.ui.profile}
-              >
-                 <User size={18} />
-              </button>
+              {/* === VERSIÓN COMPACTA (Móviles y Tablets) === */}
+              <div className={`lg:hidden flex items-center justify-between w-full max-w-md h-[56px] p-2 rounded-2xl shadow-xl border pointer-events-auto backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#151924]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setMobileMenuOpen(true)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'}`}>
+                    <Menu size={20} />
+                  </button>
+                  <div onClick={() => !isPreview && document.getElementById('unified-logo-upload').click()} className={`h-10 w-10 shrink-0 rounded-xl overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
+                    {headerItem.content?.logo ? <img src={headerItem.content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={16} className="opacity-40" />}
+                  </div>
+                </div>
+                <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                <div className="flex items-center gap-1">
+                  {!isPreview && isAuthenticated && (
+                    <button onClick={() => savePortalData(true)} className={`h-10 w-10 flex items-center justify-center rounded-xl ${isDarkMode ? 'text-emerald-400 hover:bg-emerald-500/20' : 'text-emerald-600 hover:bg-emerald-50'}`}><Save size={18} /></button>
+                  )}
+                  <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}><Eye size={18} /></button>
+                </div>
+                {!isPreview && (
+                  <>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-10 px-4 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 font-bold text-xs shadow-sm"><Upload size={14} /></button>
+                  </>
+                )}
+              </div>
 
-              <button onClick={() => setIsPreview(!isPreview)} className={`p-2.5 rounded-xl border transition-all ${isPreview ? 'bg-indigo-600 border-indigo-500 text-white' : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:text-indigo-600')}`} title={t.ui.preview}><Eye size={18} /></button>
-              <div className="hidden sm:block w-px h-8 bg-slate-500/20 mx-2 self-center" />
-              <button 
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setIsAuthModalOpen(true);
-                  } else {
-                    savePortalData(true);
-                  }
-                }} 
-                className="px-5 py-2.5 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold text-xs rounded-xl shadow-lg hover:opacity-90 transition-opacity flex items-center gap-2"
-              >
-                <Upload size={14} /> <span className="hidden sm:inline">{t.ui.publish}</span>
-              </button>
+              {/* === VERSIÓN ESCRITORIO (3 Píldoras Minimalistas) === */}
+              <div className="hidden lg:flex flex-nowrap justify-center gap-6 xl:gap-8 w-full max-w-[1000px] pointer-events-auto">
+                
+                {/* 1. PÍLDORA NAVEGACIÓN (Sin el texto largo, solo Logo + Dropdown) */}
+                <div className={`h-[60px] flex items-center gap-1 p-2.5 pr-4 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
+                  
+                  {/* Botón Logo */}
+                  <div onClick={() => !isPreview && document.getElementById('unified-logo-upload').click()} className={`relative h-full aspect-square shrink-0 rounded-xl overflow-hidden flex items-center justify-center transition-colors ${!isPreview ? 'cursor-pointer hover:opacity-80' : ''} ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
+                    {headerItem.content?.logo ? <img src={headerItem.content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={16} className="opacity-40" />}
+                  </div>
+                  
+                  {/* Separador fino */}
+                  <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
+
+                  {/* Dropdown Navegación */}
+                  <div className="relative group h-full">
+                    <button className={`h-full flex items-center gap-3 px-4 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
+                      <Anchor size={15} className="opacity-50" /> {t.ui.navigate} <ChevronDown size={14} className="opacity-50 group-hover:rotate-180 transition-transform" />
+                    </button>
+                    <div className={`absolute top-full left-0 mt-4 w-60 py-2 rounded-2xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top z-[70] ${isDarkMode ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-100'}`}>
+                      <div className="max-h-[350px] overflow-y-auto custom-scrollbar p-2.5">
+                        {navItems.map((item, i) => (
+                          <button key={item.id} onClick={() => { const el = document.getElementById(`module-${item.id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className={`w-full text-left px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all flex items-center gap-3 ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+                            <span className="opacity-30 font-mono text-[11px] w-5">{String(i + 1).padStart(2, '0')}</span> 
+                            <span className="truncate">{getModuleDisplayName(item)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. PÍLDORA CONFIGURACIÓN */}
+                {!isPreview && (
+                  <div className={`h-[60px] flex items-center p-2.5 gap-1 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
+                    <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-full px-5 flex items-center justify-center rounded-xl text-[13px] font-medium transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{language}</button>
+                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-full px-5 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{isDarkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
+                    {isAuthenticated && (
+                      <div className="flex items-center">
+                        {saveStatus === 'saving' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-amber-500"><Loader2 size={14} className="animate-spin" /> Auto</span>}
+                        {saveStatus === 'saved' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-emerald-500"><Check size={14} /> Listo</span>}
+                        <button onClick={() => savePortalData(true)} className={`h-full px-5 flex items-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title="Guardar manual">
+                           Guardar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. PÍLDORA ACCIONES */}
+                <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
+                  <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
+                  <button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
+                    <span className="hidden sm:inline">{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
+                    {isPreview ? <Edit3 size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
+                  </button>
+                  {!isPreview && (
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-full px-7 flex items-center justify-center gap-3 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 text-[13px] font-medium shadow-sm hover:opacity-80 transition-opacity">
+                      <span>{t.ui.publish}</span>
+                      <Upload size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <input id="unified-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) updateHeader({...headerItem.content, logo: URL.createObjectURL(f)}); }} />
+              </div>
             </div>
-          </header>
+          );
+        })()}
+        {/* --- FIN HEADER UNIFICADO --- */}
+
+        {isPreview && !isPublicView && (
+           <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
+              <Edit3 size={16} /> {t.ui.backToEdit}
+           </button>
         )}
 
-{isPreview && !isPublicView && <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4"><Edit3 size={16} /> {t.ui.backToEdit}</button>}
-<div id="canvas-scroll-area" className={`flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-12 custom-scrollbar`}>          <div className="max-w-7xl mx-auto min-h-[500px]">
+<div id="canvas-scroll-area" className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-32 custom-scrollbar">          <div className="max-w-7xl mx-auto min-h-[500px]">
             {canvasItems.map((item, index) => (
               <React.Fragment key={item.id}>
                 {renderCanvasItem(item, index)}
@@ -3562,15 +3656,16 @@ is_protected: processedProfile.result?.isPasswordProtected || false,
             ))}
           </div>
 
-          {/* Footer Legal Global (Fuera de los módulos editables) */}
+          {/* Footer Legal Global */}
           <div className={`max-w-7xl mx-auto mt-20 pt-8 pb-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs select-none ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
              <div className="text-center md:text-left">
                 &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
              </div>
              <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
-<button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
+                <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
                 <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</button>
-                <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>             </div>
+                <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>
+             </div>
           </div>
         </div>
       </main>
