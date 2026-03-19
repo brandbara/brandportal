@@ -265,7 +265,7 @@ const EditableText = ({ text, className = '', tag = 'div', placeholder = '', isD
 // === FILE: ModuleHeader.tsx ===
 // ==============================================================================
 
-const ModuleHeader = ({ title, desc, onDescChange, children, isDarkMode, isPreview, isCenterLayout }) => {
+const ModuleHeader = ({ title, desc, onTitleChange, onDescChange, children, isDarkMode, isPreview, isCenterLayout }) => {
   const alignClass = isCenterLayout ? 'items-center text-center' : 'items-start text-left';
   
   return (
@@ -277,8 +277,9 @@ const ModuleHeader = ({ title, desc, onDescChange, children, isDarkMode, isPrevi
           tag="h3" 
           isDarkMode={isDarkMode} 
           isPreview={isPreview} 
+          onChange={onTitleChange}
         />
-        {(desc || onDescChange) && (
+                {(desc || onDescChange) && (
           <EditableText 
             text={desc} 
             className={`text-base leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} 
@@ -696,11 +697,17 @@ const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isP
 
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
 
-  return (
+return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.identity.title} desc={t.modules.identity.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-         <button onClick={addItem} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-colors flex-shrink-0 shadow-sm ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}>
-            <Plus size={14}/> {t.ui.add}
+      <ModuleHeader 
+        title={content.title || t.modules.identity.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.identity.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >
+         <button onClick={addItem} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-colors flex-shrink-0 shadow-sm ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}>            <Plus size={14}/> {t.ui.add}
          </button>
       </ModuleHeader>
       
@@ -1851,11 +1858,18 @@ const BentoModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
   const activeLayoutClasses = bentoLayouts[currentLayoutIdx] || bentoLayouts[0];
 
-  return (
+return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.bento.title} desc={t.modules.bento.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
+      <ModuleHeader 
+        title={content.title || t.modules.bento.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.bento.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >
          <div className="flex gap-2">
-            {!isPreview && (<button onClick={toggleLayout} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border transition-all active:scale-95 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-white border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'}`}><Shuffle size={14}/> <span>Cambiar Diseño</span></button>)}
+                      {!isPreview && (<button onClick={toggleLayout} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border transition-all active:scale-95 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-white border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'}`}><Shuffle size={14}/> <span>Cambiar Diseño</span></button>)}
          </div>
 </ModuleHeader>
       <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
