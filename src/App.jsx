@@ -1820,9 +1820,30 @@ const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPre
 });
 
 const BentoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
-  const bentoLayouts = [['col-span-2 md:col-span-2 md:row-span-2', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-2 md:col-span-2 md:row-span-1', 'col-span-4 md:col-span-4 md:row-span-1'], ['col-span-2 md:col-span-2 md:row-span-1', 'col-span-2 md:col-span-2 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-2 md:col-span-2 md:row-span-1'], ['col-span-1 md:col-span-1 md:row-span-2', 'col-span-2 md:col-span-2 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-2', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-1'], ['col-span-2 md:col-span-3 md:row-span-2', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-1 md:col-span-1 md:row-span-1', 'col-span-2 md:col-span-2 md:row-span-1', 'col-span-2 md:col-span-2 md:row-span-1']];
-  const [currentLayoutIdx, setCurrentLayoutIdx] = useState(content.layoutIndex || 0);
-  useEffect(() => { if (!content.items || content.items.length !== 5) { const existing = content.items || []; const newItems = Array(5).fill(null).map((_, i) => ({ id: existing[i]?.id || `bento-${Date.now()}-${i}`, type: existing[i]?.type || 'image', src: existing[i]?.src || null, })); update({ ...content, items: newItems, layoutIndex: 0 }); } else if (content.layoutIndex !== undefined && content.layoutIndex !== currentLayoutIdx) { setCurrentLayoutIdx(content.layoutIndex); } }, [content.items, content.layoutIndex]);
+  // Matemáticas exactas de CSS Grid. Mobile = 2 cols. Escritorio (md) = 4 cols. Cero huecos.
+  const bentoLayouts = [
+      // Diseño 1: Hero Izquierda (Escritorio: 4x2, Móvil: 2x3)
+      ['col-span-2 md:col-span-2 row-span-1 md:row-span-2', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1'],
+      
+      // Diseño 2: Hero Derecha (Escritorio: 4x2, Móvil: 2x3)
+      ['col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-2 md:col-span-2 row-span-1 md:row-span-2', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1'],
+      
+      // Diseño 3: Simétrico (Escritorio: 4x2, Móvil: 2x3)
+      ['col-span-1 md:col-span-1 row-span-1 md:row-span-2', 'col-span-2 md:col-span-2 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-2', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1'],
+      
+      // Diseño 4: Panorámico inferior (Escritorio: 4x3, Móvil: 2x3)
+      ['col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-1 md:col-span-1 row-span-1 md:row-span-1', 'col-span-2 md:col-span-4 row-span-1 md:row-span-2']
+  ];
+  const [currentLayoutIdx, setCurrentLayoutIdx] = useState(content.layoutIndex || 0);  useEffect(() => { 
+      if (!content.items || content.items.length !== 5) { 
+          const existing = content.items || []; 
+          const newItems = Array(5).fill(null).map((_, i) => ({ id: existing[i]?.id || `bento-${Date.now()}-${i}`, type: existing[i]?.type || 'image', src: existing[i]?.src || null })); 
+          update({ ...content, items: newItems, layoutIndex: 0 }); 
+      } else if (content.layoutIndex !== undefined && content.layoutIndex !== currentLayoutIdx) { 
+          setCurrentLayoutIdx(content.layoutIndex); 
+      } 
+  }, [content.items, content.layoutIndex]);
+  
   const items = content.items || [];
   const toggleLayout = () => { const nextIdx = (currentLayoutIdx + 1) % bentoLayouts.length; setCurrentLayoutIdx(nextIdx); update({ ...content, layoutIndex: nextIdx }); };
   const handleItemUpdate = (id, type, value) => { const newItems = items.map(it => it.id === id ? { ...it, type: type, src: value } : it); update({ ...content, items: newItems }); };
@@ -1836,8 +1857,8 @@ const BentoModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
          <div className="flex gap-2">
             {!isPreview && (<button onClick={toggleLayout} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border transition-all active:scale-95 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-white border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'}`}><Shuffle size={14}/> <span>Cambiar Diseño</span></button>)}
          </div>
-      </ModuleHeader>
-      <div className={`grid grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
+</ModuleHeader>
+      <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
         {items.map((item, index) => (
           <div key={item.id || `bento-item-${index}`} className={`${activeLayoutClasses[index] || 'col-span-1 row-span-1'} ${design.radius} border relative group overflow-hidden flex flex-col items-center justify-center p-0 transition-all duration-500 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
             {item.src ? (<div className="absolute inset-0 w-full h-full">{item.type === 'video' || isVideoUrl(item.src) ? (<iframe src={getEmbedUrl(item.src) || item.src} className="w-full h-full object-cover pointer-events-none" title={`Video ${item.id}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>) : (<img src={item.src} alt="Bento Item" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />)}{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
@@ -2972,28 +2993,12 @@ const generateRandomStyle = () => {
     setCurrentFont(randomFont);
 
     setCanvasItems(prevItems => prevItems.map(item => {
-        if (item.type === 'header') return { ...item, content: { ...item.content, layout: Math.random() > 0.5 ? 'center' : 'standard' } };
-        if (item.type === 'logo') return { ...item, content: { ...item.content, layout: Math.random() > 0.5 ? 'center' : 'standard' } };
-        if (item.type === 'color') return { ...item, content: { ...item.content, layout: Math.random() > 0.5 ? 'list' : 'grid' } };
-        if (item.type === 'footer') return { ...item, content: { ...item.content, layout: Math.floor(Math.random() * 3) } };
+if (item.type === 'footer') return { ...item, content: { ...item.content, layout: Math.floor(Math.random() * 3) } };
         if (item.type === 'bento') {
-            const spanOptions = [
-                'col-span-1 md:col-span-1 md:row-span-1',
-                'col-span-1 md:col-span-1 md:row-span-2',
-                'col-span-2 md:col-span-2 md:row-span-1',
-                'col-span-2 md:col-span-2 md:row-span-2',
-            ];
-            const newItems = (item.content.items || []).map(it => ({
-                ...it,
-                span: spanOptions[Math.floor(Math.random() * spanOptions.length)]
-            }));
-            if (newItems.length > 0) {
-                 newItems[0].span = Math.random() > 0.5 ? 'col-span-2 md:col-span-2 md:row-span-2' : 'col-span-2 md:col-span-2 md:row-span-1';
-            }
-            return { ...item, content: { ...item.content, items: newItems } };
+            // Asignamos uno de los 4 diseños bento predefinidos y matemáticamente perfectos
+            return { ...item, content: { ...item.content, layoutIndex: Math.floor(Math.random() * 4) } };
         }
-        return item;
-    }));
+        return item;          }));
   };  
   const changeLayout = (layoutKey) => {
     const selectedLayout = DESIGN_STYLES[layoutKey];
@@ -3067,8 +3072,7 @@ const generateRandomStyle = () => {
       ]};
       case 'editorial': return { blocks: [{type:'text', content: t.defaults.editorialContent}] };
       case 'image': return { images: [1,2,3,4] };
-      case 'bento': return { items: Array(5).fill({ type: 'image', src: null }), layoutIndex: 0 };
-      case 'header': return { title: t.modules.header.title, logo: null };
+case 'bento': return { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${Date.now()}-${i}`, type: 'image', src: null })), layoutIndex: 0 };      case 'header': return { title: t.modules.header.title, logo: null };
       case 'layout': return { selectedGrid: 'grid1' };
       case 'cobranding': return {};
       case 'assets': return { assets: [
@@ -3601,31 +3605,43 @@ if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
           return (
             <div className="absolute top-4 lg:top-8 left-0 right-0 z-[60] flex justify-center pointer-events-none px-4 lg:px-8">
               
-              {/* === VERSIÓN COMPACTA (Móviles y Tablets) === */}
+{/* === VERSIÓN COMPACTA (Móviles y Tablets) === */}
               <div className={`lg:hidden flex items-center justify-between w-full max-w-md h-[56px] p-2 rounded-2xl shadow-xl border pointer-events-auto backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#151924]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => setMobileMenuOpen(true)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'}`}>
-                    <Menu size={20} />
+                  <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'} ${mobileMenuOpen ? (isDarkMode ? 'bg-white/10' : 'bg-slate-200') : ''}`}>
+                    {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
                   </button>
                   <div onClick={() => !isPreview && document.getElementById('unified-logo-upload').click()} className={`h-10 w-10 shrink-0 rounded-xl overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
                     {headerItem.content?.logo ? <img src={headerItem.content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={16} className="opacity-40" />}
                   </div>
                 </div>
-                <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
-                <div className="flex items-center gap-1">
-                  {!isPreview && isAuthenticated && (
-                    <button onClick={() => savePortalData(true)} className={`h-10 w-10 flex items-center justify-center rounded-xl ${isDarkMode ? 'text-emerald-400 hover:bg-emerald-500/20' : 'text-emerald-600 hover:bg-emerald-50'}`}><Save size={18} /></button>
+                
+                <div className="flex items-center gap-1 ml-auto">
+                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                  </button>
+                  
+                  {!isPreview && (
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-emerald-400 hover:bg-white/10' : 'text-emerald-600 hover:bg-slate-100'}`}>
+                      <Save size={18} />
+                    </button>
                   )}
-                  <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}><Eye size={18} /></button>
-                </div>
-                {!isPreview && (
-                  <>
-                    <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-1"></div>
-                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-10 px-4 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 font-bold text-xs shadow-sm"><Upload size={14} /></button>
-                  </>
-                )}
-              </div>
+                  
+                  <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
+                    {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
+                  </button>
 
+                  {!isPreview && (
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                      {currentUser && profileContent.avatar ? (
+                        <img src={profileContent.avatar} alt="User" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={18} />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
               {/* === VERSIÓN ESCRITORIO (3 Píldoras Minimalistas) === */}
               <div className="hidden lg:flex flex-nowrap justify-center gap-6 xl:gap-8 w-full max-w-[1000px] pointer-events-auto">
                 
