@@ -2484,8 +2484,10 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
   );
 };
 
-const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade }) => {
+const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) => {
   if (!isOpen) return null;
+  const isES = t?.ui?.publish === "Publicar";
+  const btnText = isES ? "Estoy interesado" : "I'm interested";
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className={`relative w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row ${isDarkMode ? 'bg-[#151924] border border-white/10' : 'bg-white border border-slate-200'} rounded-3xl`}>
@@ -2529,12 +2531,12 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade }) => 
               </tr>
             </tbody>
                       </table>
-          <div className="flex gap-4 w-full">
+<div className="flex gap-4 w-full">
             <button onClick={() => { onUpgrade(); onClose(); }} className={`w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2`}>
-              <Zap size={16} fill="currentColor"/> 5€ / Mes
+              <Zap size={16} fill="currentColor"/> {btnText}
             </button>
           </div>
-        </div>
+         </div>
       </div>
     </div>
   );
@@ -3403,8 +3405,9 @@ if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
       <ManageSubscriptionModal 
         isOpen={showSubscriptionModal} 
         onClose={() => setShowSubscriptionModal(false)} 
-        onUpgrade={() => { 
-          setShowSubscriptionModal(false); // Cerramos la tabla
+        t={t}
+        onUpgrade={() => {
+                    setShowSubscriptionModal(false); // Cerramos la tabla
           
           if (!isAuthenticated) {
             // SI NO ESTÁ LOGUEADO: Recordamos la intención y pedimos registro
@@ -3422,11 +3425,37 @@ if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
       {showBetaModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'} border p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200`}>
-            <div className="flex flex-col items-center text-center">
+<div className="flex flex-col items-center text-center">
               <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                <span className="text-4xl">🚀</span>
+                <span className="text-4xl">🎁</span>
               </div>
-              <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Beta Cerrada</h3>
+              <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {t.ui.publish === "Publicar" ? "¡Gracias por tu interés!" : "Thanks for your interest!"}
+              </h3>
+              <p className={`text-sm mb-6 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                {t.ui.publish === "Publicar" 
+                  ? "Actualmente las funciones PRO están en Beta Cerrada. Ayúdanos a mejorar rellenando una breve encuesta y te regalaremos 2 meses gratis cuando lancemos." 
+                  : "PRO features are currently in Closed Beta. Help us improve by taking a short survey and get 2 months free when we launch!"}
+              </p>
+              
+              <div className="space-y-3 w-full">
+                <a 
+                  href="https://tally.so/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 active:scale-95 uppercase tracking-widest text-xs"
+                  onClick={() => setShowBetaModal(false)}
+                >
+                  {t.ui.publish === "Publicar" ? "Ir a la encuesta" : "Take the survey"}
+                </a>
+                <button 
+                  onClick={() => setShowBetaModal(false)}
+                  className={`w-full py-3.5 rounded-xl font-bold transition-colors text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  {t.ui.publish === "Publicar" ? "Quizás más tarde" : "Maybe later"}
+                </button>
+              </div>
+            </div>              <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Beta Cerrada</h3>
               <p className={`text-sm mb-8 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 ¡Nos encanta tu interés! Actualmente estamos en fase de Beta Cerrada y las plazas <strong>PRO</strong> están llenas. Te avisaremos en cuanto abramos nuevos cupos.
               </p>
@@ -3439,7 +3468,6 @@ if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
               </button>
             </div>
           </div>
-        </div>
       )}
 
       {/* MODAL DE TEXTOS LEGALES */}
@@ -3631,6 +3659,12 @@ if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
                 </div>
                 
                 <div className="flex items-center gap-1 ml-auto">
+                  {/* Botón de Idioma (Añadido para móvil) */}
+                  <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-10 w-10 flex items-center justify-center rounded-xl text-[11px] font-black transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                    {language}
+                  </button>
+
+                  {/* Botón Modo Oscuro */}
                   <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                     {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
