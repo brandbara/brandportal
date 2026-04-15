@@ -31,8 +31,7 @@ const COLOR_PALETTES = [
 
 const PRESET_COLORS = ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#fee2e2', '#ffedd5', '#fef3c7', '#d9f99d', '#dbeafe', '#e0e7ff', '#fae8ff', '#fce7f3'];
 const SPACING_OPTIONS = { compact: { id: 'compact', name: 'Compact', value: 'mb-8' }, normal: { id: 'normal', name: 'Normal', value: 'mb-16' }, relaxed: { id: 'relaxed', name: 'Relaxed', value: 'mb-32' } };
-const FONTS = ['Inter', 'Roboto', 'Open Sans', 'Montserrat', 'Space Mono', 'Nunito', 'Outfit'];
-
+const FONTS = ['Inter', 'Montserrat', 'Open Sans', 'Roboto', 'Space Mono', 'Nunito', 'Outfit', 'Work Sans'];
 const DESIGN_STYLES = {
   crystal: { 
     name: 'Pure Crystal', id: 'crystal', radius: 'rounded-3xl', border: 'border border-white/40 hover:border-white/60 transition-colors duration-300', 
@@ -521,6 +520,7 @@ const GridOverlay = ({ type }) => (
 const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [activeTab, setActiveTab] = useState('bg'); // 'bg' o 'text'
+  const [showTextMenu, setShowTextMenu] = useState(false);
 
   const updateContent = (changes) => { update({ ...content, ...changes }); };
   
@@ -551,32 +551,90 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
       {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/10' : 'bg-gradient-to-b from-slate-50'}`} />}
       {content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0" />}
       
-      {!isPreview && (
+{!isPreview && (
         <div className="absolute top-4 right-4 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
           
+          {/* CONTENEDOR PRINCIPAL DEL MENÚ */}
           <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-full shadow-2xl border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
-            <button onClick={() => setShowColorPicker(!showColorPicker)} className={`p-2.5 rounded-full transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={18} /></button>
+            
+            {/* Botón Brocha (Color) */}
+            <button onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-full transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={18} /></button>
+            
+            {/* Botón Imagen (Fondo) */}
             <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors"><ImagePlus size={18} /></button>
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             
+            <div className="w-px h-6 bg-slate-300 dark:bg-white/20 mx-1 my-auto"></div>
+            
+            {/* NUEVO BOTÓN TEXTO (Tamaño y Kerning) */}
+            <div className="relative">
+              <button 
+                onClick={() => {
+                  setShowTextMenu(!showTextMenu);
+                  setShowColorPicker(false);
+                }} 
+                className={`p-2.5 rounded-full transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                title="Opciones de texto"
+              >
+                <Type size={18} />
+              </button>
+
+{showTextMenu && (
+                <div className="absolute top-full right-0 mt-3 p-4 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-4 animate-in fade-in slide-in-from-top-3 duration-200">
+                  
+                  {/* Selector de Tamaño */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Tamaño</span>
+                    <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                      <button onClick={() => updateContent({ textSize: 'medium' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textSize === 'medium' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Mediano</button>
+                      <button onClick={() => updateContent({ textSize: 'large' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textSize !== 'medium' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Grande</button>
+                    </div>
+                  </div>
+
+                  {/* NUEVO: Selector de Peso */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Grosor (Peso)</span>
+                    <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                      <button onClick={() => updateContent({ textWeight: 'regular' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textWeight === 'regular' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Regular</button>
+                      <button onClick={() => updateContent({ textWeight: 'semibold' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textWeight === 'semibold' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Semi</button>
+                      <button onClick={() => updateContent({ textWeight: 'black' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${!content?.textWeight || content?.textWeight === 'black' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Bold</button>
+                    </div>
+                  </div>
+
+                  {/* Selector de Kerning */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Separación (Kerning)</span>
+                    <div className="flex flex-col gap-1">
+                      <button onClick={() => updateContent({ textSpacing: 'tight' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'tight' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                        Apretado
+                      </button>
+                      <button onClick={() => updateContent({ textSpacing: 'normal' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${!content?.textSpacing || content?.textSpacing === 'normal' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                        Normal
+                      </button>
+                      <button onClick={() => updateContent({ textSpacing: 'wide' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'wide' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
+                        Separado
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+                          </div>
+
+            {/* EL SUBMENÚ DE COLOR ORIGINAL */}
             {showColorPicker && (
               <div className="absolute top-full right-0 mt-3 p-5 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-5 animate-in fade-in slide-in-from-top-3 duration-200">
-                
-                {/* 1. SEGMENTED CONTROL - FONDO / TEXTO */}
                 <div className="bg-slate-100 dark:bg-white/5 p-1 rounded-full flex gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     <button onClick={() => setActiveTab('bg')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'bg' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.background || 'Fondo'}</button>
                     <button onClick={() => setActiveTab('text')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'text' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.text || 'Texto'}</button>
                 </div>
 
-                {/* 2. SELECTOR DE FONDO */}
                 {activeTab === 'bg' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
-                        {/* UNIFIED HEX INPUT */}
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
                             <input type="color" value={content?.bgType === 'color' ? (content?.bgValue || '#ffffff') : '#ffffff'} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
                             <input type="text" value={content?.bgType === 'color' ? content?.bgValue : ''} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} placeholder="#HEX" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
                         </div>
-                        {/* COLOR PRESETS */}
                         <div>
                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Presets</span>
                            <div className="grid grid-cols-8 gap-1.5">
@@ -586,7 +644,6 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                     </div>
                 )}
 
-                {/* 3. SELECTOR DE TEXTO */}
                 {activeTab === 'text' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
@@ -599,36 +656,29 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                             </button>
                         )}
                         {!content?.textColor && (
-                           <div className="text-center py-6 px-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                              <span className="text-3xl block mb-2">🤖</span>
+                            <div className="text-center py-6 px-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
+                              <span className="text-3xl block mb-2"></span>
                               <p className="text-xs text-slate-500 dark:text-slate-400">El color del texto se ajusta automáticamente según el fondo.</p>
-                           </div>
+                            </div>
                         )}
                     </div>
                 )}
-
               </div>
             )}
           </div>
         </div>
-      )}
-      
+      )}      
       <div className="relative z-10 max-w-5xl w-full">
-        <div 
-            className={`mb-6 inline-flex items-center gap-2.5 px-6 py-2 rounded-full border text-xs font-black uppercase tracking-[0.3em] ${isDarkBg ? 'bg-white/10 text-white' : 'bg-white/60 text-indigo-600'}`} 
-            style={content?.textColor ? { color: content.textColor, borderColor: `${content.textColor}30`, backgroundColor: `${content.textColor}05` } : {}}
-        >
-          <Globe size={15} /> V1.0
-        </div>
-        <EditableText 
-            text={content?.title || t.modules.hero.title} 
-            className={`text-5xl md:text-7xl lg:text-9xl font-black mb-7 tracking-tighter ${content?.textColor ? '' : titleColorClass}`} 
-            tag="h1" 
+       
+<EditableText 
+         text={content?.title || t.modules.hero.title} 
+         className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} 
+         tag="h1"
             isPreview={isPreview} 
             onChange={(v) => update({...content, title: v})} 
             style={customTextColor} 
         />
-        <EditableText 
+                <EditableText 
             text={content?.subtitle || t.modules.hero.subtitle} 
             className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} 
             tag="p" 
@@ -2650,6 +2700,58 @@ const [isUnlocked, setIsUnlocked] = useState(false);
 const [currentUser, setCurrentUser] = useState(null);
 const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
 
+// --- FUNCIÓN DE CIERRE DE SESIÓN TOTAL ---
+  const handleSignOut = async () => {
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Error cerrando sesión en Supabase:", error);
+    } finally {
+      // 1. Limpiamos Supabase
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      
+      // 2. Limpiamos el LocalStorage para que no recargue datos viejos al refrescar
+      localStorage.removeItem('brandPortalData');
+      
+      // 3. Restauramos el Perfil a blanco
+      setProfileContent({});
+      
+      // 4. Restauramos el Diseño por defecto
+      setDesign({ 
+        style: DESIGN_STYLES.crystal, 
+        palette: COLOR_PALETTES[0], 
+        font: 'Inter', 
+        canvasBg: 'bg-slate-50', 
+        spacing: SPACING_OPTIONS.normal 
+      });
+      setCurrentFont('Inter');
+      
+      // 5. Restauramos los módulos del Canvas por defecto
+      setCanvasItems([
+        { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
+        { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
+        { id: 'identity', type: 'identity', content: {} },
+        { id: 'logo', type: 'logo', content: {} },
+        { id: 'color', type: 'color', content: { colors: [] } },
+        { id: 'typography', type: 'typography', content: { levels: [] } },
+        { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
+        { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
+        { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
+        { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
+        { id: 'icons', type: 'icons', content: {} },
+        { id: 'web', type: 'web', content: {} },
+        { id: 'social', type: 'social', content: {} },
+        { id: 'cobranding', type: 'cobranding', content: {} },
+        { id: 'assets', type: 'assets', content: {} },
+        { id: 'footer-1', type: 'footer', content: { copyright: "" } }
+      ]);
+
+      // 6. Avisamos al usuario
+      showToast("Sesión cerrada correctamente.");
+    }
+  };
+
 // 1. EFECTO DE AUTENTICACIÓN (Supabase)
   useEffect(() => {
     if (!supabase) return;
@@ -3358,7 +3460,8 @@ if (item.type === 'header') {
       <UserProfileModal 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)}
-        isDarkMode={isDarkMode} 
+onLogout={handleSignOut}
+        // ...        isDarkMode={isDarkMode} 
         t={t} 
         content={profileContent} 
         update={setProfileContent}
@@ -3530,8 +3633,8 @@ if (item.type === 'header') {
               </p>
               
               <div className="space-y-3 w-full">
-                <a 
-                  href="https://tally.so/" 
+<a 
+                  href="https://tally.so/r/EkJ4dN" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 active:scale-95 uppercase tracking-widest text-xs"
@@ -3539,7 +3642,7 @@ if (item.type === 'header') {
                 >
                   {t.ui.publish === "Publicar" ? "Ir a la encuesta" : "Take the survey"}
                 </a>
-                <button 
+                                <button 
                   onClick={() => setShowBetaModal(false)}
                   className={`w-full py-3.5 rounded-xl font-bold transition-colors text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'}`}
                 >
@@ -3882,8 +3985,7 @@ if (item.type === 'header') {
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap');
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 20px; }
         .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); }
