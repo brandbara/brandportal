@@ -4173,48 +4173,233 @@ onLogout={handleSignOut}
   );
 };
 
+// ==========================================
+// LANDING PAGE (Estética UX 2026 + Logo Oficial)
+// ==========================================
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [lang, setLang] = useState('ES');
+  
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  const content = {
+    ES: {
+      nav: "Abrir Editor",
+      badge: "EL NUEVO ESTÁNDAR DE GESTIÓN DE MARCA",
+      hero1: "El PDF está obsoleto.",
+      hero2: "Tus brand guidelines,",
+      hero3: "ahora vivas.",
+      subtitle: "Construye y protege el capital de tu marca. Centraliza tus activos digitales y haz que el trabajo creativo sea impecable, seguro y accesible para agencias y stakeholders.",
+      cta: "Comenzar gratis",
+      ctaSub: "No requiere tarjeta de crédito",
+      bento1Title: "Protección absoluta de tus Assets.",
+      bento1Desc: "Se acabó enviar archivos sueltos. Una única fuente de la verdad donde logotipos, fuentes y componentes están blindados y siempre actualizados.",
+      bento2Title: "Sincronización Total",
+      bento2Desc: "Alinea a equipos internos y agencias externas al instante. Un cambio se refleja en tiempo real para todos.",
+      bento3Title: "Entregables Impecables",
+      bento3Desc: "Despídete de las presentaciones estáticas. Entrega portales interactivos que elevan el valor de tu trabajo creativo.",
+      footer: "BrandBara Site Inc. © 2026 — Madrid, Spain."
+    },
+    EN: {
+      nav: "Open Editor",
+      badge: "THE NEW STANDARD FOR BRAND MANAGEMENT",
+      hero1: "The PDF is obsolete.",
+      hero2: "Your brand guidelines,",
+      hero3: "now alive.",
+      subtitle: "Build and protect your brand equity. Centralize your digital assets and make creative work flawless, secure, and always accessible for agencies and stakeholders.",
+      cta: "Start for free",
+      ctaSub: "No credit card required",
+      bento1Title: "Absolute Asset Protection.",
+      bento1Desc: "Stop sending loose files. A single source of truth where logos, fonts, and components are shielded and always up to date.",
+      bento2Title: "Total Synchronization",
+      bento2Desc: "Align internal teams and external agencies instantly. One change reflects in real-time for everyone.",
+      bento3Title: "Flawless Deliverables",
+      bento3Desc: "Say goodbye to static presentations. Deliver interactive portals that elevate the value of your creative work.",
+      footer: "BrandBara Site Inc. © 2026 — Madrid, Spain."
+    }
+  };
+
+  const t = content[lang];
+
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white font-sans selection:bg-indigo-500/30 flex flex-col">
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full shrink-0">
-        <div className="text-2xl font-black tracking-tighter italic">BRANDBARA</div>
-        <button 
-          onClick={() => navigate('/')}
-          className="text-sm font-bold bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full transition-all"
+    <div className={`min-h-screen font-sans selection:bg-violet-500 selection:text-white flex flex-col overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-[#f8fafc] text-slate-900'}`}>
+      
+      {/* NAVEGACIÓN - LOGO EXACTO AL DEL EDITOR */}
+      <nav className="flex justify-between items-center px-6 py-6 md:px-12 md:py-8 w-full max-w-[1400px] mx-auto shrink-0 z-50">
+        
+        {/* LOGO OFICIAL BRANDBARA */}
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          Entrar al editor
-        </button>
+          <span className={`text-2xl md:text-3xl font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-[#0f111a]'}`}>
+            BRANDBARA
+          </span>
+          <span className={`px-1.5 py-0.5 text-[10px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+            BETA
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* Toggle Light/Dark Mode */}
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)} 
+            className={`p-2.5 rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 bg-white/5 hover:bg-white/10' : 'text-slate-600 bg-slate-200/50 hover:bg-slate-200'}`}
+          >
+            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          {/* Selector de Idioma */}
+          <div className={`hidden md:flex p-1 rounded-xl border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <button onClick={() => setLang('ES')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'ES' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-800')}`}>ES</button>
+            <button onClick={() => setLang('EN')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'EN' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-800')}`}>EN</button>
+          </div>
+
+          <button 
+            onClick={() => navigate('/')} 
+            className={`hidden md:block px-6 py-2.5 rounded-xl text-sm font-black transition-all shadow-md hover:scale-105 active:scale-95 ${isDarkMode ? 'bg-white text-[#0a0c10]' : 'bg-[#0f111a] text-white'}`}
+          >
+            {t.nav}
+          </button>
+        </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-6 flex-1 flex flex-col items-center justify-center text-center py-20">
-        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full text-indigo-400 text-sm font-bold mb-8 animate-fade-in">
-          <Zap size={14} fill="currentColor" />
-          <span>Nueva versión Beta disponible</span>
-        </div>
+      <main className="w-full flex-1 flex flex-col items-center">
         
-        <h1 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter leading-[0.9]">
-          Deja de enviar PDFs. <br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
-            Haz que tu trabajo brille.
-          </span>
-        </h1>
-        
-        <p className="text-slate-400 text-xl md:text-2xl max-w-3xl mx-auto mb-12 leading-relaxed">
-          Crea manuales de marca interactivos en minutos. Sin código, sin límites de peso, siempre actualizados en un solo enlace.
-        </p>
+        {/* HERO SECTION - TIPOGRAFÍA FIEL A LA CAPTURA */}
+        <div className="w-full max-w-[1200px] px-6 pt-20 md:pt-32 pb-24 flex flex-col items-center text-center">
+          <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border text-xs font-bold uppercase tracking-widest mb-8 ${isDarkMode ? 'border-violet-500/20 bg-violet-500/10 text-violet-400' : 'border-violet-200 bg-violet-50 text-violet-600'}`}>
+            <Zap size={14} fill="currentColor" />
+            {t.badge}
+          </div>
+          
+          <h1 className="text-[3.5rem] md:text-[6rem] lg:text-[8rem] font-black tracking-tighter leading-[0.85] mb-8 flex flex-col items-center">
+            {/* 1. Gris */}
+            <span className={`block ${isDarkMode ? 'text-slate-500' : 'text-[#8a94a6]'}`}>
+              {t.hero1}
+            </span>
+            {/* 2. Negro / Blanco puro */}
+            <span className={`block ${isDarkMode ? 'text-white' : 'text-[#0f111a]'}`}>
+              {t.hero2}
+            </span>
+            {/* 3. Degradado Violeta a Rosa exacto al de la captura */}
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-rose-500 pb-4">
+              {t.hero3}
+            </span>
+          </h1>
+          
+          <p className={`text-lg md:text-2xl max-w-3xl leading-relaxed mb-12 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            {t.subtitle}
+          </p>
 
-        <button 
-          onClick={() => navigate('/')}
-          className="group relative bg-white text-black px-10 py-5 rounded-2xl font-black text-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 overflow-hidden mx-auto shadow-2xl shadow-white/10"
-        >
-          <span className="relative z-10">PROBAR EL EDITOR</span>
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
-        </button>
+          <div className="flex flex-col items-center gap-4">
+            <button 
+              onClick={() => navigate('/')}
+              className="px-10 py-5 bg-violet-600 hover:bg-violet-700 text-white rounded-2xl text-lg md:text-xl font-black transition-all hover:scale-105 shadow-xl shadow-violet-600/20 flex items-center gap-3"
+            >
+              {t.cta}
+            </button>
+            <span className={`text-xs font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ctaSub}</span>
+          </div>
+        </div>
+
+        {/* BENTO GRID EDITORIAL */}
+        <div className="w-full max-w-[1400px] px-6 pb-32">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px] md:auto-rows-[400px]">
+            
+            {/* Bento 1: Protección de Assets */}
+            <div className={`md:col-span-2 rounded-[2.5rem] border p-10 md:p-16 flex flex-col justify-between relative overflow-hidden group transition-colors ${isDarkMode ? 'bg-[#151924] border-white/5' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/40'}`}>
+              <div className={`absolute top-0 right-0 w-[500px] h-[500px] blur-[100px] rounded-full -translate-y-1/2 translate-x-1/3 transition-colors duration-700 pointer-events-none ${isDarkMode ? 'bg-violet-600/20 group-hover:bg-violet-600/30' : 'bg-violet-400/10 group-hover:bg-violet-400/20'}`}></div>
+              
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 ${isDarkMode ? 'bg-white/5 border border-white/10 text-violet-400' : 'bg-violet-50 border border-violet-100 text-violet-600'}`}>
+                <Lock size={32} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight">
+                  {t.bento1Title}
+                </h3>
+                <p className={`text-lg md:text-xl font-medium max-w-xl leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.bento1Desc}
+                </p>
+              </div>
+            </div>
+
+            {/* Bento 2: Sincronización */}
+            <div className={`rounded-[2.5rem] border p-10 flex flex-col justify-between transition-colors ${isDarkMode ? 'bg-[#151924] border-white/5' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/40'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-white/5 border border-white/10 text-rose-400' : 'bg-rose-50 border border-rose-100 text-rose-600'}`}>
+                <Globe size={28} />
+              </div>
+              <div>
+                <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
+                  {t.bento2Title}
+                </h3>
+                <p className={`font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.bento2Desc}
+                </p>
+              </div>
+            </div>
+
+            {/* Bento 3: Entregables */}
+            <div className={`rounded-[2.5rem] border p-10 flex flex-col justify-between transition-colors ${isDarkMode ? 'bg-[#151924] border-white/5' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/40'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-white/5 border border-white/10 text-emerald-400' : 'bg-emerald-50 border border-emerald-100 text-emerald-600'}`}>
+                <LayoutTemplate size={28} />
+              </div>
+              <div>
+                <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
+                  {t.bento3Title}
+                </h3>
+                <p className={`font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                  {t.bento3Desc}
+                </p>
+              </div>
+            </div>
+
+            {/* Bento 4: Decorativo Minimalista */}
+            <div className={`md:col-span-2 rounded-[2.5rem] border p-10 flex items-center justify-center overflow-hidden relative ${isDarkMode ? 'bg-[#151924] border-white/5' : 'bg-white border-slate-200 shadow-xl shadow-slate-200/40'}`}>
+              <div className={`w-[120%] md:w-[80%] aspect-video border rounded-[2rem] shadow-2xl flex flex-col p-6 transform rotate-2 hover:rotate-0 transition-transform duration-700 ${isDarkMode ? 'bg-[#0a0c10] border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                <div className={`flex items-center gap-3 mb-6 border-b pb-4 ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                  {/* Logo miniatura en el mockup */}
+                  <div className="flex items-center gap-1.5 opacity-60">
+                    <span className={`text-sm font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-[#0f111a]'}`}>
+                      BRANDBARA
+                    </span>
+                    <span className={`px-1 py-0.5 text-[6px] font-black rounded border ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                      BETA
+                    </span>
+                  </div>
+                  <div className={`w-24 h-2 rounded-full ml-auto ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}></div>
+                </div>
+                <div className="flex-1 grid grid-cols-3 gap-6">
+                  <div className={`col-span-2 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200'}`}></div>
+                  <div className={`col-span-1 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-white border-slate-200'}`}></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </main>
+
+      {/* FOOTER */}
+      <footer className={`w-full py-12 flex flex-col items-center justify-center gap-6 border-t ${isDarkMode ? 'border-white/5 bg-[#0a0c10]' : 'border-slate-200 bg-[#f8fafc]'}`}>
+        <div className={`flex items-center gap-1.5 ${isDarkMode ? 'opacity-40 text-white' : 'opacity-50 text-slate-900'}`}>
+          <span className="font-black tracking-tighter italic text-lg">BRANDBARA</span>
+          <span className="px-1 py-0.5 text-[8px] font-black rounded border bg-transparent tracking-widest">
+            BETA
+          </span>
+        </div>
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'opacity-30' : 'opacity-40 text-slate-900'}`}>{t.footer}</span>
+      </footer>
     </div>
   );
 };
+
 const NotFoundPage = () => {
   const navigate = useNavigate();
   return (
