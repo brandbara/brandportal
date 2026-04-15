@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -206,6 +207,201 @@ const TRANSLATIONS = {
     cookie: { title: "We value your privacy", desc: "We use first and third-party cookies to personalize content, analyze our traffic, and offer you an incredible experience. By clicking 'Accept all', you give your consent.", manage: "Only Necessary", reject: "Reject", accept: "Accept All" },
     auth: { loginTitle: "Welcome back", registerTitle: "Create your account", loginDesc: "Log in to publish your portal.", registerDesc: "Sign up to save and publish your progress.", loginBtn: "Log In", registerBtn: "Sign Up", name: "Full name", namePlaceholder: "Your name", email: "Email", emailPlaceholder: "example@email.com", password: "Password", termsPre: "I have read and accept the", termsLink: "Terms of Use", privacyAnd: "and the", privacyLink: "Privacy Policy", success: "Successfully logged in! You can now publish your portal." },
     profileTabs: { title: "Settings", public: "Public Profile", publicDesc: "Information visible to other users and in your shared projects.", account: "Account", accountDesc: "Manage your credentials and security.", preferences: "Preferences", prefDesc: "Customize your BrandBara experience.", space: "Storage", filesMsg: "Files uploaded to the portal.", logout: "Log Out", changePass: "Change password", lang: "Language", langDesc: "Select the interface language.", notif: "Email Notifications", notifDesc: "Receive news and security alerts.", cookies: "Analytics Cookies", cookiesDesc: "Help us improve the platform anonymously.", role: "Role / Title", bio: "Biography" }
+  }
+};
+
+// ==============================================================================
+// BLINDAJE LEGAL GLOBAL - NIVEL EMPRESARIAL (ADAPTACIÓN STANDARDS V2.0)
+// ==============================================================================
+const LEGAL_CONTENT = {
+  privacy: {
+    EN: `
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-black mb-2">Standards Privacy Policy</h2>
+          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Last Updated: 03.09.26</p>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-bold mb-2">How This Privacy Policy Applies</h3>
+          <p class="mb-2">BrandBara Site Inc. (“BrandBara,” “we,” “us,” or “our”) operates the BrandBara platform, including the website at brandbara.com, the application at app.brandbara.com, and related services and APIs (collectively, the “Services”). This Privacy Policy describes what information we collect, how we use it, when we share it, and your rights regarding your data.</p>
+          <p>For customers who have entered into a separate Software as a Service Agreement with BrandBara Site Inc., this Privacy Policy is incorporated into that agreement by reference, and in the event of any conflict, the terms of the SaaS Agreement will prevail. By accessing or using our Services, you accept the practices outlined in this policy, including future updates.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">What Information We Collect and Receive</h3>
+          <p class="mb-2">We collect information in the following ways:</p>
+          <ul class="list-disc pl-5 space-y-2">
+            <li><strong>Account Information.</strong> When you create an account, we collect your name, email address, and authentication credentials. If you sign in through a third-party provider (such as Google, Microsoft, or SAML SSO), we receive basic profile information from that provider.</li>
+            <li><strong>Billing Information.</strong> When you subscribe to a paid plan, payment information is collected and processed by our payment processor, Stripe. We do not store full credit card numbers on our servers.</li>
+            <li><strong>Content and Files.</strong> We store the content you create, upload, or manage through the platform, including documents, images, fonts, and other assets.</li>
+            <li><strong>Usage Information.</strong> We collect information about how you interact with our Services, including pages visited, features used, IP addresses, browser type, and device information.</li>
+            <li><strong>API Data.</strong> If you access our Services through our API, we collect API credentials, request logs (including timestamps, endpoints accessed, and IP addresses), and usage metrics for the purposes of security, rate limiting, and abuse prevention.</li>
+            <li><strong>Published Project Visitor Data.</strong> When visitors access a published project, we may collect their email address (if authentication is required), IP address, the time of their visit, and interaction data such as page views, downloads, and other engagement events. This data is made available to the workspace owner.</li>
+            <li><strong>Communications.</strong> We retain messages you send to our support team or through other communication channels.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Types of Cookies We Utilize</h3>
+          <p>BrandBara uses cookies for Security, Localization, Site Features, Performance, and Analytics. Users can control cookies through browser settings, though blocking them may limit website functionality.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Custom Code on Published Projects</h3>
+          <p>Our platform allows users to embed custom code and third-party scripts on their published projects. BrandBara does not control, review, or assume responsibility for the data practices of user-embedded code or for how visitor data made available through our platform tools is used by that code.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">California & Nevada Users</h3>
+          <p class="mb-2"><strong>California:</strong> Under California Civil Code Section 1798.83, we do not sell or transfer personal information to third parties for direct marketing purposes without your consent.</p>
+          <p><strong>Nevada:</strong> Nevada residents have specific rights under Nevada Revised Statutes Chapter 603A to opt out of the sale of covered information. We do not currently sell covered information. Contact: brandbara.hello@gmail.com.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">European Union Users</h3>
+          <p>EU data protection law requires a lawful basis for processing personal data. BrandBara relies on Consent, Contract Performance, and Legitimate Interests. We do not share email addresses, IP addresses, or API credentials publicly.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Data Sub-processors</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Google Cloud (US/EU) - Hosting and infrastructure</li>
+            <li>Supabase (US/EU) - Database and Auth</li>
+            <li>Vercel (US) - Networking and CDN</li>
+            <li>Stripe (US) - Payment processing</li>
+          </ul>
+        </div>
+      </div>
+    `,
+    ES: `
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-black mb-2">Política de Privacidad</h2>
+          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Última actualización: 03.09.26</p>
+        </div>
+        
+        <div>
+          <h3 class="text-lg font-bold mb-2">Aplicación de esta Política</h3>
+          <p class="mb-2">BrandBara Site Inc. (“BrandBara”, “nosotros”, “nuestro”) opera la plataforma BrandBara, incluyendo brandbara.com y servicios relacionados. Esta política describe la información que recopilamos, cómo la usamos y sus derechos.</p>
+          <p>Al usar nuestros Servicios, acepta estas prácticas. Para clientes con acuerdos SaaS por separado, prevalecerán los términos de dicho acuerdo.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Información que Recopilamos</h3>
+          <ul class="list-disc pl-5 space-y-2">
+            <li><strong>Información de Cuenta:</strong> Recopilamos nombre, email y credenciales.</li>
+            <li><strong>Información de Facturación:</strong> Procesada por Stripe. No almacenamos datos de tarjetas.</li>
+            <li><strong>Contenido y Archivos:</strong> Almacenamos documentos, imágenes, fuentes y activos que usted sube al sistema.</li>
+            <li><strong>Información de Uso:</strong> Direcciones IP, navegador, y comportamiento en la herramienta.</li>
+            <li><strong>Datos de la API:</strong> Logs y métricas para prevención de abusos.</li>
+            <li><strong>Visitantes de Proyectos:</strong> Recopilamos IP e interacciones en portales públicos, datos que se proporcionan al dueño del Workspace.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Código Personalizado</h3>
+          <p>Nuestra plataforma permite incrustar código de terceros. BrandBara no asume responsabilidad por las prácticas de datos de dichos scripts insertados por el usuario.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Usuarios de la Unión Europea (RGPD)</h3>
+          <p>Cumplimos con las leyes de protección de datos de la UE basándonos en: Consentimiento, Ejecución de Contrato e Intereses Legítimos. Los residentes tienen derecho a acceder, rectificar, borrar y portar sus datos.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Sub-procesadores de Datos</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Google Cloud (US/EU) - Infraestructura</li>
+            <li>Supabase (US/EU) - Base de datos y Autenticación</li>
+            <li>Vercel (US) - Redes y Seguridad</li>
+            <li>Stripe (US) - Procesamiento de Pagos</li>
+          </ul>
+        </div>
+      </div>
+    `
+  },
+  terms: {
+    EN: `
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-black mb-2">Terms of Service</h2>
+          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Last Updated: 4.14.26</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Agreement To Terms</h3>
+          <p>These Terms of Service constitute a legally binding agreement made between you and BrandBara Site Inc. concerning your access to and use of the brandbara.com website. We are registered in Madrid, Spain. IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF SERVICE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SITE AND YOU MUST DISCONTINUE USE IMMEDIATELY.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Intellectual Property Rights</h3>
+          <p>Unless otherwise indicated, the Site is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the Site are owned or controlled by us. You are granted a limited license to access and use the Site.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">User Responsibility for Font Licensing</h3>
+          <p>By using the Site and uploading fonts files directly to the Company’s website/app, you represent and warrant that you have obtained all necessary rights and licenses to the fonts you upload. You are solely responsible for ensuring that your use of uploaded fonts complies with all applicable licenses. You hereby agree to indemnify, defend, and hold Company harmless from any claims, damages, liabilities, costs, losses, and expenses arising from or related to any breach of font licenses.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">API Usage & Custom Code</h3>
+          <p>You may use the API solely to access and manage your own data. You may not use the API to build a competing product or exceed rate limits. You are solely responsible for any Custom Code you embed on your published projects, including its functionality, performance, and legality.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Prohibited Activities</h3>
+          <p>As a user, you agree not to: systematically retrieve data to compile a database; circumvent security features; engage in unauthorized framing; or use automated scripts or data mining tools. We reserve the right to block IP addresses and terminate accounts immediately for violations.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Dispute Resolution & Governing Law</h3>
+          <p>These Terms of Service and your use of the Site are governed by and construed in accordance with the laws of Spain. Any legal action or proceeding related to the Site shall be brought exclusively in the courts located in Madrid, Spain.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Limitations of Liability & Indemnification</h3>
+          <p>THE SITE IS PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. IN NO EVENT WILL WE BE LIABLE FOR DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES. You agree to defend, indemnify, and hold us harmless from any loss, damage, or claim made by any third party due to your use of the Site or breach of these Terms.</p>
+        </div>
+      </div>
+    `,
+    ES: `
+      <div class="space-y-6">
+        <div>
+          <h2 class="text-2xl font-black mb-2">Términos de Servicio</h2>
+          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Última actualización: 14.04.26</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Acuerdo de los Términos</h3>
+          <p>Estos Términos constituyen un acuerdo legalmente vinculante entre usted y BrandBara Site Inc. con sede en Madrid, España. SI NO ESTÁ DE ACUERDO CON TODOS ESTOS TÉRMINOS, TIENE PROHIBIDO EL USO DEL SITIO Y DEBE SUSPENDER SU USO INMEDIATAMENTE.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Responsabilidad del Usuario sobre Licencias de Fuentes</h3>
+          <p>Al utilizar el Sitio y cargar archivos de fuentes, usted declara y garantiza que ha obtenido todos los derechos y licencias necesarios. Usted es el único responsable de asegurar el cumplimiento normativo. Acepta indemnizar y eximir de responsabilidad a la Empresa frente a reclamaciones de terceros derivadas del incumplimiento de licencias de fuentes tipográficas.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Actividades Prohibidas (Cláusula Anti-Abuso)</h3>
+          <p>Usted acepta no: recuperar datos sistemáticamente para compilar bases de datos, eludir medidas de seguridad, realizar "framing" no autorizado o usar herramientas de minería de datos. Nos reservamos el derecho a denegar el acceso, bloquear la IP y eliminar cuentas sin previo aviso ante conductas abusivas.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Limitación de Responsabilidad</h3>
+          <p>EL SITIO SE PROPORCIONA "TAL CUAL". EN NINGÚN CASO SEREMOS RESPONSABLES POR DAÑOS DIRECTOS, INDIRECTOS O CONSECUENTES (INCLUYENDO PÉRDIDA DE DATOS O BENEFICIOS). Su recurso exclusivo es dejar de usar la plataforma.</p>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold mb-2">Ley Aplicable y Jurisdicción</h3>
+          <p>Estos Términos se rigen por las leyes de España. Cualquier acción o procedimiento legal relacionado con el Sitio se llevará a cabo exclusivamente en los juzgados y tribunales de la ciudad de Madrid, España.</p>
+        </div>
+      </div>
+    `
+  },
+  cookies: {
+    EN: `<div class="text-center py-10 font-bold">Please refer to the Privacy Policy for details regarding our Cookie management.</div>`,
+    ES: `<div class="text-center py-10 font-bold">Por favor, consulta la Política de Privacidad para detalles sobre la gestión de Cookies.</div>`
   }
 };
 
@@ -2489,93 +2685,57 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   );
 };
 const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
+  const [lang, setLang] = useState('ES');
   if (!isOpen) return null;
-
-  const content = {
-    terms: {
-      title: "Términos y Condiciones de Uso",
-      text: (
-        <>
-          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
-          <p>Bienvenido a BrandBara. Al registrarse, acceder o utilizar nuestro Constructor de Portales de Marca (SaaS), usted acepta estar legalmente vinculado por los siguientes Términos de Uso. Si no está de acuerdo, no debe utilizar nuestros servicios.</p>
-          
-          <h3 className="font-bold text-base mt-6 text-indigo-500">1. Descripción del Servicio y Modalidades</h3>
-          <p>BrandBara proporciona un entorno WYSIWYG interactivo para la centralización del ADN visual de marcas y un sistema de Gestión de Activos (DAM).</p>
-          <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li><strong>Plan FREE:</strong> Uso gratuito limitado a 12MB. Los portales incluirán marca de agua de BrandBara.</li>
-            <li><strong>Plan PRO:</strong> Suscripción de pago (5€/mes). Elimina marca de agua, añade protección por contraseña y exportación a PDF.</li>
-          </ul>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">2. Cláusula de Indemnidad y Responsabilidad de Activos</h3>
-          <p>Usted retiene todos los derechos sobre el contenido que sube. Sin embargo, garantiza poseer el 100% de los permisos necesarios.</p>
-          <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li><strong>Safe Harbor:</strong> BrandBara actúa exclusivamente como proveedor de alojamiento pasivo.</li>
-            <li><strong>Indemnidad Absoluta:</strong> Usted asume la responsabilidad única por infracciones de copyright y exime a BrandBara de cualquier reclamación o sanción.</li>
-          </ul>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">3. Protocolo de Moderación Activa y "Strikes"</h3>
-          <p>BrandBara se reserva el derecho de suspender cuentas por: Phishing o Fraude, Abuso de Recursos (Hotlinking como CDN), o Sabotaje Técnico (scraping, inyección de código).</p>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">4. Limitación de Responsabilidad</h3>
-          <p>El software se proporciona "tal cual". No somos responsables de la corrupción de datos. La responsabilidad máxima se limita a la cantidad pagada en los últimos 3 meses.</p>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">5. Propiedad y Pagos</h3>
-          <p>Las cuotas se facturan por adelantado sin reembolsos parciales. Al alcanzar el límite de almacenamiento, se bloquearán nuevas subidas dinámicamente.</p>
-        </>
-      )
-    },
-    privacy: {
-      title: "Política de Privacidad y Datos",
-      text: (
-        <>
-          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
-          <p>En BrandBara construimos herramientas para profesionales con un enfoque en <em>Security by Design</em>, minimizando la recolección de datos.</p>
-          
-          <h3 className="font-bold text-base mt-6 text-indigo-500">1. Datos que Recopilamos</h3>
-          <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li><strong>Identificación:</strong> Nombre, email, rol y contraseña encriptada irreversiblemente.</li>
-            <li><strong>Activos:</strong> Logotipos, textos, colores y multimedia alojados en su portal.</li>
-            <li><strong>Técnicos:</strong> Tipografías, idioma, notificaciones y cookies.</li>
-            <li><strong>Transacción:</strong> Procesados íntegramente por terceros (Stripe). No almacenamos tarjetas.</li>
-          </ul>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">2. Cómo Utilizamos sus Datos</h3>
-          <p>Para renderizar el portal, validar URLs y discernir entre propietario e invitado (Dualidad de Interfaz) activando o no el Editor WYSIWYG.</p>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">3. Seguridad (RLS)</h3>
-          <p>Infraestructura en Vercel y Supabase. Aplicamos Row Level Security (RLS) para interceptar accesos no autorizados y redirigirlos silenciosamente al panel principal.</p>
-
-          <h3 className="font-bold text-base mt-6 text-indigo-500">4. Derechos del Usuario (RGPD)</h3>
-          <p>Tiene derecho a acceder, rectificar o eliminar sus datos desde la pestaña "Cuenta". En caso de baneo por "Strike", conservaremos datos técnicos mínimos (IP, hash) para evitar la evasión del bloqueo.</p>
-        </>
-      )
-    },
-    cookies: {
-      title: "Política de Cookies",
-      text: (
-        <>
-          <p className="italic mb-4">Última actualización: {new Date().toLocaleDateString()}</p>
-          <h3 className="font-bold text-base mt-6 text-indigo-500">Almacenamiento Local y Sesión</h3>
-          <p><strong>Guardado Optimista (Local Storage):</strong> BrandBara utiliza activamente la memoria de su navegador para guardar el estado de sus ediciones de forma transaccional. Esto permite que, ante una pérdida de conexión a Internet, sus modificaciones se conserven.</p>
-          <p className="mt-4"><strong>Gestión de Cookies:</strong> Utilizamos cookies técnicas estrictamente necesarias para mantener la sesión abierta, y cookies analíticas anónimas. Puede gestionar sus preferencias desde el panel inferior de la aplicación.</p>
-        </>
-      )
-    }
-  };
-
-  const current = content[page] || content.privacy;
+  
+  const currentHTML = LEGAL_CONTENT[page]?.[lang] || LEGAL_CONTENT.privacy.ES;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={`relative w-full max-w-2xl max-h-[80vh] flex flex-col rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
-          <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
-        </button>
-        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar">
-          <h2 className="text-3xl font-black mb-6">{current.title}</h2>
-          <div className="text-sm leading-relaxed opacity-80">
-            {current.text}
+    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      {/* Contenedor principal idéntico a ManageSubscriptionModal y AuthModal */}
+      <div 
+        role="dialog" 
+        aria-modal="true"
+        className={`relative w-full max-w-4xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden ${
+          isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'
+        }`}
+      >
+        {/* Cabecera idéntica a AuthModal (padding, close button, selector de idioma nativo) */}
+        <div className="flex-shrink-0 p-8 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+          <h2 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            Documentación Legal
+          </h2>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl">
+              <button 
+                onClick={() => setLang('ES')} 
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'ES' ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                aria-pressed={lang === 'ES'}
+              >
+                ES
+              </button>
+              <button 
+                onClick={() => setLang('EN')} 
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === 'EN' ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                aria-pressed={lang === 'EN'}
+              >
+                EN
+              </button>
+            </div>
+            
+            <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+              <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
+            </button>
           </div>
+        </div>
+
+        {/* Zona de contenido con select-text para permitir copiado y VoiceOver */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-10 select-text">
+          <div 
+            className="text-sm leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: currentHTML }} 
+          />
         </div>
       </div>
     </div>
@@ -2640,8 +2800,8 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
   );
 };
 
-const App = () => {
-  const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
+const Editor = () => {
+    const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [userPlan, setUserPlan] = useState('FREE');
   const [showWatermark, setShowWatermark] = useState(true);
@@ -3321,14 +3481,21 @@ if (item.type === 'header') {
       return null;
     }
 
-    if (item.type === 'footer') {
+if (item.type === 'footer') {
         return (
           <React.Fragment key={item.id}>
-             <div className="w-full flex justify-center py-8 pointer-events-none select-none">
-                <div className={`flex items-center gap-2 px-5 py-2 rounded-full border shadow-sm transition-colors ${isDarkMode ? 'bg-[#1e2330] border-white/10 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}>
+             {/* Eliminamos 'pointer-events-none' para que se pueda clicar */}
+             <div className="w-full flex justify-center py-8 select-none">
+                <a 
+                  href="/info" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className={`group flex items-center gap-2 px-5 py-2 rounded-full border shadow-sm transition-all hover:scale-105 pointer-events-auto ${isDarkMode ? 'bg-[#1e2330] border-white/10 text-slate-300 hover:border-white/20' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:shadow-md'}`}
+                >
                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">{t.ui.watermark}</span> 
-                   <span className="text-xs font-black text-indigo-500">BrandBara</span>
-                </div>
+                   <span className="text-xs font-black text-indigo-500 group-hover:text-indigo-600 transition-colors">BrandBara</span>
+                   <ExternalLink size={10} className="opacity-0 group-hover:opacity-40 transition-opacity ml-0.5" />
+                </a>
              </div>
              <div id={`module-${item.id}`} className="mt-0">
                 <FooterModule content={item.content} update={(c)=>updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
@@ -3675,11 +3842,21 @@ onLogout={handleSignOut}
       {!isPreview && (
        <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col h-full border-r transition-transform duration-300 lg:relative lg:translate-x-0 shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDarkMode ? 'bg-[#0f111a] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="p-8 flex flex-col h-full">
+{/* Logo que recarga la herramienta */}
           <div className="flex items-center justify-between mb-8">
-              <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>BrandBara</h1>
-              <span className={`px-2 py-1 text-[9px] font-black rounded ${isDarkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-600'}`}>BETA</span>
+              <div 
+                onClick={() => window.location.href = '/'} 
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                title="Recargar BrandBara"
+              >
+                <h1 className={`text-xl font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                  BRANDBARA
+                </h1>
+                <span className={`px-1.5 py-0.5 text-[8px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                  BETA
+                </span>
+              </div>
           </div>
-          
           <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
             {/* ZONA SUPERIOR FIJA */}
             <div className="shrink-0 space-y-4">
@@ -3993,6 +4170,99 @@ onLogout={handleSignOut}
         .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}} />
     </div>
+  );
+};
+
+const LandingPage = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen bg-[#0f172a] text-white font-sans selection:bg-indigo-500/30 flex flex-col">
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto w-full shrink-0">
+        <div className="text-2xl font-black tracking-tighter italic">BRANDBARA</div>
+        <button 
+          onClick={() => navigate('/')}
+          className="text-sm font-bold bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full transition-all"
+        >
+          Entrar al editor
+        </button>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 flex-1 flex flex-col items-center justify-center text-center py-20">
+        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full text-indigo-400 text-sm font-bold mb-8 animate-fade-in">
+          <Zap size={14} fill="currentColor" />
+          <span>Nueva versión Beta disponible</span>
+        </div>
+        
+        <h1 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter leading-[0.9]">
+          Deja de enviar PDFs. <br/>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">
+            Haz que tu trabajo brille.
+          </span>
+        </h1>
+        
+        <p className="text-slate-400 text-xl md:text-2xl max-w-3xl mx-auto mb-12 leading-relaxed">
+          Crea manuales de marca interactivos en minutos. Sin código, sin límites de peso, siempre actualizados en un solo enlace.
+        </p>
+
+        <button 
+          onClick={() => navigate('/')}
+          className="group relative bg-white text-black px-10 py-5 rounded-2xl font-black text-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 overflow-hidden mx-auto shadow-2xl shadow-white/10"
+        >
+          <span className="relative z-10">PROBAR EL EDITOR</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </main>
+    </div>
+  );
+};
+const NotFoundPage = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-3xl flex items-center justify-center mb-8 rotate-12">
+        <AlertCircle size={48} />
+      </div>
+      <h1 className="text-4xl md:text-6xl font-black mb-4 dark:text-white">Este portal no existe</h1>
+      <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl max-w-md mb-10">
+        Parece que el enlace es incorrecto o el diseñador ha retirado el manual de marca.
+      </p>
+      
+      <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 max-w-md w-full">
+        <h3 className="text-xl font-bold mb-2 dark:text-white">¿Eres diseñador?</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+          Crea portales de marca profesionales y deja de enviar PDFs que se pierden en el Drive.
+        </p>
+        <button 
+          onClick={() => navigate('/')}
+          className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all"
+        >
+          Descubre BrandBara
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// ENRUTADOR PRINCIPAL (EL CEREBRO DE LA WEB)
+// ==========================================
+const App = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* PRIORIDAD 1: El Editor directo en la Home */}
+        <Route path="/" element={<Editor isPublicView={false} />} />
+        
+        {/* PRIORIDAD 2: La Landing Page solo como apoyo SEO */}
+        <Route path="/info" element={<LandingPage />} />
+        
+        {/* PRIORIDAD 3: Los portales de clientes (brandbara.com/nike) */}
+        <Route path="/:slug" element={<Editor isPublicView={true} />} />
+
+        {/* 404: Si algo falla */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
