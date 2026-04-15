@@ -1711,8 +1711,15 @@ const CobrandingModule = React.memo(({ isDarkMode, design, content, update, t, i
 
   return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.cobranding.title} desc={t.modules.cobranding.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-         <button onClick={addPartner} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Plus size={14}/> {t.ui.addPartner}</button>
+<ModuleHeader 
+        title={content.title || t.modules.cobranding.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.cobranding.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >
+                 <button onClick={addPartner} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Plus size={14}/> {t.ui.addPartner}</button>
       </ModuleHeader>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
         {(content.partners || []).map((partner) => (
@@ -1762,8 +1769,15 @@ const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPre
 
   return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.assets.title} desc={t.modules.assets.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-         {!isPreview && (
+<ModuleHeader 
+        title={content.title || t.modules.assets.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.assets.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >
+                 {!isPreview && (
              <button onClick={addAsset} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-lg hover:bg-${colorBase}-100 transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}>
                 <Plus size={14}/> {t.modules.assets.addAsset}
              </button>
@@ -1905,8 +1919,14 @@ const IconsModule = React.memo(({ isDarkMode, design, content, update, t, isPrev
 
   return (
     <div className="p-10 relative">
-      <ModuleHeader title={t.modules.icons.title} desc={t.modules.icons.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-         <div className="relative inline-flex items-center gap-2">
+<ModuleHeader 
+        title={content.title || t.modules.icons.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.icons.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >         <div className="relative inline-flex items-center gap-2">
             {!isPreview && (<button onClick={toggleDownload} className={`p-2 rounded-full border transition-colors ${content.showDownload ? 'bg-indigo-100 border-indigo-200 text-indigo-600 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-400' : (isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-600')}`} title={t.modules.icons.toggleDownload}><Link2 size={16}/></button>)}
             <div className="relative">
                 <button onClick={() => setShowLibSelector(!showLibSelector)} className={`flex items-center gap-3 px-4 py-2 rounded-full border text-xs font-bold ${isDarkMode ? 'bg-white/5 border-white/20 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>{libraries.find(l => l.id === selectedLib)?.label} <ChevronDown size={14} /></button>
@@ -1935,14 +1955,15 @@ const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPrevie
 
   return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader 
-        title={t.modules.web.title} 
+<ModuleHeader 
+        title={content.title || t.modules.web.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
         desc={description} 
         onDescChange={(v) => update({ ...content, description: v })}
         isDarkMode={isDarkMode} 
         isPreview={isPreview}
       >
-          <div className="flex gap-2">
+                  <div className="flex gap-2">
              <button onClick={() => addDevice('laptop')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Laptop size={16}/></button>
              <button onClick={() => addDevice('tablet')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Tablet size={16}/></button>
              <button onClick={() => addDevice('mobile')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Smartphone size={16}/></button>
@@ -1966,8 +1987,15 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
 
   return (
     <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.social.title} desc={t.modules.social.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-          <div className="flex gap-2">
+<ModuleHeader 
+        title={content.title || t.modules.social.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.social.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
+        isDarkMode={isDarkMode} 
+        isPreview={isPreview}
+      >
+                  <div className="flex gap-2">
              <button onClick={() => addDevice('post')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="Post (4:5)"><Instagram size={16}/></button>
              <button onClick={() => addDevice('reel')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="Reel (9:16)"><Smartphone size={16}/></button>
              <button onClick={() => addDevice('youtube')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="YouTube (16:9)"><Youtube size={16}/></button>
@@ -1987,8 +2015,7 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
 // === FILE: UserProfileModal.tsx ===
 // ==============================================================================
 
-const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas }) => {  
-  const [activeTab, setActiveTab] = useState('profile');
+const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange }) => {  const [activeTab, setActiveTab] = useState('profile');
   const [showDangerZone, setShowDangerZone] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
   
@@ -2084,22 +2111,43 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             
                             <div className="space-y-2">
                               <label className="text-xs font-bold uppercase tracking-wider opacity-50">URL Personalizada</label>
-                              <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+<div className={`flex items-center px-4 rounded-xl border overflow-hidden transition-all ${
+                                slugStatus === 'taken' ? 'border-rose-500 ring-2 ring-rose-500/20' : 
+                                slugStatus === 'available' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 
+                                (isDarkMode ? 'bg-black/20 border-white/10 focus-within:border-indigo-500' : 'bg-slate-50 border-slate-200 focus-within:border-indigo-500')
+                              }`}>
                                 <span className="opacity-50 text-sm mr-1 hidden sm:inline">brandbara.com/</span>
                                 <span className="opacity-50 text-sm mr-1 sm:hidden">.../</span>
+                       
                                 <input 
                                   type="text" 
                                   value={content.slug || ''} 
-                                  onChange={(e) => {
-                                    const cleanSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                                    updateData('slug', cleanSlug);
-                                  }} 
+                                  // ¡Llamamos a nuestra nueva función!
+                                  onChange={(e) => handleSlugChange(e.target.value)} 
                                   placeholder="mi-agencia" 
-                                  className={`w-full py-3 bg-transparent outline-none font-bold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} 
+                                  className={`w-full py-3 bg-transparent outline-none font-bold flex-1 ${
+                                    slugStatus === 'taken' ? 'text-rose-500' : 
+                                    (isDarkMode ? 'text-indigo-400' : 'text-indigo-600')
+                                  }`} 
                                 />
+
+                                {/* Iconitos de estado (Verde, Rojo o Cargando) */}
+                                <div className="pl-3 flex items-center justify-center">
+                                  {slugStatus === 'checking' && <Loader2 size={16} className="animate-spin text-slate-400" />}
+                                  {slugStatus === 'available' && <Check size={16} className="text-emerald-500" />}
+                                  {slugStatus === 'taken' && <X size={16} className="text-rose-500" />}
+                                </div>
                               </div>
-                              <p className="text-[10px] opacity-60">Este será el enlace público que compartirás con tus clientes.</p>
-                            </div>
+                              
+                              {/* Mensajes de ayuda o error */}
+                              {slugStatus === 'taken' ? (
+                                <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-1">
+                                  <AlertCircle size={10} /> Este enlace ya está ocupado.
+                                </p>
+                              ) : (
+                                <p className="text-[10px] opacity-60 mt-1">Este será el enlace público que compartirás con tus clientes.</p>
+                              )}
+                                                          </div>
 
                             <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label><textarea value={content.bio || ''} onChange={(e) => updateData('bio', e.target.value)} rows={4} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                         </div>
@@ -2559,6 +2607,10 @@ const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
+  // --- ESTADOS PARA VALIDACIÓN DEL SLUG ---
+  const [slugStatus, setSlugStatus] = useState(null); // 'checking', 'available', 'taken', null
+  const [slugCheckTimeout, setSlugCheckTimeout] = useState(null);
+
   // Detección automática del idioma al cargar si no hay guardado en local
   const [language, setLanguage] = useState(() => {
     try {
@@ -2992,6 +3044,50 @@ const savePortalData = async (isManual = false) => {
      }));
   }, [language, t]);
 
+  // --- FUNCIÓN QUE COMPRUEBA SI EL ENLACE ESTÁ LIBRE ---
+  const handleSlugChange = (newSlug) => {
+    // 1. Limpiamos: solo minúsculas, números y guiones
+    const sanitizedSlug = newSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    
+    // Guardamos lo que teclea
+    setProfileContent({ ...profileContent, slug: sanitizedSlug });
+
+    if (!sanitizedSlug) {
+      setSlugStatus(null);
+      return;
+    }
+
+    setSlugStatus('checking'); // Icono dando vueltas
+
+    // 2. Si el usuario sigue tecleando, paramos el reloj
+    if (slugCheckTimeout) clearTimeout(slugCheckTimeout);
+
+    // 3. Esperamos medio segundo a que termine y preguntamos a Supabase
+    const timeoutId = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('portals') // Tu tabla de portales
+          .select('slug, user_id')
+          .eq('slug', sanitizedSlug)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // Ignoramos si no encuentra nada
+
+        // Si encontró datos, y el dueño NO es el usuario actual, ¡está pillado!
+        if (data && data.user_id !== currentUser?.id) {
+          setSlugStatus('taken'); 
+        } else {
+          setSlugStatus('available'); 
+        }
+      } catch (err) {
+        console.error("Error verificando el slug:", err);
+        setSlugStatus(null);
+      }
+    }, 500);
+
+    setSlugCheckTimeout(timeoutId);
+  };
+
 const generateRandomStyle = () => {
     const styleKeys = Object.keys(DESIGN_STYLES);
     const randomStyleKey = styleKeys[Math.floor(Math.random() * styleKeys.length)];
@@ -3261,61 +3357,56 @@ if (item.type === 'header') {
 {/* User Profile Modal */}
       <UserProfileModal 
         isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
-        onLogout={() => {
-          setIsAuthenticated(false);
-          setCurrentUser(null);
-        }}
+        onClose={() => setIsProfileOpen(false)}
         isDarkMode={isDarkMode} 
         t={t} 
         content={profileContent} 
         update={setProfileContent}
         design={design.style}
         usedSpace={usedStorage}
-        // ESTA ES LA FUNCIÓN QUE FALTA:
-onResetCanvas={() => {
-            if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
-                // 1. Restaurar todos los módulos por defecto
-                const defaultCanvas = [
-                    { id: 'header-1', type: 'header', content: { title: profileContent.name || "Portal de Marca", logo: null, layout: 'standard' } },
-                    { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
-                    { id: 'identity', type: 'identity', content: {} },
-                    { id: 'logo', type: 'logo', content: {} },
-                    { id: 'color', type: 'color', content: { colors: [] } },
-                    { id: 'typography', type: 'typography', content: { levels: [] } },
-                    { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
-                    { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-                    { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
-                    { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
-                    { id: 'icons', type: 'icons', content: {} },
-                    { id: 'web', type: 'web', content: {} },
-                    { id: 'social', type: 'social', content: {} },
-                    { id: 'cobranding', type: 'cobranding', content: {} },
-                    { id: 'assets', type: 'assets', content: {} },
-                    { id: 'footer-1', type: 'footer', content: { copyright: `© ${new Date().getFullYear()} ${profileContent.name || 'BrandBara'}` } }
-                ];
-                setCanvasItems(defaultCanvas);
-
-                // 2. Restaurar diseño (Color, bordes, sombras)
-                setDesign({ 
-                    style: DESIGN_STYLES.crystal, 
-                    palette: COLOR_PALETTES[0], 
-                    font: 'Inter', 
-                    canvasBg: 'bg-slate-50', 
-                    spacing: SPACING_OPTIONS.normal 
-                });
-
-                // 3. Restaurar tipografía
-                setCurrentFont('Inter');
-
-                // 4. Cerrar modal y avisar
-                setIsProfileOpen(false);
-if(showToast) showToast("✨ Portal restaurado a su estado de fábrica.");
-            }
+        userPlan={userPlan}
+        slugStatus={slugStatus}
+        handleSlugChange={handleSlugChange}
+        onResetCanvas={() => {
+          if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
+            // 1. Restaurar todos los módulos por defecto
+            const defaultCanvas = [
+                { id: 'header-1', type: 'header', content: { title: profileContent.name || "Portal de Marca", logo: null, layout: 'standard' } },
+                { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
+                { id: 'identity', type: 'identity', content: {} },
+                { id: 'logo', type: 'logo', content: {} },
+                { id: 'color', type: 'color', content: { colors: [] } },
+                { id: 'typography', type: 'typography', content: { levels: [] } },
+                { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
+                { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
+                { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
+                { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
+                { id: 'icons', type: 'icons', content: {} },
+                { id: 'web', type: 'web', content: {} },
+                { id: 'social', type: 'social', content: {} },
+                { id: 'cobranding', type: 'cobranding', content: {} },
+                { id: 'assets', type: 'assets', content: {} },
+                { id: 'footer-1', type: 'footer', content: { copyright: `© ${new Date().getFullYear()} ${profileContent.name || 'BrandBara'}` } }
+            ];
+            setCanvasItems(defaultCanvas);
+            // 2. Restaurar diseño (Color, bordes, sombras)
+            setDesign({ 
+                style: DESIGN_STYLES.crystal, 
+                palette: COLOR_PALETTES[0], 
+                font: 'Inter', 
+                canvasBg: 'bg-slate-50', 
+                spacing: SPACING_OPTIONS.normal 
+            });
+            // 3. Restaurar tipografía
+            setCurrentFont('Inter');
+            // 4. Cerrar modal y avisar
+            setIsProfileOpen(false);
+            if(showToast) showToast(" Portal restaurado a su estado de fábrica.");
+          }
         }}
-      />                
-        {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}
-      <AuthModal 
+      />
+
+      {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}      <AuthModal
         isOpen={isAuthModalOpen} 
         onClose={() => {
           setIsAuthModalOpen(false);
