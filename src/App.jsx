@@ -399,10 +399,66 @@ const LEGAL_CONTENT = {
       </div>
     `
   },
-  cookies: {
-    EN: `<div class="text-center py-10 font-bold">Please refer to the Privacy Policy for details regarding our Cookie management.</div>`,
-    ES: `<div class="text-center py-10 font-bold">Por favor, consulta la Política de Privacidad para detalles sobre la gestión de Cookies.</div>`
-  }
+cookies: {
+    EN: `
+      <h2>Cookie Policy</h2>
+      <p><em>Last Updated: 04.16.26</em></p>
+
+      <h3>What Are Cookies</h3>
+      <p>Cookies are small text files that are placed on your computer or mobile device when you visit a website or use an app. BrandBara Site Inc. uses cookies and similar tracking technologies to recognize you, remember your preferences, and provide a secure and seamless experience on our platform.</p>
+
+      <h3>How We Use Cookies</h3>
+      <p>We use cookies for the following purposes:</p>
+      <ul>
+        <li><strong>Strictly Necessary Cookies:</strong> These are required for the operation of the BrandBara platform. They include cookies that enable you to log into secure areas, such as Supabase authentication tokens, and make use of our core design tools.</li>
+        <li><strong>Functionality Cookies:</strong> These are used to recognize you when you return to our platform. This enables us to personalize our content for you and remember your preferences (such as your choice of language, light/dark mode, or region).</li>
+        <li><strong>Analytical/Performance Cookies:</strong> These allow us to recognize and count the number of visitors and see how visitors move around our platform. This helps us improve the way our website works.</li>
+      </ul>
+
+      <h3>Third-Party Cookies</h3>
+      <p>In addition to our own cookies, we may also use various third-party cookies to report usage statistics and process payments. Key third-party providers include:</p>
+      <ul>
+        <li><strong>Supabase:</strong> Essential for secure user authentication and session management.</li>
+        <li><strong>Stripe:</strong> Strictly necessary for processing secure payments and managing your PRO subscription. Stripe sets its own cookies for fraud prevention.</li>
+      </ul>
+
+      <h3>Controlling Cookies and Do Not Track</h3>
+      <p>Most web browsers allow you to control cookies through their settings preferences. However, if you limit the ability of websites to set cookies, you may worsen your overall user experience or lose the ability to access your BrandBara account, as essential authentication cookies will be blocked.</p>
+      <p>Some browsers have a "Do Not Track" (DNT) feature. Currently, there is no industry standard for how DNT signals should be recognized, so BrandBara does not respond to these signals.</p>
+
+      <h3>Changes and Contact</h3>
+      <p>We may update this Cookie Policy from time to time. If you have any questions, please contact us at brandbara.hello@gmail.com.</p>
+    `,
+    ES: `
+      <h2>Política de Cookies</h2>
+      <p><em>Última actualización: 16.04.26</em></p>
+
+      <h3>¿Qué son las Cookies?</h3>
+      <p>Las cookies son pequeños archivos de texto que se almacenan en su ordenador o dispositivo móvil cuando visita un sitio web o utiliza una aplicación. BrandBara Site Inc. utiliza cookies y tecnologías de seguimiento similares para reconocerle, recordar sus preferencias y ofrecer una experiencia segura en nuestra plataforma.</p>
+
+      <h3>Cómo Usamos las Cookies</h3>
+      <p>Utilizamos cookies para los siguientes propósitos:</p>
+      <ul>
+        <li><strong>Cookies Estrictamente Necesarias:</strong> Son esenciales para el funcionamiento de la plataforma BrandBara. Incluyen cookies que le permiten iniciar sesión en áreas seguras, como los tokens de autenticación de Supabase, y utilizar nuestro editor de manera ininterrumpida.</li>
+        <li><strong>Cookies de Funcionalidad:</strong> Se utilizan para reconocerle cuando vuelve a nuestra plataforma. Esto nos permite personalizar nuestro contenido y recordar sus preferencias (como su elección de idioma o el modo claro/oscuro de la interfaz).</li>
+        <li><strong>Cookies Analíticas y de Rendimiento:</strong> Nos permiten reconocer y contar el número de visitantes, y ver cómo se mueven por nuestra plataforma. Esto nos ayuda a mejorar el funcionamiento de nuestro sitio web.</li>
+      </ul>
+
+      <h3>Cookies de Terceros</h3>
+      <p>Además de nuestras propias cookies, también podemos utilizar varias cookies de terceros para informar sobre estadísticas de uso y procesar pagos. Los principales proveedores externos incluyen:</p>
+      <ul>
+        <li><strong>Supabase:</strong> Esencial para la autenticación segura de usuarios, encriptación y la gestión de sesiones activas.</li>
+        <li><strong>Stripe:</strong> Estrictamente necesarias para procesar pagos seguros y gestionar su suscripción PRO. Stripe establece sus propias cookies para la prevención del fraude internacional.</li>
+      </ul>
+
+      <h3>Control de Cookies y "Do Not Track"</h3>
+      <p>La mayoría de los navegadores web le permiten controlar las cookies a través de sus preferencias de configuración. Sin embargo, si limita la capacidad de los sitios web para establecer cookies, es posible que no pueda acceder a su cuenta de BrandBara, ya que se bloquearán las cookies esenciales de autenticación que lo mantienen logueado.</p>
+      <p>Algunos navegadores tienen una función de "Do Not Track" (No Rastrear). Actualmente, no existe un estándar en la industria sobre cómo deben reconocerse estas señales, por lo que BrandBara no responde a ellas de forma predeterminada.</p>
+
+      <h3>Cambios y Contacto</h3>
+      <p>Podemos actualizar esta Política de Cookies de vez en cuando para reflejar cambios legales o técnicos. Si tiene alguna pregunta, póngase en contacto con nuestro equipo legal en brandbara.hello@gmail.com.</p>
+    `
+    }
 };
 
 // --- 2. UTILIDADES ---
