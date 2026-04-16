@@ -1805,72 +1805,150 @@ const ImageModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   );
 });
 
+// ==========================================
+// MÓDULO: Editorial (Texto, Imágenes y Columnas)
+// ==========================================
 const EditorialModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
+  // 1. Extraemos el layout elegido por el usuario (o 'default')
+  const layout = content.layout || 'default';
+  
   const blocks = content.blocks || [{ type: 'text', content: 'Contenido editorial de ejemplo...' }];
   const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
   const addBlock = (type) => update({ ...content, blocks: [...blocks, { type, content: '' }] });
   const updateBlock = (i, val) => { const newBlocks = [...blocks]; newBlocks[i].content = val; update({ ...content, blocks: newBlocks }); };
   const removeBlock = (i) => update({ ...content, blocks: blocks.filter((_, idx) => idx !== i) });
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
-  const handleImageUpload = (e, index) => { const file = e.target.files[0]; if(file) { const url = URL.createObjectURL(file); const newBlocks = [...blocks]; newBlocks[index].src = url; update({ ...content, blocks: newBlocks }); } };
+  
+  const handleAddExtra = (type, param) => { 
+    const newBlock = type === 'text' 
+      ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } 
+      : { id: Date.now(), type: 'image', src: null }; 
+    update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); 
+  };
+  
+  const handleImageUpload = (e, index) => { 
+    const file = e.target.files[0]; 
+    if(file) { 
+      const url = URL.createObjectURL(file); 
+      const newBlocks = [...blocks]; 
+      newBlocks[index].src = url; 
+      update({ ...content, blocks: newBlocks }); 
+    } 
+  };
 
+  // Render principal del Módulo Editorial
   return (
-    <div className="p-6 md:p-10 relative">
-      <ModuleHeader title={t.modules.editorial.title} desc={t.modules.editorial.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
-         <div className="flex gap-2">
-            {!isPreview && (
+    <div className="w-full relative group/edit">
+      
+      {/* 2. Contenedor que reacciona a la propiedad 'layout' */}
+      <div className={`
+        w-full transition-all duration-300 
+        ${layout === 'default' ? 'flex flex-col gap-6' : ''}
+        ${layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : ''}
+        ${layout === 'stack' ? 'flex flex-col-reverse gap-4 border-l-4 pl-4 md:pl-8 border-slate-200 dark:border-white/10' : ''}
+        ${layout === 'bento' ? 'grid grid-cols-1 md:grid-cols-3 gap-4 [&>*:first-child]:md:col-span-2' : ''}
+      `}>
+        {blocks.map((block, index) => (
+          <div key={index} className={`relative group/block ${layout === 'bento' ? 'bg-slate-50 dark:bg-white/5 p-6 rounded-2xl border border-slate-100 dark:border-white/10' : ''}`}>
+            
+            {/* Botón borrar bloque individual */}
+            {!isPreview && blocks.length > 1 && (
               <button 
-                onClick={toggleDownload} 
-                className={`p-2 rounded-full border transition-colors ${content.showDownload ? 'bg-indigo-100 border-indigo-200 text-indigo-600 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-400' : (isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 text-zinc-600')}`} 
-                title={t.modules.editorial.toggleDownload}
+                onClick={() => removeBlock(index)} 
+                className="absolute -right-2 -top-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover/block:opacity-100 transition-opacity z-10 shadow-lg"
               >
-                <Download size={16}/>
+                <X size={14} />
               </button>
             )}
-            <button onClick={() => addBlock('text')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><FileText size={16}/></button>
-            <button onClick={() => addBlock('image')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><ImagePlus size={16}/></button>
-         </div>
-      </ModuleHeader>
-      
-      <div className="space-y-6 mt-8">{blocks.map((b, i) => (<div key={`ed-block-${i}`} className="relative group">{b.type === 'text' && (isPreview ? <div className={`w-full text-sm whitespace-pre-wrap ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{b.content}</div> : <textarea value={b.content} onChange={(e) => updateBlock(i, e.target.value)} className={`w-full bg-transparent border-l-2 p-3 outline-none resize-none ${isDarkMode ? 'border-white/20 text-slate-300' : 'border-slate-300 text-slate-600'}`} placeholder={t.ui.placeholders.text} rows={3} />)}{b.type === 'image' && <FileUploadPlaceholder id={`ed-img-${i}`} label={t.ui.imageExtra} design={design} isDarkMode={isDarkMode} onUpload={(e) => handleImageUpload(e, i)} preview={b.src} t={t} isPreview={isPreview} />}{!isPreview && <button onClick={() => removeBlock(i)} className="absolute -right-6 top-0 opacity-0 group-hover:opacity-100 text-rose-500 p-1"><Trash2 size={14}/></button>}</div>))}</div>
-      
-      {content.showDownload && (
-          <div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
-              {!isPreview && (
-                  <input 
-                      type="text" 
-                      value={content.downloadUrl || ''} 
-                      onChange={(e) => updateLink(e.target.value)} 
-                      placeholder="https://dropbox.com/kit-editorial..." 
-                      className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`}
-                  />
-              )}
-              <a 
-                  href={content.downloadUrl || '#'} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
-              >
-                  <Download size={16} />
-                  {t.modules.editorial.downloadText}
-              </a>
+
+            {block.type === 'text' ? (
+              <textarea
+                value={block.content}
+                onChange={(e) => updateBlock(index, e.target.value)}
+                placeholder="Escribe algo inspirador..."
+                className={`w-full bg-transparent resize-none outline-none leading-relaxed transition-all placeholder:opacity-30 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
+                style={{ 
+                  fontFamily: design.font, 
+                  minHeight: '100px',
+                  fontSize: layout === 'stack' ? '1.25rem' : '1rem' 
+                }}
+                readOnly={isPreview}
+              />
+            ) : (
+              <div className="w-full relative">
+                {block.src ? (
+                  <img src={block.src} alt="Editorial block" className="w-full h-auto rounded-xl object-cover" />
+                ) : (
+                  <div className={`w-full aspect-[16/9] flex items-center justify-center rounded-xl border-2 border-dashed ${isDarkMode ? 'border-white/20 bg-white/5' : 'border-slate-300 bg-slate-100'}`}>
+                    <label className="cursor-pointer flex flex-col items-center gap-2 p-8 hover:opacity-70 transition-opacity">
+                      <ImagePlus size={32} className="opacity-50" />
+                      <span className="text-sm font-bold opacity-50">Subir imagen</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, index)} disabled={isPreview} />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+        ))}
+      </div>
+
+      {/* Controles de añadido (Solo modo edición) */}
+      {!isPreview && (
+        <div className="mt-8 flex flex-col items-center justify-center gap-4 opacity-0 group-hover/edit:opacity-100 transition-opacity">
+          <div className={`flex items-center gap-2 p-2 rounded-2xl shadow-xl border ${isDarkMode ? 'bg-black/80 border-white/10' : 'bg-white border-slate-200'}`}>
+            <button onClick={() => addBlock('text')} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+              <Type size={16}/> Texto
+            </button>
+            <div className={`w-px h-6 ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}></div>
+            <button onClick={() => addBlock('image')} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+              <ImageIcon size={16}/> Imagen
+            </button>
+            <div className={`w-px h-6 ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}></div>
+            <button onClick={toggleDownload} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${content.showDownload ? 'bg-indigo-500/20 text-indigo-500' : (isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100')}`}>
+              <DownloadCloud size={16}/> Link Externo
+            </button>
+          </div>
+        </div>
       )}
 
-      <DynamicBlocks blocks={content.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
-      <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
+      {/* Botón de Descarga/Enlace */}
+      {content.showDownload && (
+        <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
+          {!isPreview && (
+             <input
+               type="url"
+               placeholder="https://drive.google.com/..."
+               value={content.downloadUrl || ''}
+               onChange={(e) => updateLink(e.target.value)}
+               className={`flex-1 p-3 rounded-xl border outline-none text-sm w-full md:w-auto ${isDarkMode ? 'bg-black/50 border-white/20' : 'bg-slate-50 border-slate-200'}`}
+             />
+          )}
+          <a
+            href={content.downloadUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all w-full md:w-auto justify-center ${!content.downloadUrl && isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} ${isDarkMode ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
+          >
+            <DownloadCloud size={18} />
+            Descargar Material
+          </a>
+        </div>
+      )}
     </div>
   );
-});
+}); // <-- Fíjate que aquí cerramos perfectamente el componente
 
+// ==========================================
+// MÓDULO: Footer (Navegación, Copyright y Redes)
+// ==========================================
 const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
-  const [layout, setLayout] = useState(content.layout || 0); // 0: Centered, 1: Split, 2: Stack
+  const layout = content.layout || 0; // 0: Centered, 1: Split, 2: Stack
   const [activeSocialEdit, setActiveSocialEdit] = useState(null);
   
   const toggleField = (field) => update({ ...content, [field]: !content[field] });
   const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) update({ ...content, logo: URL.createObjectURL(file) }); };
-  const nextLayout = () => { const next = (layout + 1) % 3; setLayout(next); update({ ...content, layout: next }); };
+  const cycleLayout = () => { const next = (layout + 1) % 3; update({ ...content, layout: next }); };
   
   const socialPlatforms = [
     { id: 'instagram', icon: Instagram },
@@ -1884,47 +1962,73 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
     update({ ...content, socialLinks: { ...currentLinks, [id]: url } });
   };
 
-  // Safe defaults to prevent undefined errors
   const safeT = t || TRANSLATIONS.ES;
-  const copyrightText = content?.copyright || safeT.ui?.placeholders?.copyright || "© 2026 BrandBara.";
+  const copyrightText = content?.copyright || safeT.ui?.placeholders?.copyright || "© 2026 BrandBara. Todos los derechos reservados.";
   const websiteText = content?.website || safeT.ui?.placeholders?.website || "www.brandbara.com";
 
-  useEffect(() => {
-    // Only update if content is totally empty to prevent loop
-    if (Object.keys(content).length === 0) {
-        update({ ...content, showLogo: true, showWebsite: true, showSocials: true, showCopyright: true, layout: 0 });
-    }
-    if (content.layout !== undefined) setLayout(content.layout);
-  }, [content.layout]);
+  // Colores dinámicos personalizados (O por defecto los del tema)
+  const footerBg = content.bgColor || (isDarkMode ? '#0a0c10' : '#f8fafc');
+  const footerTextColor = content.textColor || (isDarkMode ? '#ffffff' : '#0f111a');
 
   return (
-    <div className={`p-10 relative mt-auto border-t ${isDarkMode ? 'border-white/5 bg-[#0a0c10]' : 'border-slate-200 bg-slate-50'}`}>
+    <div 
+      className="group relative w-full py-16 px-6 md:px-10 mt-auto transition-colors duration-500 flex flex-col"
+      style={{ backgroundColor: footerBg, color: footerTextColor }}
+    >
+      {/* TOOLBAR UNIFICADA (Igual a los demás módulos) */}
       {!isPreview && (
-        <div className="absolute top-4 right-4 flex gap-2 z-10 bg-white/10 backdrop-blur rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-           <button onClick={() => toggleField('showLogo')} className={`p-1.5 rounded ${content.showLogo !== false ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`} title="Toggle Logo"><ImageIcon size={14}/></button>
-           <button onClick={() => toggleField('showWebsite')} className={`p-1.5 rounded ${content.showWebsite !== false ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`} title="Toggle Website"><Globe size={14}/></button>
-           <button onClick={() => toggleField('showSocials')} className={`p-1.5 rounded ${content.showSocials !== false ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`} title="Toggle Socials"><Share2 size={14}/></button>
-           <button onClick={() => toggleField('showCopyright')} className={`p-1.5 rounded ${content.showCopyright !== false ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`} title="Toggle Copyright"><Type size={14}/></button>
-           <div className="w-px h-6 bg-slate-300 mx-1"></div>
-           <button onClick={nextLayout} className="p-1.5 bg-white shadow text-indigo-600 rounded-lg hover:scale-110 transition-transform" title="Cambiar Diseño"><Shuffle size={14}/></button>
+        <div className="absolute top-4 right-4 flex gap-1 z-30 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
+           
+           {/* Botón de Layout Estándar */}
+           <button onClick={cycleLayout} className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors" title="Cambiar estructura">
+             <LayoutTemplate size={14}/>
+           </button>
+
+           <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
+
+           {/* Toggles de Contenido */}
+           <button onClick={() => toggleField('showLogo')} className={`p-1 rounded transition-colors ${content.showLogo !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Logo"><ImageIcon size={14}/></button>
+           <button onClick={() => toggleField('showWebsite')} className={`p-1 rounded transition-colors ${content.showWebsite !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Web"><Globe size={14}/></button>
+           <button onClick={() => toggleField('showSocials')} className={`p-1 rounded transition-colors ${content.showSocials !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Redes"><Share2 size={14}/></button>
+
+           <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
+
+           {/* Selectores de Color */}
+           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title="Color de Fondo">
+              <PaintBucket size={14} className="text-slate-500" />
+              <input type="color" value={content.bgColor || (isDarkMode?'#0a0c10':'#f8fafc')} onChange={(e) => update({...content, bgColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+           </div>
+           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title="Color del Texto">
+              <Type size={14} className="text-slate-500" />
+              <input type="color" value={content.textColor || (isDarkMode?'#ffffff':'#0f111a')} onChange={(e) => update({...content, textColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+           </div>
+           
+           {/* Resetear Colores */}
+           {(content.bgColor || content.textColor) && (
+              <button onClick={() => update({...content, bgColor: null, textColor: null})} className="p-1 rounded text-rose-500 hover:bg-rose-50 ml-1 transition-colors" title="Restaurar colores"><X size={14}/></button>
+           )}
         </div>
       )}
-      <div className={`flex gap-8 transition-all duration-500 ${layout === 0 ? 'flex-col items-center text-center' : layout === 1 ? 'flex-col md:flex-row justify-between items-center' : 'flex-col items-start text-left'}`}>
+
+      {/* CONTENIDO DEL FOOTER (Basado en Captura UX) */}
+      <div className={`flex w-full max-w-5xl mx-auto gap-8 md:gap-12 transition-all duration-500 ${layout === 0 ? 'flex-col items-center text-center' : layout === 1 ? 'flex-col md:flex-row justify-between items-center' : 'flex-col items-start text-left'}`}>
+         
+         {/* BLOQUE LOGO */}
          {content.showLogo !== false && (
             <div className="flex-shrink-0">
                 <div 
-                    className={`h-16 w-auto min-w-[140px] relative flex items-center justify-center ${!isPreview ? 'cursor-pointer hover:opacity-80 border border-dashed border-transparent hover:border-indigo-300 rounded-lg p-2 transition-all' : ''}`} 
+                    className={`h-12 md:h-16 w-auto min-w-[120px] relative flex items-center justify-center ${!isPreview ? 'cursor-pointer hover:opacity-60 transition-opacity' : ''}`} 
                     onClick={() => !isPreview && document.getElementById('footer-logo-up').click()}
                 >
                     {content.logo ? (
                         <img src={content.logo} className="h-full w-auto object-contain" alt="Footer Logo"/>
                     ) : (
-                        <div className={`flex flex-col items-center justify-center gap-1 p-2 ${isDarkMode?'text-slate-500':'text-slate-400'}`}>
+                        <div className="flex flex-col items-center justify-center gap-2 opacity-40 hover:opacity-100 transition-opacity">
                            <div className="flex gap-2">
-                              <Upload size={16} />
-                              <Link2 size={16} />
+                              <Upload size={18} />
+                              <Link2 size={18} />
                            </div>
-                           <span className="text-[9px] font-bold uppercase tracking-wider">Logo / SVG</span>
+                           <span className="text-[10px] font-bold uppercase tracking-widest">Logo / SVG</span>
                         </div>
                     )}
                     {!isPreview && <input id="footer-logo-up" type="file" className="hidden" accept="image/*,image/svg+xml" onChange={handleLogoUpload} />}
@@ -1932,24 +2036,27 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
             </div>
          )}
          
-         <div className={`flex gap-6 ${layout === 0 ? 'flex-col items-center' : layout === 1 ? 'flex-col items-end text-right' : 'flex-col items-start'}`}>
+         <div className={`flex gap-6 md:gap-10 ${layout === 0 ? 'flex-col items-center' : layout === 1 ? 'flex-col md:flex-row items-center' : 'flex-col items-start'}`}>
+            
+            {/* BLOQUE WEBSITE */}
             {content.showWebsite !== false && (
                 <EditableText 
                     text={websiteText} 
-                    className={`font-bold whitespace-nowrap min-w-[100px] ${isDarkMode ? 'text-white' : 'text-slate-800'}`} 
+                    className="text-lg md:text-xl font-bold whitespace-nowrap" 
+                    style={{ color: footerTextColor }}
                     onChange={(v)=>update({...content, website: v})} 
                     isDarkMode={isDarkMode} 
                     isPreview={isPreview} 
                 />
             )}
             
+            {/* BLOQUE REDES SOCIALES */}
             {content.showSocials !== false && (
-                <div className="flex gap-3">
+                <div className="flex gap-4">
                     {socialPlatforms.map((platform) => {
                         const Icon = platform.icon;
                         const link = content.socialLinks?.[platform.id] || '';
                         
-                        // En preview, no mostrar si no hay link
                         if (isPreview && !link) return null;
 
                         return (
@@ -1959,35 +2066,36 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                                         href={link} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className={`block p-2 rounded-full transition-colors ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-white hover:bg-slate-200 text-slate-700 shadow-sm'}`}
+                                        className="block p-3 rounded-full transition-transform hover:scale-110"
+                                        style={{ backgroundColor: 'rgba(128,128,128,0.08)' }}
                                     >
-                                        <Icon size={16} />
+                                        <Icon size={20} style={{ color: footerTextColor }} />
                                     </a>
                                 ) : (
                                     <>
                                         <button 
                                             onClick={() => setActiveSocialEdit(activeSocialEdit === platform.id ? null : platform.id)}
-                                            className={`p-2 rounded-full transition-colors ${isDarkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-white hover:bg-slate-200 text-slate-700 shadow-sm'} ${link ? 'ring-2 ring-indigo-500' : ''}`}
+                                            className={`p-3 rounded-full transition-all border ${link ? 'border-current' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                                            style={{ color: footerTextColor, backgroundColor: 'rgba(128,128,128,0.05)' }}
                                             title={link || "Añadir enlace"}
                                         >
-                                            <Icon size={16} className={link ? 'text-indigo-500 dark:text-indigo-400' : ''} />
+                                            <Icon size={20} />
                                         </button>
                                         
-                                        {/* Edit Popover */}
+                                        {/* Editor Popover Redes */}
                                         {activeSocialEdit === platform.id && (
-                                            <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 p-2 rounded-xl shadow-xl border z-50 w-56 flex gap-2 animate-in fade-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-[#1e2330] border-white/10' : 'bg-white border-slate-200'}`}>
+                                            <div className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 p-2 rounded-xl shadow-2xl border z-50 w-64 flex gap-2 animate-in fade-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-[#1e2330] border-white/10' : 'bg-white border-slate-200'}`}>
                                                 <input 
                                                     type="text" 
                                                     value={link} 
                                                     onChange={(e) => updateSocialLink(platform.id, e.target.value)}
                                                     placeholder="https://..." 
-                                                    className={`w-full text-[11px] p-2 rounded-lg border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-white focus:border-indigo-500' : 'border-slate-200 text-slate-700 focus:border-indigo-500'}`}
+                                                    className={`w-full text-xs p-2.5 rounded-lg border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-white focus:border-indigo-500' : 'border-slate-200 text-slate-700 focus:border-indigo-500'}`}
                                                     autoFocus
                                                 />
-                                                <button onClick={() => setActiveSocialEdit(null)} className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"><Check size={14} /></button>
+                                                <button onClick={() => setActiveSocialEdit(null)} className="p-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"><Check size={16} /></button>
                                             </div>
                                         )}
-                                        {/* Overlay to close */}
                                         {activeSocialEdit === platform.id && <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveSocialEdit(null); }} />}
                                     </>
                                 )}
@@ -1998,7 +2106,20 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
             )}
          </div>
       </div>
-      {content.showCopyright !== false && (<div className={`mt-10 pt-6 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'} ${layout === 0 ? 'text-center' : 'text-left'}`}><EditableText text={copyrightText} className={`text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} onChange={(v)=>update({...content, copyright: v})} isDarkMode={isDarkMode} isPreview={isPreview} /></div>)}
+
+      {/* BLOQUE COPYRIGHT */}
+      {content.showCopyright !== false && (
+        <div className={`w-full max-w-5xl mx-auto mt-12 pt-8 border-t ${layout === 0 ? 'text-center' : 'text-left'}`} style={{ borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+          <EditableText 
+            text={copyrightText} 
+            className="text-sm font-medium opacity-60" 
+            style={{ color: footerTextColor }} 
+            onChange={(v)=>update({...content, copyright: v})} 
+            isDarkMode={isDarkMode} 
+            isPreview={isPreview} 
+          />
+        </div>
+      )}
     </div>
   );
 });
@@ -2872,6 +2993,42 @@ const [isUnlocked, setIsUnlocked] = useState(false);
   const [isPublicView, setIsPublicView] = useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  // 1. Añade este estado para el candado del Remix Mágico
+  const [isRemixLocked, setIsRemixLocked] = useState(false);
+
+// 2. Función INTELIGENTE que cambia el diseño de los módulos
+  const cycleModuleLayout = (moduleId, moduleType) => {
+    setCanvasItems(prevItems => prevItems.map(mod => {
+      if (mod.id === moduleId) {
+        const c = mod.content || {};
+        
+        // A) Módulos con arquitectura propia ya programada
+        if (moduleType === 'bento') {
+          return { ...mod, content: { ...c, layoutIndex: ((c.layoutIndex || 0) + 1) % 4 } };
+        }
+        if (moduleType === 'footer') {
+          return { ...mod, content: { ...c, layout: ((c.layout || 0) + 1) % 3 } };
+        }
+        if (moduleType === 'layout') {
+          const grids = ['grid1', 'grid2', 'grid3', 'grid4'];
+          const nextIdx = (grids.indexOf(c.selectedGrid || 'grid1') + 1) % grids.length;
+          return { ...mod, content: { ...c, selectedGrid: grids[nextIdx] } };
+        }
+        if (moduleType === 'color') {
+          return { ...mod, content: { ...c, layout: c.layout === 'list' ? 'grid' : 'list' } };
+        }
+
+        // B) Módulos genéricos (Identidad, Editorial, Assets...)
+        let layouts = ['default', 'grid', 'stack'];
+        if (moduleType === 'editorial') layouts = ['default', 'grid', 'stack', 'bento'];
+        
+        const currentIndex = layouts.indexOf(c.layout || layouts[0]);
+        const nextIndex = (currentIndex + 1) % layouts.length;
+        return { ...mod, content: { ...c, layout: layouts[nextIndex] } };
+      }
+      return mod;
+    }));
+  };
 
   // --- ESTADOS PARA VALIDACIÓN DEL SLUG ---
   const [slugStatus, setSlugStatus] = useState(null); // 'checking', 'available', 'taken', null
@@ -3562,19 +3719,32 @@ if (item.type === 'footer') {
 
     if (item.type === 'profile') return null;
 
-    return (
+return (
       <div id={`module-${item.id}`} key={item.id} className={cardClasses}>
         {!isPreview && item.type !== 'hero' && (
-          <div className="absolute top-3 right-3 flex gap-1 z-30 opacity-100 transition-all duration-200 p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
+          <div className="absolute top-3 right-3 flex gap-1 z-30 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
+            
+            {/* ✨ NUEVO BOTÓN: CAMBIAR ESTRUCTURA ✨ */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); cycleModuleLayout(item.id, item.type); }} 
+              className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors mr-1"
+              title="Cambiar estructura"
+            >
+              <LayoutTemplate size={14} />
+            </button>
+
+            {/* BOTONES DE MOVER */}
             <div className="flex border-r border-slate-200 dark:border-white/10 pr-1 mr-1">
               <button onClick={() => moveComponent(index, index - 1)} disabled={index <= 1} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronUp size={14} /></button>
               <button onClick={() => moveComponent(index, index + 1)} disabled={index >= canvasItems.length - 2} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronDown size={14} /></button>
             </div>
+            
+            {/* BOTÓN ELIMINAR */}
             <button onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
           </div>
         )}
         {(() => {
-          switch(item.type) {
+                              switch(item.type) {
             case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
             case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
             case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
