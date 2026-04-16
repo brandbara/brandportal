@@ -35,33 +35,55 @@ const SPACING_OPTIONS = { compact: { id: 'compact', name: 'Compact', value: 'mb-
 const FONTS = ['Inter', 'Montserrat', 'Open Sans', 'Roboto', 'Space Mono', 'Nunito', 'Outfit', 'Work Sans'];
 const DESIGN_STYLES = {
   crystal: { 
-    name: 'Pure Crystal', id: 'crystal', radius: 'rounded-3xl', border: 'border border-white/40 hover:border-white/60 transition-colors duration-300', 
-    shadow: 'shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.1)] backdrop-blur-xl',
-    cardBg: 'bg-white/20 hover:bg-white/30 transition-all duration-300',
-    cardBgDark: 'bg-white/5 border-white/10 hover:bg-white/10'
+    name: 'Pure Crystal', 
+    id: 'crystal', 
+    radius: 'rounded-3xl', 
+    border: 'border border-white/40 dark:border-white/10', 
+    shadow: 'shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] backdrop-blur-xl',
+    cardBg: 'bg-white/40 hover:bg-white/50 transition-all duration-500',
+    cardBgDark: 'bg-white/5 hover:bg-white/10 transition-all duration-500',
+    align: 'text-left' 
   },
-  sapphire: { 
-    name: 'Sapphire Quantum', id: 'sapphire', radius: 'rounded-sm', border: 'border border-cyan-500/30 hover:border-cyan-400/60 transition-all duration-500', 
-    shadow: 'shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] backdrop-blur-xl',
-    cardBg: 'bg-gradient-to-br from-cyan-500/5 to-blue-600/5 hover:from-cyan-500/10 hover:to-blue-600/10 transition-all duration-500',
-    cardBgDark: 'bg-slate-900/80 border-cyan-500/40 hover:border-cyan-400/70 hover:shadow-[0_0_40px_rgba(6,182,212,0.2)]'
+  editorial: { 
+    name: 'Editorial', 
+    id: 'editorial', 
+    radius: 'rounded-none', 
+    // Borde negro grueso arriba (estilo cabecera de periódico/revista)
+    border: 'border-t-4 border-slate-900 dark:border-slate-100', 
+    shadow: 'shadow-none',
+    cardBg: 'bg-[#fdfcfb] hover:bg-white transition-colors duration-300', // Blanco/Hueso súper sutil
+    cardBgDark: 'bg-[#121212] hover:bg-black',
+    align: 'text-left' 
   },
-  rose: { 
-    name: 'Rose Quartz', id: 'rose', radius: 'rounded-[2rem]', border: 'border border-rose-200/40 hover:border-rose-300/60 transition-colors duration-300', 
-    shadow: 'shadow-[0_20px_40px_-15px_rgba(244,63,94,0.05)] hover:shadow-rose-100/40 backdrop-blur-md',
-    cardBg: 'bg-rose-50/10 hover:bg-rose-50/20 transition-all duration-300',
-    cardBgDark: 'bg-rose-900/10 border-rose-500/20 hover:bg-rose-900/20'
+  minimal: { 
+    name: 'Minimal', 
+    id: 'minimal', 
+    radius: 'rounded-none', 
+    border: 'border-none', 
+    shadow: 'shadow-none',
+    cardBg: 'bg-transparent', // Totalmente invisible (flota sobre el fondo)
+    cardBgDark: 'bg-transparent',
+    align: 'text-left' 
   },
-  obsidian: { 
-    name: 'Obsidian', id: 'obsidian', radius: 'rounded-xl', border: 'border border-gray-900/10 hover:border-gray-900/20 transition-colors duration-300', 
-    shadow: 'shadow-xl hover:shadow-2xl backdrop-blur-2xl', cardBg: 'bg-gray-900/5 hover:bg-gray-900/10 transition-all duration-300',
-    cardBgDark: 'bg-black/60 border-white/10 hover:bg-black/80 shadow-[0_0_40px_rgba(0,0,0,0.5)]'
+  saas: { 
+    name: 'SaaS Soft', 
+    id: 'saas', 
+    radius: 'rounded-[2.5rem]', 
+    border: 'border border-slate-200/60 dark:border-white/5', 
+    shadow: 'shadow-xl shadow-slate-200/50 dark:shadow-none hover:shadow-2xl hover:shadow-slate-200/70 transition-all duration-500',
+    cardBg: 'bg-white',
+    cardBgDark: 'bg-[#151924] hover:bg-[#1a1f2e] transition-all duration-500',
+    align: 'text-left'
   },
-  aurora: { 
-    name: 'Aurora', id: 'aurora', radius: 'rounded-3xl', border: 'border border-white/50 hover:border-white/70 transition-colors duration-300', 
-    shadow: 'shadow-[0_8px_32px_0_rgba(255,255,255,0.2)] backdrop-blur-lg',
-    cardBg: 'bg-gradient-to-br from-white/40 via-white/20 to-transparent hover:from-white/50 hover:via-white/30 transition-all duration-500',
-    cardBgDark: 'bg-gradient-to-br from-white/10 via-white/5 to-transparent border-white/10 hover:from-white/15'
+  tech: { 
+    name: 'Modern Tech', 
+    id: 'tech', 
+    radius: 'rounded-2xl', 
+    border: 'border border-slate-200 dark:border-white/10 hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors duration-300', 
+    shadow: 'shadow-sm',
+    cardBg: 'bg-slate-50/50 hover:bg-white',
+    cardBgDark: 'bg-[#0f111a] hover:bg-[#151924]',
+    align: 'text-left'
   }
 };
 
@@ -3676,22 +3698,27 @@ case 'bento': return { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${
   const removeComponent = (id) => setCanvasItems(canvasItems.filter(i => i.id !== id));
   const updateComponent = (id, c) => setCanvasItems(canvasItems.map(i => i.id === id ? { ...i, content: c } : i));
 
-  const renderCanvasItem = (item, index) => {
+const renderCanvasItem = (item, index) => {
     // Create a safe composite design object with defaults
     const style = design.style || DESIGN_STYLES.crystal;
     const palette = design.palette || COLOR_PALETTES[0];
     const spacingClass = design.spacing?.value || 'mb-16';
     const font = design.font || 'Inter';
-    
+
+    // ✨ NUEVO: Inyectamos la alineación del tema (Bandera vs Centro)
+    const alignmentClass = style.align || 'text-left';
+
     // Mix the font into the style object so modules can access design.font if needed
     const activeDesign = { ...style, font };
 
-    const currentBg = isDarkMode ? (style.cardBgDark || 'bg-[#161b26] border-white/5') : style.cardBg;
-    const currentShadow = style.shadow;
-    const cardClasses = `relative group transition-all duration-500 ease-in-out ${style.radius} ${style.border} ${currentShadow} ${currentBg} ${isDarkMode ? 'border-white/5' : palette.border} ${spacingClass} overflow-hidden`;
-
-if (item.type === 'header') {
-      return null;
+    // ✨ NUEVO: Fondos limpios para soportar transparencias
+    const currentBg = isDarkMode ? (style.cardBgDark || 'bg-[#161b26]') : style.cardBg;
+    
+    // ✨ NUEVO: Clases de la tarjeta con alineación, sombra integrada y transición fluida (700ms)
+    const cardClasses = `relative group transition-all duration-700 ease-in-out ${style.radius} ${style.border} ${style.shadow} ${currentBg} ${isDarkMode ? 'border-white/5' : palette.border} ${alignmentClass} ${spacingClass} overflow-hidden`;
+    
+    if (item.type === 'header') {
+            return null;
     }
 
 if (item.type === 'footer') {
@@ -4161,43 +4188,81 @@ onLogout={handleSignOut}
                   </div>
                 </div>
               </div>
-              {/* Selector de Fondo Personalizado */}
-                  <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
-                    <button onClick={() => toggleAccordion('bg')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                      <div className="flex items-center gap-3"><PaintBucket size={16} /><span className="text-xs font-bold uppercase tracking-widest">Fondo Canvas</span></div>
-                      <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'bg' ? 'rotate-180' : ''}`} />
-                    </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'bg' ? 'max-h-[500px]' : 'max-h-0'}`}>
-                      <div className={`p-4 space-y-4 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
-
-                        {/* Color Modo Claro */}
-                        <div className="space-y-1.5">
-                           <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Sun size={12}/> Modo Claro</label>
-                           <div className="flex items-center gap-2 p-1 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5">
-                              <input type="color" value={design.customBgLight || '#f8fafc'} onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0" />
-                              <input type="text" value={design.customBgLight || ''} onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} placeholder="Por defecto" className="flex-1 text-xs p-2 rounded-lg bg-transparent outline-none uppercase font-mono" />
-                           </div>
+{/* FONDO CANVAS SECTION (Sin acordeón) */}
+              <div className="mt-8">
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Fondo Canvas
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Color Modo Claro */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Sun size={12}/> Modo Claro</label>
+                    <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
+                        
+                        {/* El cuadrado de color perfecto */}
+                        <div 
+                          className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
+                          style={{ backgroundColor: design.customBgLight || '#f8fafc', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+                        >
+                          <input 
+                            type="color" 
+                            value={design.customBgLight || '#f8fafc'} 
+                            onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} 
+                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
+                          />
                         </div>
 
-                        {/* Color Modo Oscuro */}
-                        <div className="space-y-1.5">
-                           <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Moon size={12}/> Modo Oscuro</label>
-                           <div className="flex items-center gap-2 p-1 bg-white dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/5">
-                              <input type="color" value={design.customBgDark || '#0a0c10'} onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0" />
-                              <input type="text" value={design.customBgDark || ''} onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} placeholder="Por defecto" className="flex-1 text-xs p-2 rounded-lg bg-transparent outline-none uppercase font-mono" />
-                           </div>
-                        </div>
-
-                        {/* Botón Restaurar */}
-                        {(design.customBgLight || design.customBgDark) && (
-                           <button onClick={() => setDesign(prev => ({...prev, customBgLight: null, customBgDark: null}))} className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
-                              Restaurar por defecto
-                           </button>
-                        )}
-                      </div>
+                        <input 
+                          type="text" 
+                          value={design.customBgLight || ''} 
+                          onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} 
+                          placeholder="POR DEFECTO" 
+                          className={`flex-1 text-[11px] p-2 rounded-lg bg-transparent outline-none uppercase font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`} 
+                        />
                     </div>
                   </div>
 
+                  {/* Color Modo Oscuro */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Moon size={12}/> Modo Oscuro</label>
+                    <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
+                        
+                        {/* El cuadrado de color perfecto */}
+                        <div 
+                          className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
+                          style={{ backgroundColor: design.customBgDark || '#0a0c10', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+                        >
+                          <input 
+                            type="color" 
+                            value={design.customBgDark || '#0a0c10'} 
+                            onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} 
+                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
+                          />
+                        </div>
+
+                        <input 
+                          type="text" 
+                          value={design.customBgDark || ''} 
+                          onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} 
+                          placeholder="POR DEFECTO" 
+                          className={`flex-1 text-[11px] p-2 rounded-lg bg-transparent outline-none uppercase font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`} 
+                        />
+                    </div>
+                  </div>
+
+                  {/* Botón Restaurar */}
+                  {(design.customBgLight || design.customBgDark) && (
+                      <button 
+                        onClick={() => setDesign(prev => ({...prev, customBgLight: null, customBgDark: null}))} 
+                        className="w-full py-2.5 mt-2 text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors border border-rose-500/20"
+                      >
+                        Restaurar por defecto
+                      </button>
+                  )}
+                </div>
+              </div>
+              
 {/* TOOLS SECTION */}
               <div>
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.tools}</h3>
