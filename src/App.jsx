@@ -2768,6 +2768,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const safeT = t || TRANSLATIONS.ES;
 
   if (!isOpen) return null;
@@ -2775,6 +2776,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
     if (!isLogin && !acceptedTerms) return;
 
     if (!supabase) {
@@ -2804,6 +2806,28 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
     }
   };
 
+  const handleResetPassword = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (!email) {
+      setErrorMsg('Por favor, introduce tu email arriba para recuperar la contraseña.');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      setSuccessMsg('Email de recuperación enviado. Por favor, revisa tu bandeja de entrada.');
+    } catch (error) {
+      setErrorMsg(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
@@ -2821,10 +2845,10 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
         </div>
 
         <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl mb-6">
-          <button type="button" onClick={() => {setIsLogin(true); setErrorMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <button type="button" onClick={() => {setIsLogin(true); setErrorMsg(''); setSuccessMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {safeT.auth.loginBtn}
           </button>
-          <button type="button" onClick={() => {setIsLogin(false); setErrorMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+          <button type="button" onClick={() => {setIsLogin(false); setErrorMsg(''); setSuccessMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {safeT.auth.registerBtn}
           </button>
         </div>
@@ -2835,7 +2859,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
               <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.name}</label>
               <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <User size={18} className="opacity-50 mr-3" />
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required={!isLogin} />
               </div>
             </div>
           )}
@@ -2849,14 +2873,22 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.password}</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.password}</label>
+              {isLogin && (
+                <button type="button" onClick={handleResetPassword} className="text-[10px] font-bold text-indigo-500 hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
+            </div>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
-          {errorMsg && <p className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg">{errorMsg}</p>}
+          {errorMsg && <p className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg animate-in fade-in">{errorMsg}</p>}
+          {successMsg && <p className="text-xs text-emerald-500 font-bold bg-emerald-500/10 p-3 rounded-lg animate-in fade-in">{successMsg}</p>}
 
           {!isLogin && (
             <label className="flex items-start gap-3 mt-4 cursor-pointer group">
@@ -2883,6 +2915,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
     </div>
   );
 };
+
 const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
   const [lang, setLang] = useState('ES');
   if (!isOpen) return null;
@@ -4429,7 +4462,7 @@ onLogout={handleSignOut}
                     )}
                   </div>
                 )}
-                
+
 {/* 3. PÍLDORA ACCIONES BLINDADA AL 100% PARA VISITANTES Y EXTRAÑOS */}
                 {!effectiveIsPublicView && (
                   <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
@@ -4451,11 +4484,19 @@ onLogout={handleSignOut}
             </div>
           );
         })()}
-        {/* --- FIN HEADER UNIFICADO --- */}
+{/* --- FIN HEADER UNIFICADO --- */}
 
-{effectiveIsPreview && !effectiveIsPublicView && (
+        {/* BOTÓN OWNER: VOLVER A EDITAR (Esquina inferior derecha) */}
+        {effectiveIsPreview && !effectiveIsPublicView && (
            <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
               <Edit3 size={16} /> {t.ui.backToEdit}
+           </button>
+        )}
+
+        {/* CTA PLG PARA VISITANTES NO REGISTRADOS (Esquina inferior izquierda) */}
+        {effectiveIsPublicView && !isAuthenticated && (
+           <button onClick={() => window.location.href = '/'} className="fixed bottom-8 left-8 z-50 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-full shadow-2xl shadow-indigo-500/20 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 border border-white/20">
+              <Wand2 size={16} /> Crear mi propio portal
            </button>
         )}
 
@@ -4481,10 +4522,9 @@ onLogout={handleSignOut}
                  </div>
               </div>
           )}
-
         </div>
       </main>
-
+      
       <style dangerouslySetInnerHTML={{ __html: `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
