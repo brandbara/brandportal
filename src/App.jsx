@@ -3349,50 +3349,80 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
     if (path && path !== '' && path !== 'info') {
       setIsLoadingPortal(true);
       
-      const fetchPortal = async () => {
+const fetchPortal = async () => {
         if (!supabase) return;
-        const { data, error } = await supabase
-          .from('portals')
-          .select('*')
-          .eq('slug', path)
-          .single();
-          
-        if (error || !data) {
-          setNotFound(true);
-        } else {
-          setPortalOwnerId(data.user_id); // Guardamos quién es el dueño real
-          const canvasData = data.canvas_data || {};
-          if (canvasData.items) setCanvasItems(canvasData.items);
-          if (canvasData.design) setDesign(canvasData.design);
-          if (canvasData.profile) setProfileContent(canvasData.profile);
-          
-          // COMPROBACIÓN CRÍTICA DE SEGURIDAD
-          const isActualOwner = currentUser && currentUser.id === data.user_id;
-          
-          if (isActualOwner) {
-            setIsPublicView(false);
-            setIsPreview(false); // Si es el dueño, se le habilita el modo editor automáticamente
-            setIsUnlocked(true);  // Bypass de contraseña para el administrador
-          } else {
+        
+        try {
+          // 🚨 NUEVA LLAMADA SEGURA RPC (La contraseña "accessInput" se envía vacía en la primera carga)
+          const { data, error } = await supabase.rpc('get_portal_secure', {
+            p_slug: path,
+            p_password: accessInput || null
+          });
+
+          if (error) throw error;
+          if (!data) {
+            setNotFound(true);
+            setIsLoadingPortal(false);
+            return;
+          }
+
+          // SI EL PORTAL ESTÁ BLOQUEADO (Y no somos los dueños)
+          if (data.status === 'locked') {
             setIsPublicView(true);
-            setIsPreview(true);   // Si es un extraño, modo lectura estricto e inviolable
-          }
-          
-          if (data.is_protected) {
-            if (isActualOwner) {
-              setIsUnlocked(true);
-            }
+            setIsPreview(true);
+            setIsUnlocked(false);
+            setPortalOwnerId(data.user_id);
             setProfileContent(prev => ({
-              ...prev, 
-              isPasswordProtected: true, 
-              portalPassword: data.password_hash || prev.portalPassword 
+              ...prev,
+              name: data.brand_name,
+              isPasswordProtected: true,
+              portalPassword: "locked" // Nunca guardamos el hash real en el estado del visitante
             }));
+            setIsLoadingPortal(false);
+            return;
           }
+
+          // SI EL PORTAL SE HA DESBLOQUEADO CON ÉXITO O NO TIENE CONTRASEÑA
+          if (data.status === 'success') {
+            setPortalOwnerId(data.user_id); 
+            
+            const canvasData = data.canvas_data || {};
+            if (canvasData.items) setCanvasItems(canvasData.items);
+            if (canvasData.design) setDesign(canvasData.design);
+            
+            // Reconstruimos el perfil de forma segura
+            setProfileContent({
+              ...canvasData.profile,
+              slug: data.slug,
+              name: data.brand_name,
+              isPasswordProtected: data.is_protected,
+              // Solo el dueño recibirá el hash real desde Supabase para verlo en los Ajustes Avanzados
+              portalPassword: data.password_hash || '' 
+            });
+            
+            // COMPROBACIÓN CRÍTICA DE SEGURIDAD
+            const isActualOwner = currentUser && currentUser.id === data.user_id;
+            
+            if (isActualOwner) {
+              setIsPublicView(false);
+              setIsPreview(false);
+              setIsUnlocked(true); // Bypass para el admin
+            } else {
+              setIsPublicView(true);
+              setIsPreview(true);
+              setIsUnlocked(true); // Desbloqueado para el visitante (ya sea porque metió la clave o era público)
+            }
+          }
+        } catch (err) {
+          console.error("Error al cargar el portal:", err);
+          setNotFound(true);
         }
+        
         setIsLoadingPortal(false);
       };
+      
       fetchPortal();
-    } else {
+        } else {
       setIsPublicView(false);
     }
   }, [currentUser, window.location.pathname]); // Escucha activa de sesión y rutas
@@ -3622,7 +3652,7 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
       return () => clearTimeout(timer);
     }
   }, []);
-  
+
 const handleCookieAction = (status) => {
   localStorage.setItem('brandbara_cookies_status', status);
   setShowCookieBanner(false);
@@ -4057,13 +4087,33 @@ return (
           <p className={`text-sm mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             Este portal está protegido. Introduce la contraseña de acceso proporcionada por la marca.
           </p>
-          <form onSubmit={(e) => {
+<form onSubmit={async (e) => {
             e.preventDefault();
-            if (accessInput === profileContent.portalPassword) {
-              setIsUnlocked(true);
-            } else {
-              showToast("Contraseña incorrecta");
-              setAccessInput("");
+            setIsLoadingPortal(true); // Ponemos la pantalla de carga principal
+            
+            // Lanzamos de nuevo el fetch, pero esta vez la variable accessInput tiene texto
+            const { data, error } = await supabase.rpc('get_portal_secure', {
+                p_slug: currentSlugPath,
+                p_password: accessInput
+            });
+
+            if (error || !data || data.status === 'locked') {
+                showToast("Contraseña incorrecta");
+                setAccessInput("");
+                setIsLoadingPortal(false);
+            } else if (data.status === 'success') {
+                // Éxito: Descargamos el lienzo visual y desbloqueamos
+                const canvasData = data.canvas_data || {};
+                if (canvasData.items) setCanvasItems(canvasData.items);
+                if (canvasData.design) setDesign(canvasData.design);
+                setProfileContent({
+                    ...canvasData.profile,
+                    isPasswordProtected: true,
+                    portalPassword: "" // Limpiamos la prueba
+                });
+                setIsUnlocked(true);
+                setIsLoadingPortal(false);
+                showToast("Portal Desbloqueado");
             }
           }} className="space-y-4">
             <input
@@ -4078,7 +4128,7 @@ return (
               <Key size={18} /> Desbloquear Portal
             </button>
           </form>
-        </div>
+                  </div>
         {/* Renderizamos el Toast aquí por si fallan la contraseña */}
         {toastMessage && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
