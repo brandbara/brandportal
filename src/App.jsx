@@ -3458,13 +3458,19 @@ const [profileContent, setProfileContent] = useState({}); // <--- AÑADE ESTA L�
     return { result, hasChanges };
   };
 const savePortalData = async (isManual = false) => {
+    // 🚨 BLINDAJE CRÍTICO: Prevenir que la data de un portal ajeno contamine el navegador del visitante
+    const currentPath = window.location.pathname.replace('/', '').trim();
+    const isBrandRoute = currentPath && currentPath !== 'info';
+    const isViewingOtherPortal = isBrandRoute && (!currentUser || currentUser.id !== portalOwnerId);
+
+    if (isViewingOtherPortal) return; // Si es un visitante en un portal público, ABORTAR GUARDADO
+
     // 1. Guardado en LocalStorage (Copia de seguridad instantánea anti-pérdidas)
     const dataToSave = { canvasItems, design, profileContent, isDarkMode, language, currentFont };
     localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
 
     // Si es un autoguardado y no está logueado, no hacemos nada en la DB
     if (!isManual && (!isAuthenticated || !currentUser)) return;
-    
     // Si le dio a "Publicar" a mano y no está logueado, abrimos modal
     if (isManual && (!isAuthenticated || !currentUser)) {
         setIsAuthModalOpen(true);
@@ -3629,13 +3635,19 @@ const handleCookieAction = (status) => {
 
 // NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL MEJORADO)
   const isInitialMount = useRef(true);
-
   useEffect(() => {
     // 1. Evitamos que guarde una página vacía nada más actualizar (El borrado fantasma)
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
+
+    // 🚨 BLINDAJE CRÍTICO: No activar el temporizador si estamos husmeando en un portal ajeno
+    const currentPath = window.location.pathname.replace('/', '').trim();
+    const isBrandRoute = currentPath && currentPath !== 'info';
+    const isViewingOtherPortal = isBrandRoute && (!currentUser || currentUser.id !== portalOwnerId);
+
+    if (isViewingOtherPortal) return;
 
     // 2. Esperamos 1.5 segundos después de la última tecla antes de guardar (Debounce)
     const debounceTimer = setTimeout(() => {
@@ -3644,8 +3656,8 @@ const handleCookieAction = (status) => {
 
     // Si el usuario vuelve a teclear antes de 1.5s, cancelamos el temporizador anterior
     return () => clearTimeout(debounceTimer);
-  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated]);
-
+  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId]);
+  
 // Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
   const usedStorage = React.useMemo(() => {
     let size = 0;
