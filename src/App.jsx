@@ -3352,10 +3352,15 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
 const fetchPortal = async () => {
         if (!supabase) return;
         
+        // 1. CORTAMOS LA URL COMO UN BISTURÍ
+        // Ej: brandbara.com/capeo/edit -> pathParts = ['capeo', 'edit']
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const currentSlug = pathParts[0] || '';
+        const isEditRoute = pathParts[1] === 'edit';
+
         try {
-          // 🚨 NUEVA LLAMADA SEGURA RPC (La contraseña "accessInput" se envía vacía en la primera carga)
           const { data, error } = await supabase.rpc('get_portal_secure', {
-            p_slug: path,
+            p_slug: currentSlug,
             p_password: accessInput || null
           });
 
@@ -3366,8 +3371,14 @@ const fetchPortal = async () => {
             return;
           }
 
-          // SI EL PORTAL ESTÁ BLOQUEADO (Y no somos los dueños)
+          // SI EL PORTAL ESTÁ BLOQUEADO (CON CONTRASEÑA)
           if (data.status === 'locked') {
+            // 🚨 DEFENSA: Si alguien intenta forzar /edit en un portal bloqueado, patada a la raíz
+            if (isEditRoute) {
+              window.location.replace(`/${currentSlug}`);
+              return;
+            }
+            
             setIsPublicView(true);
             setIsPreview(true);
             setIsUnlocked(false);
@@ -3376,13 +3387,13 @@ const fetchPortal = async () => {
               ...prev,
               name: data.brand_name,
               isPasswordProtected: true,
-              portalPassword: "locked" // Nunca guardamos el hash real en el estado del visitante
+              portalPassword: "locked"
             }));
             setIsLoadingPortal(false);
             return;
           }
 
-          // SI EL PORTAL SE HA DESBLOQUEADO CON ÉXITO O NO TIENE CONTRASEÑA
+          // SI EL PORTAL CARGA CON ÉXITO
           if (data.status === 'success') {
             setPortalOwnerId(data.user_id); 
             
@@ -3390,27 +3401,33 @@ const fetchPortal = async () => {
             if (canvasData.items) setCanvasItems(canvasData.items);
             if (canvasData.design) setDesign(canvasData.design);
             
-            // Reconstruimos el perfil de forma segura
             setProfileContent({
               ...canvasData.profile,
               slug: data.slug,
               name: data.brand_name,
               isPasswordProtected: data.is_protected,
-              // Solo el dueño recibirá el hash real desde Supabase para verlo en los Ajustes Avanzados
               portalPassword: data.password_hash || '' 
             });
             
-            // COMPROBACIÓN CRÍTICA DE SEGURIDAD
+            // 2. VERIFICACIÓN CRÍTICA DE IDENTIDAD
             const isActualOwner = currentUser && currentUser.id === data.user_id;
             
-            if (isActualOwner) {
-              setIsPublicView(false);
-              setIsPreview(false);
-              setIsUnlocked(true); // Bypass para el admin
+            if (isEditRoute) {
+              if (!isActualOwner) {
+                // 🚨 TROLL DETECTADO: Intenta entrar a /edit sin ser el dueño. Patada a la vista pública.
+                window.location.replace(`/${currentSlug}`);
+                return;
+              } else {
+                // DUEÑO AUTORIZADO EN MODO EDICIÓN
+                setIsPublicView(false);
+                setIsPreview(false);
+                setIsUnlocked(true);
+              }
             } else {
+              // VISTA PÚBLICA PURA: Si la URL no tiene /edit, TODO el mundo (incluso el dueño) lo ve como Preview
               setIsPublicView(true);
               setIsPreview(true);
-              setIsUnlocked(true); // Desbloqueado para el visitante (ya sea porque metió la clave o era público)
+              setIsUnlocked(true);
             }
           }
         } catch (err) {
@@ -3422,7 +3439,8 @@ const fetchPortal = async () => {
       };
       
       fetchPortal();
-        } else {
+    
+    } else {
       setIsPublicView(false);
     }
   }, [currentUser, window.location.pathname]); // Escucha activa de sesión y rutas
