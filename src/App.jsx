@@ -2616,9 +2616,23 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                           
                           <div className="pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
                             <h4 className="font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {safeT.auth.password}</h4>
-                            <button onClick={() => alert("Se enviaría un email a " + content.email + " para restablecer la contraseña.")} className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}>
-                              {safeT.profileTabs.changePass}
-                            </button>
+<button 
+  onClick={async () => {
+    if (!content.email) return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(content.email, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      alert("¡Enlace enviado! Revisa la bandeja de entrada de " + content.email);
+    } catch (err) {
+      alert("Error enviando email: " + err.message);
+    }
+  }} 
+  className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}
+>
+  {safeT.profileTabs.changePass}
+</button>
                           </div>
 
                           <div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
@@ -3608,14 +3622,10 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
     }
   }, []);
 
-  const handleCookieAction = (status) => {
-    localStorage.setItem('brandbara_cookies_status', status);
-    setShowCookieBanner(false);
-    
-    if (status === 'managed') {
-      setIsProfileOpen(true); // Abre el modal de configuración como fallback
-    }
-  };
+const handleCookieAction = (status) => {
+  localStorage.setItem('brandbara_cookies_status', status);
+  setShowCookieBanner(false);
+};
 
 // NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL MEJORADO)
   const isInitialMount = useRef(true);
