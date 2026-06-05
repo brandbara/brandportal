@@ -5045,13 +5045,16 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         {/* PRIORIDAD 1: El Editor directo en la Home */}
-        <Route path="/" element={<Editor isPublicView={false} />} />
+        <Route path="/" element={<Editor />} />
         
         {/* PRIORIDAD 2: La Landing Page solo como apoyo SEO */}
         <Route path="/info" element={<LandingPage />} />
         
         {/* PRIORIDAD 3: Los portales de clientes (brandbara.com/nike) */}
-        <Route path="/:slug" element={<Editor isPublicView={true} />} />
+        <Route path="/:slug" element={<Editor />} />
+
+        {/* PRIORIDAD 4: El taller privado del dueño (brandbara.com/nike/edit) */}
+        <Route path="/:slug/edit" element={<Editor />} />
 
         {/* 404: Si algo falla */}
         <Route path="*" element={<NotFoundPage />} />
