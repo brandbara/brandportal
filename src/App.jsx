@@ -3597,7 +3597,7 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
     };
   }, []);
 
-  // Load from LocalStorage on mount
+// Load from LocalStorage on mount
   useEffect(() => {
     const savedData = localStorage.getItem('brandPortalData');
     if (savedData) {
@@ -3612,11 +3612,6 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
       } catch (e) {
         console.error("Failed to load data", e);
       }
-    } else {
-      // UX PLG: Si entramos limpios en la raíz (/), disparamos el Onboarding Mágico de 1 clic
-      if (window.location.pathname === '/') {
-        setShowOnboarding(true);
-      }
     }
     
     // Check Cookies status
@@ -3627,7 +3622,7 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
       return () => clearTimeout(timer);
     }
   }, []);
-
+  
 const handleCookieAction = (status) => {
   localStorage.setItem('brandbara_cookies_status', status);
   setShowCookieBanner(false);
@@ -3657,7 +3652,7 @@ const handleCookieAction = (status) => {
     // Si el usuario vuelve a teclear antes de 1.5s, cancelamos el temporizador anterior
     return () => clearTimeout(debounceTimer);
   }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId]);
-  
+
 // Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
   const usedStorage = React.useMemo(() => {
     let size = 0;
