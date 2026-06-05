@@ -3012,12 +3012,12 @@ const [showBetaModal, setShowBetaModal] = useState(false);
 const [pendingUpgrade, setPendingUpgrade] = useState(false);
 const [isUnlocked, setIsUnlocked] = useState(false);
   const [accessInput, setAccessInput] = useState("");
-  const [isPublicView, setIsPublicView] = useState(false);
+const [isPublicView, setIsPublicView] = useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const [notFound, setNotFound] = useState(false);
   // 1. Añade este estado para el candado del Remix Mágico
   const [isRemixLocked, setIsRemixLocked] = useState(false);
-
+  const [portalOwnerId, setPortalOwnerId] = useState(null); // Única declaración limpia
 // 2. Función INTELIGENTE que cambia el diseño de los módulos
   const cycleModuleLayout = (moduleId, moduleType) => {
     setCanvasItems(prevItems => prevItems.map(mod => {
@@ -3185,13 +3185,11 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY)
+// 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
   useEffect(() => {
-    const path = window.location.pathname.replace('/', '');
+    const path = window.location.pathname.replace('/', '').trim();
     
-    if (path && path !== '') {
-      setIsPublicView(true);
-      setIsPreview(true);
+    if (path && path !== '' && path !== 'info') {
       setIsLoadingPortal(true);
       
       const fetchPortal = async () => {
@@ -3205,12 +3203,28 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
         if (error || !data) {
           setNotFound(true);
         } else {
+          setPortalOwnerId(data.user_id); // Guardamos quién es el dueño real
           const canvasData = data.canvas_data || {};
           if (canvasData.items) setCanvasItems(canvasData.items);
           if (canvasData.design) setDesign(canvasData.design);
           if (canvasData.profile) setProfileContent(canvasData.profile);
           
+          // COMPROBACIÓN CRÍTICA DE SEGURIDAD
+          const isActualOwner = currentUser && currentUser.id === data.user_id;
+          
+          if (isActualOwner) {
+            setIsPublicView(false);
+            setIsPreview(false); // Si es el dueño, se le habilita el modo editor automáticamente
+            setIsUnlocked(true);  // Bypass de contraseña para el administrador
+          } else {
+            setIsPublicView(true);
+            setIsPreview(true);   // Si es un extraño, modo lectura estricto e inviolable
+          }
+          
           if (data.is_protected) {
+            if (isActualOwner) {
+              setIsUnlocked(true);
+            }
             setProfileContent(prev => ({
               ...prev, 
               isPasswordProtected: true, 
@@ -3221,8 +3235,10 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
         setIsLoadingPortal(false);
       };
       fetchPortal();
+    } else {
+      setIsPublicView(false);
     }
-  }, []);
+  }, [currentUser, window.location.pathname]); // Escucha activa de sesión y rutas
 
   // Estado para el banner de cookies
 const [showCookieBanner, setShowCookieBanner] = useState(false);
@@ -4288,14 +4304,14 @@ onLogout={handleSignOut}
       )}
 
 {/* CANVAS */}
-      <main 
+<main 
         className="flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden" 
         style={{ 
           fontFamily: currentFont, 
           backgroundColor: isDarkMode ? (design.customBgDark || '#0a0c10') : (design.customBgLight || '#f8fafc') 
         }}
       >        
-{/* --- HEADER RESPONSIVE (ESTILO WETRANSFER MINIMALISTA) --- */}
+        {/* --- HEADER RESPONSIVE BLINDADO (VISTA PÚBLICA VS PRIVADA 2026) --- */}
         {(() => {
           const headerItem = canvasItems.find(i => i.type === 'header') || { id: 'header-1', content: {} };
           const updateHeader = (newContent) => updateComponent(headerItem.id, newContent);
@@ -4309,69 +4325,64 @@ onLogout={handleSignOut}
           return (
             <div className="absolute top-4 lg:top-8 left-0 right-0 z-[60] flex justify-center pointer-events-none px-4 lg:px-8">
               
-{/* === VERSIÓN COMPACTA (Móviles y Tablets) === */}
+              {/* === VERSIÓN RESPONSIVE COMPACTA === */}
               <div className={`lg:hidden flex items-center justify-between w-full max-w-md h-[56px] p-2 rounded-2xl shadow-xl border pointer-events-auto backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#151924]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'} ${mobileMenuOpen ? (isDarkMode ? 'bg-white/10' : 'bg-slate-200') : ''}`}>
-                    {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                  </button>
-                  <div onClick={() => !isPreview && document.getElementById('unified-logo-upload').click()} className={`h-10 w-10 shrink-0 rounded-xl overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
+                  {!isPublicView && (
+                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'} ${mobileMenuOpen ? (isDarkMode ? 'bg-white/10' : 'bg-slate-200') : ''}`}>
+                      {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                    </button>
+                  )}
+                  <div onClick={() => !isPreview && !isPublicView && document.getElementById('unified-logo-upload').click()} className={`h-10 w-10 shrink-0 rounded-xl overflow-hidden flex items-center justify-center ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'} ${!isPublicView && !isPreview ? 'cursor-pointer' : ''}`}>
                     {headerItem.content?.logo ? <img src={headerItem.content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={16} className="opacity-40" />}
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-1 ml-auto">
-                  {/* Botón de Idioma (Añadido para móvil) */}
                   <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-10 w-10 flex items-center justify-center rounded-xl text-[11px] font-black transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                     {language}
                   </button>
 
-                  {/* Botón Modo Oscuro */}
                   <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                     {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
                   
-                  {!isPreview && (
+                  {!isPreview && !isPublicView && (
                     <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-emerald-400 hover:bg-white/10' : 'text-emerald-600 hover:bg-slate-100'}`}>
                       <Save size={18} />
                     </button>
                   )}
                   
-                  <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
-                    {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
-                  </button>
-
-                  {!isPreview && (
-                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
-                      {currentUser && profileContent.avatar ? (
-                        <img src={profileContent.avatar} alt="User" className="w-full h-full object-cover" />
-                      ) : (
-                        <User size={18} />
-                      )}
+                  {!isPublicView && (
+                    <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
+                      {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
+                    </button>
+                  )}
+                  
+                  {!isPreview && !isPublicView && (
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className="h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden text-slate-600 dark:text-slate-300">
+                      {currentUser && profileContent.avatar ? <img src={profileContent.avatar} alt="User" className="w-full h-full object-cover" /> : <User size={18} />}
                     </button>
                   )}
                 </div>
               </div>
-              {/* === VERSIÓN ESCRITORIO (3 Píldoras Minimalistas) === */}
+
+              {/* === VERSIÓN ESCRITORIO === */}
               <div className="hidden lg:flex flex-nowrap justify-center gap-6 xl:gap-8 w-full max-w-[1000px] pointer-events-auto">
                 
-                {/* 1. PÍLDORA NAVEGACIÓN (Sin el texto largo, solo Logo + Dropdown) */}
+                {/* 1. PÍLDORA NAVEGACIÓN */}
                 <div className={`h-[60px] flex items-center gap-1 p-2.5 pr-4 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
-                  
-                  {/* Botón Logo */}
-                  <div onClick={() => !isPreview && document.getElementById('unified-logo-upload').click()} className={`relative h-full aspect-square shrink-0 rounded-xl overflow-hidden flex items-center justify-center transition-colors ${!isPreview ? 'cursor-pointer hover:opacity-80' : ''} ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
+                  <div onClick={() => !isPreview && !isPublicView && document.getElementById('unified-logo-upload').click()} className={`relative h-full aspect-square shrink-0 rounded-xl overflow-hidden flex items-center justify-center transition-colors ${!isPreview && !isPublicView ? 'cursor-pointer hover:opacity-80' : ''} ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
                     {headerItem.content?.logo ? <img src={headerItem.content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={16} className="opacity-40" />}
                   </div>
                   
-                  {/* Separador fino */}
                   <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
 
-                  {/* Dropdown Navegación */}
-                  <div className="relative group h-full">
+                  <div className="relative group z-50 h-full">
                     <button className={`h-full flex items-center gap-3 px-4 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                       <Anchor size={15} className="opacity-50" /> {t.ui.navigate} <ChevronDown size={14} className="opacity-50 group-hover:rotate-180 transition-transform" />
                     </button>
-                    <div className={`absolute top-full left-0 mt-4 w-60 py-2 rounded-2xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top z-[70] ${isDarkMode ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-100'}`}>
+                    <div className={`absolute top-full right-0 mt-4 w-60 py-2 rounded-2xl border shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top z-[70] ${isDarkMode ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-100'}`}>
                       <div className="max-h-[350px] overflow-y-auto custom-scrollbar p-2.5">
                         {navItems.map((item, i) => (
                           <button key={item.id} onClick={() => { const el = document.getElementById(`module-${item.id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }} className={`w-full text-left px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all flex items-center gap-3 ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
@@ -4385,37 +4396,39 @@ onLogout={handleSignOut}
                 </div>
 
                 {/* 2. PÍLDORA CONFIGURACIÓN */}
-                {!isPreview && (
-                  <div className={`h-[60px] flex items-center p-2.5 gap-1 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
+                {(!isPreview || isPublicView) && (
+                  <div className={`h-[60px] flex items-center p-2.5 gap-1 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
                     <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-full px-5 flex items-center justify-center rounded-xl text-[13px] font-medium transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{language}</button>
                     <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-full px-5 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{isDarkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
-                    <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
-                    {isAuthenticated && (
-                      <div className="flex items-center">
+                    
+                    {!isPublicView && isAuthenticated && (
+                      <>
+                        <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
                         {saveStatus === 'saving' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-amber-500"><Loader2 size={14} className="animate-spin" /> Auto</span>}
                         {saveStatus === 'saved' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-emerald-500"><Check size={14} /> Listo</span>}
                         <button onClick={() => savePortalData(true)} className={`h-full px-5 flex items-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title="Guardar manual">
                            Guardar
                         </button>
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
 
-                {/* 3. PÍLDORA ACCIONES */}
-                <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
-                  <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
-                  <button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
-                    <span className="hidden sm:inline">{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
-                    {isPreview ? <Edit3 size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
-                  </button>
-                  {!isPreview && (
-                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-full px-7 flex items-center justify-center gap-3 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 text-[13px] font-medium shadow-sm hover:opacity-80 transition-opacity">
-                      <span>{t.ui.publish}</span>
-                      <Upload size={14} />
+                {/* 3. PÍLDORA ACCIONES BLINDADA */}
+                {!isPublicView && (
+                  <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
+                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
+                    <button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
+                      <span>{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
                     </button>
-                  )}
-                </div>
+                    {!isPreview && (
+                      <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-full px-7 flex items-center justify-center gap-3 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 text-[13px] font-medium shadow-sm hover:opacity-80 transition-opacity">
+                        <span>{t.ui.publish}</span>
+                        <Upload size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 <input id="unified-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => { const f = e.target.files[0]; if(f) updateHeader({...headerItem.content, logo: URL.createObjectURL(f)}); }} />
               </div>
@@ -4430,7 +4443,8 @@ onLogout={handleSignOut}
            </button>
         )}
 
-<div id="canvas-scroll-area" className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-32 custom-scrollbar">          <div className="max-w-7xl mx-auto min-h-[500px]">
+        <div id="canvas-scroll-area" className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-16 pb-12 pt-32 custom-scrollbar">
+          <div className="max-w-7xl mx-auto min-h-[500px]">
             {canvasItems.map((item, index) => (
               <React.Fragment key={item.id}>
                 {renderCanvasItem(item, index)}
@@ -4439,19 +4453,21 @@ onLogout={handleSignOut}
           </div>
 
           {/* Footer Legal Global */}
-          <div className={`max-w-7xl mx-auto mt-20 pt-8 pb-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs select-none ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
-             <div className="text-center md:text-left">
-                &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
-             </div>
-             <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
-                <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
-                <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</button>
-                <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>
-             </div>
-          </div>
+          {!isPublicView && (
+              <div className={`max-w-7xl mx-auto mt-20 pt-8 pb-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs select-none ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
+                 <div className="text-center md:text-left">
+                    &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
+                 </div>
+                 <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
+                    <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
+                    <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</button>
+                    <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>
+                 </div>
+              </div>
+          )}
         </div>
       </main>
-
+      
       <style dangerouslySetInnerHTML={{ __html: `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
