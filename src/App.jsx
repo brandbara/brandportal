@@ -3740,26 +3740,28 @@ const renderCanvasItem = (item, index) => {
 if (item.type === 'footer') {
         return (
           <React.Fragment key={item.id}>
-             {/* Eliminamos 'pointer-events-none' para que se pueda clicar */}
-             <div className="w-full flex justify-center py-8 select-none">
-                <a 
-                  href="/info" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className={`group flex items-center gap-2 px-5 py-2 rounded-full border shadow-sm transition-all hover:scale-105 pointer-events-auto ${isDarkMode ? 'bg-[#1e2330] border-white/10 text-slate-300 hover:border-white/20' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:shadow-md'}`}
-                >
-                   <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">{t.ui.watermark}</span> 
-                   <span className="text-xs font-black text-indigo-500 group-hover:text-indigo-600 transition-colors">BrandBara</span>
-                   <ExternalLink size={10} className="opacity-0 group-hover:opacity-40 transition-opacity ml-0.5" />
-                </a>
-             </div>
+             {/* Ocultación total de la marca de agua en portales públicos de clientes */}
+             {!effectiveIsPublicView && (
+                 <div className="w-full flex justify-center py-8 select-none">
+                    <a 
+                      href="/info" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={`group flex items-center gap-2 px-5 py-2 rounded-full border shadow-sm transition-all hover:scale-105 pointer-events-auto ${isDarkMode ? 'bg-[#1e2330] border-white/10 text-slate-300 hover:border-white/20' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:shadow-md'}`}
+                    >
+                       <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">{t.ui.watermark}</span> 
+                       <span className="text-xs font-black text-indigo-500 group-hover:text-indigo-600 transition-colors">BrandBara</span>
+                       <ExternalLink size={10} className="opacity-0 group-hover:opacity-40 transition-opacity ml-0.5" />
+                    </a>
+                 </div>
+             )}
+   
              <div id={`module-${item.id}`} className="mt-0">
-                <FooterModule content={item.content} update={(c)=>updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
+                <FooterModule content={item.content} update={(c)=>updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />
              </div>
           </React.Fragment>
         );
-    }
-
+}
     if (item.type === 'profile') return null;
 
 return (
@@ -3786,27 +3788,26 @@ return (
             <button onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
           </div>
         )}
-        {(() => {
-                              switch(item.type) {
-            case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'typography': return <TypographyModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'color': return <ColorModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'image': return <ImageModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'editorial': return <EditorialModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'bento': return <BentoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'layout': return <LayoutModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />;
-            case 'icons': return <IconsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
-            case 'web': return <WebModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
-            case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
-            case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
-            case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={isPreview} />;
+{(() => {
+          switch(item.type) {
+            case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'typography': return <TypographyModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'color': return <ColorModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'image': return <ImageModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'editorial': return <EditorialModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'bento': return <BentoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'layout': return <LayoutModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
+            case 'icons': return <IconsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
+            case 'web': return <WebModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
+            case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
+            case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
+            case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
             case 'profile': return null;
             default: return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
           }
-        })()}
-      </div>
+        })()}      </div>
     );
   };
 
@@ -3816,6 +3817,17 @@ return (
       <span className={`text-[10px] font-bold uppercase tracking-widest text-center transition-colors ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-900'}`}>{label}</span>
     </div>
   );
+
+// ==============================================================================
+  // BLINDAJE PERIMETRAL DE PRIVACIDAD SÍNCRONO 2026
+  // ==============================================================================
+  const currentSlugPath = window.location.pathname.replace('/', '').trim();
+  const isBrandRoute = currentSlugPath && currentSlugPath !== '' && currentSlugPath !== 'info';
+  const isActualOwner = currentUser && portalOwnerId && currentUser.id === portalOwnerId;
+
+  // Forzado estricto: Si es una ruta de marca y no es el dueño, la vista pública y el preview son obligatorios
+  const effectiveIsPublicView = isBrandRoute ? !isActualOwner : isPublicView;
+  const effectiveIsPreview = isBrandRoute ? !isActualOwner : isPreview;
 
   // =========================================================================
   // PANTALLAS DE INTERCEPCIÓN (VISTA PÚBLICA Y MURO DE CONTRASEÑA)
@@ -3829,9 +3841,9 @@ return (
     return <div className={`flex h-screen w-full items-center justify-center flex-col ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><AlertCircle size={60} className="text-rose-500 mb-4"/><h1 className="text-2xl font-black mb-2">Portal no encontrado</h1><p className="opacity-60">Esta URL no existe o ha sido eliminada.</p></div>;
   }
 
-  // EL MURO DE CONTRASEÑA (Ruta 2)
-  if (isPublicView && profileContent?.isPasswordProtected && !isUnlocked) {
-    return (
+// EL MURO DE CONTRASEÑA (Ruta 2 BLINDADA)
+  if (effectiveIsPublicView && profileContent?.isPasswordProtected && !isUnlocked) {
+        return (
       <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}>
         <div className={`w-full max-w-md p-8 rounded-3xl shadow-2xl border ${isDarkMode ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-200'} text-center animate-in zoom-in-95 duration-300`}>
           <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -4108,7 +4120,7 @@ onLogout={handleSignOut}
         isDarkMode={isDarkMode} 
       />
 {/* SIDEBAR */}
-      {!isPreview && (
+      {!effectiveIsPreview && (
        <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col h-full border-r transition-transform duration-300 lg:relative lg:translate-x-0 shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDarkMode ? 'bg-[#0f111a] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="p-8 flex flex-col h-full">
 {/* Logo que recarga la herramienta */}
@@ -4204,6 +4216,7 @@ onLogout={handleSignOut}
                   </div>
                 </div>
               </div>
+
 {/* FONDO CANVAS SECTION (Sin acordeón) */}
               <div className="mt-8">
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -4228,7 +4241,6 @@ onLogout={handleSignOut}
                             className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
                           />
                         </div>
-
                         <input 
                           type="text" 
                           value={design.customBgLight || ''} 
@@ -4256,7 +4268,6 @@ onLogout={handleSignOut}
                             className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
                           />
                         </div>
-
                         <input 
                           type="text" 
                           value={design.customBgDark || ''} 
@@ -4281,7 +4292,7 @@ onLogout={handleSignOut}
               
 {/* TOOLS SECTION */}
               <div>
-                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.tools}</h3>
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.ui.tools}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <DraggableTool type="identity" icon={Fingerprint} label={t.ui.identity} />
                   <DraggableTool type="logo" icon={Layers} label={t.ui.logo} />
@@ -4301,7 +4312,7 @@ onLogout={handleSignOut}
           </div>
         </div>
       </aside>
-      )}
+    )}
 
 {/* CANVAS */}
 <main 
@@ -4414,9 +4425,9 @@ onLogout={handleSignOut}
                   </div>
                 )}
 
-                {/* 3. PÍLDORA ACCIONES BLINDADA */}
-                {!isPublicView && (
-                  <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
+{/* 3. PÍLDORA ACCIONES BLINDADA AL 100% PARA VISITANTES Y EXTRAÑOS */}
+                {!effectiveIsPublicView && (
+                  <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
                     <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
                     <button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
                       <span>{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
@@ -4437,7 +4448,7 @@ onLogout={handleSignOut}
         })()}
         {/* --- FIN HEADER UNIFICADO --- */}
 
-        {isPreview && !isPublicView && (
+{effectiveIsPreview && !effectiveIsPublicView && (
            <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
               <Edit3 size={16} /> {t.ui.backToEdit}
            </button>
@@ -4452,8 +4463,8 @@ onLogout={handleSignOut}
             ))}
           </div>
 
-          {/* Footer Legal Global */}
-          {!isPublicView && (
+          {/* Footer Platform Global (Oculto 100% en portales de clientes públicos entregados) */}
+          {!effectiveIsPublicView && (
               <div className={`max-w-7xl mx-auto mt-20 pt-8 pb-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs select-none ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
                  <div className="text-center md:text-left">
                     &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
@@ -4465,9 +4476,10 @@ onLogout={handleSignOut}
                  </div>
               </div>
           )}
+          
         </div>
       </main>
-      
+
       <style dangerouslySetInnerHTML={{ __html: `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
