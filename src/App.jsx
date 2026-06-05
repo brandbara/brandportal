@@ -3032,9 +3032,119 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
   );
 };
 
+// ==============================================================================
+// MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY UX 2026)
+// ==============================================================================
+const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Las contraseñas no coinciden. Revisa los campos.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMsg('Por seguridad, la contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: password });
+      if (error) throw error;
+      
+      setSuccessMsg('¡Contraseña blindada con éxito! Redirigiendo...');
+      setTimeout(() => {
+        onClose();
+      }, 2500);
+    } catch (error) {
+      setErrorMsg(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className={`w-full max-w-md p-8 rounded-[2rem] shadow-2xl border flex flex-col ${isDarkMode ? 'bg-[#0f111a] border-white/10 shadow-black/80' : 'bg-white border-slate-200/80 shadow-slate-200/40'}`}>
+        
+        <div className="text-center mb-8">
+          <div className="mx-auto w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mb-4">
+            <Key size={24} />
+          </div>
+          <h2 className={`text-2xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            Nueva Contraseña
+          </h2>
+          <p className={`text-sm opacity-70 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            Hemos verificado tu identidad. Introduce tu nueva clave de acceso para asegurar tu cuenta.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider opacity-60">Nueva Contraseña</label>
+            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <Lock size={18} className="opacity-50 mr-3" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider opacity-60">Repite la Contraseña</label>
+            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <Lock size={18} className="opacity-50 mr-3" />
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirma tu nueva clave" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+            </div>
+          </div>
+
+          {errorMsg && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-in fade-in">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <p className="text-xs font-bold">{errorMsg}</p>
+            </div>
+          )}
+          
+          {successMsg && (
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 animate-in fade-in">
+              <Check size={16} className="shrink-0 mt-0.5" />
+              <p className="text-xs font-bold">{successMsg}</p>
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={isLoading || successMsg}
+            className={`w-full mt-4 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(isLoading || successMsg) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
+          >
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {isLoading ? "Actualizando..." : "Confirmar Cambio"}
+          </button>
+        </form>
+        
+        {/* Botón para forzar salida si el usuario se arrepiente */}
+        {!successMsg && (
+          <button onClick={onClose} className="mt-6 text-xs font-bold opacity-40 hover:opacity-100 transition-opacity uppercase tracking-widest text-center w-full">
+            Cancelar y entrar al lienzo
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Editor = () => {
     const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
-  const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
   const [userPlan, setUserPlan] = useState('FREE');
   const [showWatermark, setShowWatermark] = useState(true);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -3429,6 +3539,44 @@ const savePortalData = async (isManual = false) => {
     { id: 'footer-1', type: 'footer', content: { copyright: "" } }
   ]);
 
+const [showUpdatePassword, setShowUpdatePassword] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Si el evento es PASSWORD_RECOVERY, Supabase ya validó el token de la URL
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowUpdatePassword(true); // Desplegamos el modal por encima de todo
+      }
+    });
+
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
+
+  
+// ESTADO ÚNICO PARA EL MODAL DE RECUPERACIÓN (Asegúrate de que no haya otro igual arriba)
+
+  // DETECCIÓN INTELIGENTE DE RECUPERACIÓN DE CONTRASEÑA
+  useEffect(() => {
+    if (!supabase) return;
+    
+    // Sintaxis moderna y segura de Supabase v2
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Si el evento es PASSWORD_RECOVERY, Supabase ya validó el token de la URL
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowUpdatePassword(true); // Desplegamos el modal por encima de todo
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
+
   // Load from LocalStorage on mount
   useEffect(() => {
     const savedData = localStorage.getItem('brandPortalData');
@@ -3443,6 +3591,11 @@ const savePortalData = async (isManual = false) => {
         if (parsed.currentFont) setCurrentFont(parsed.currentFont);
       } catch (e) {
         console.error("Failed to load data", e);
+      }
+    } else {
+      // UX PLG: Si entramos limpios en la raíz (/), disparamos el Onboarding Mágico de 1 clic
+      if (window.location.pathname === '/') {
+        setShowOnboarding(true);
       }
     }
     
@@ -4014,6 +4167,13 @@ onLogout={handleSignOut}
         t={t}
       />
 
+{/* MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY) */}
+      <UpdatePasswordModal
+        isOpen={showUpdatePassword}
+        onClose={() => setShowUpdatePassword(false)}
+        isDarkMode={isDarkMode}
+      />
+
       {/* MODAL DE SUSCRIPCION - INTERCEPTOR DE SEGURIDAD */}
       <ManageSubscriptionModal 
         isOpen={showSubscriptionModal} 
@@ -4524,7 +4684,7 @@ onLogout={handleSignOut}
           )}
         </div>
       </main>
-      
+
       <style dangerouslySetInnerHTML={{ __html: `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
