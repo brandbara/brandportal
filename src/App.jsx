@@ -18,6 +18,7 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
+import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -513,6 +514,56 @@ const hashPassword = async (password) => {
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// ==============================================================================
+// SISTEMA DE PERSISTENCIA LOCAL (BÚNKER ANTI-PÉRDIDAS)
+// ==============================================================================
+
+// 1. Interceptor Silencioso: Cada vez que la app crea un blob, lo guarda en IndexedDB
+const originalCreateObjectURL = window.URL.createObjectURL;
+window.URL.createObjectURL = function(obj) {
+  const url = originalCreateObjectURL.call(this, obj);
+  if (obj instanceof Blob || obj instanceof File) {
+     idbSet(url, obj).catch(e => console.error("Error guardando en IDB:", e));
+  }
+  return url;
+};
+
+// 2. Motor de Rescate Asíncrono: Busca enlaces muertos y los revive
+const recoverLostBlobs = async (obj) => {
+  let hasChanges = false;
+  const traverse = async (node) => {
+    if (!node) return node;
+    // Si encontramos un enlace temporal...
+    if (typeof node === 'string' && node.startsWith('blob:')) {
+      try {
+        const res = await fetch(node);
+        if (res.ok) return node; // Si está vivo, lo dejamos.
+      } catch (e) {
+        // ¡ESTÁ MUERTO (F5)! Lo rescatamos de la base de datos local.
+        const recoveredBlob = await idbGet(node);
+        if (recoveredBlob) {
+          const newUrl = window.URL.createObjectURL(recoveredBlob); // Esto a su vez lo re-guarda
+          hasChanges = true;
+          return newUrl;
+        }
+      }
+    }
+    if (Array.isArray(node)) {
+      const newArr = [];
+      for (let item of node) newArr.push(await traverse(item));
+      return newArr;
+    }
+    if (typeof node === 'object') {
+      const newObj = {};
+      for (let key in node) newObj[key] = await traverse(node[key]);
+      return newObj;
+    }
+    return node;
+  };
+  const result = await traverse(obj);
+  return { result, hasChanges };
 };
 
 // ==============================================================================
@@ -1418,12 +1469,14 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
         <button 
             onClick={() => updateVariation(variant.id, 'bg', variant.bg === 'light' ? 'dark' : 'light')} 
             className={`p-2 backdrop-blur-md rounded-full shadow-md touch-manipulation transition-colors ${variant.bg === 'dark' ? 'bg-white/20 text-white hover:bg-white/40' : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
-            title="Cambiar fondo"
+            title={t.ui.change}
         >
             <SunMoon size={16}/>
         </button>
-        <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation" title="Eliminar"><Trash2 size={16}/></button>
-    </div>                            <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
+        <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation" title={t.ui.cancel}><Trash2 size={16}/></button>
+    </div>
+    
+    <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
                             <input id={`var-up-${variant.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleVariationUpload(e, variant.id)} />
                         </>
                     )}
@@ -1509,13 +1562,13 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
           <div className="space-y-8">
             {dos.map((rule, i) => (
               <div key={`do-${i}`} className="group relative">
-                 <div 
+<div 
                     onClick={() => !isPreview && document.getElementById(`rule-dos-${i}`).click()}
                     className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer hover:border-indigo-500 border-dashed' : ''}`}
                  >
-                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">Subir</span></div>}
+                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
                  </div>
-                 {!isPreview && <input id={`rule-dos-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'dos', i)} />}
+                                  {!isPreview && <input id={`rule-dos-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'dos', i)} />}
                  
                  <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('dos', i, v)} />
                  
@@ -1532,13 +1585,13 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
           <div className="space-y-8">
             {donts.map((rule, i) => (
               <div key={`dont-${i}`} className="group relative">
-                 <div 
+<div 
                     onClick={() => !isPreview && document.getElementById(`rule-donts-${i}`).click()}
                     className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer hover:border-indigo-500 border-dashed' : ''}`}
                  >
-                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">Subir</span></div>}
+                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
                  </div>
-                 {!isPreview && <input id={`rule-donts-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'donts', i)} />}
+                                  {!isPreview && <input id={`rule-donts-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'donts', i)} />}
                  
                  <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('donts', i, v)} />
                  
@@ -1554,14 +1607,17 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   );
 });
 
+// ==========================================
+// MÓDULO: Color (Ahora con CMYK y Pantone)
+// ==========================================
 const ColorModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const colors = (content.colors && content.colors.length > 0) ? content.colors : [
-      { name: t.defaults.colorPrimaryName, hex: '#4F46E5', usage: t.defaults.colorPrimaryUsage }, 
-      { name: t.defaults.colorSecondaryName, hex: '#10B981', usage: t.defaults.colorSecondaryUsage }, 
-      { name: t.defaults.colorAccentName, hex: '#F43F5E', usage: t.defaults.colorAccentUsage },
-      { name: t.defaults.colorNeutralName, hex: '#64748B', usage: t.defaults.colorNeutralUsage }
+      { name: t.defaults.colorPrimaryName, hex: '#4F46E5', cmyk: '76, 68, 0, 0', pantone: '2726 C', usage: t.defaults.colorPrimaryUsage }, 
+      { name: t.defaults.colorSecondaryName, hex: '#10B981', cmyk: '76, 0, 58, 0', pantone: '3395 C', usage: t.defaults.colorSecondaryUsage }, 
+      { name: t.defaults.colorAccentName, hex: '#F43F5E', cmyk: '0, 85, 52, 0', pantone: '199 C', usage: t.defaults.colorAccentUsage },
+      { name: t.defaults.colorNeutralName, hex: '#64748B', cmyk: '55, 35, 20, 10', pantone: 'Cool Gray 8 C', usage: t.defaults.colorNeutralUsage }
   ];
-  const addColor = () => update({ ...content, colors: [...colors, { name: 'New', hex: '#000000', usage: '...' }] });
+  const addColor = () => update({ ...content, colors: [...colors, { name: 'New', hex: '#000000', cmyk: '0,0,0,0', pantone: '-', usage: '...' }] });
   const removeColor = (i) => update({ ...content, colors: colors.filter((_, idx) => idx !== i) });
   const updateColorValue = (i, f, v) => { const n = [...colors]; n[i][f] = v; update({ ...content, colors: n }); };
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
@@ -1581,10 +1637,14 @@ const ColorModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
                 <div className={`w-20 h-20 ${design.radius} shadow-inner flex-shrink-0 relative overflow-hidden`} style={{ backgroundColor: color.hex }}>
                      {!isPreview && <input type="color" value={color.hex} onChange={(e) => updateColorValue(i, 'hex', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />}
                 </div>
-                <div className="flex-1">
-                   <div className="flex items-center gap-4 mb-2">
+                <div className="flex-1 space-y-2">
+                   <div className="flex items-center gap-4">
                        <EditableText text={color.name} className="font-bold text-xl" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'name', val)} isPreview={isPreview} />
                        <span className={`font-mono text-sm uppercase opacity-50 ${isDarkMode ? 'text-white' : 'text-black'}`}>{color.hex}</span>
+                   </div>
+                   <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center gap-1.5"><span className="text-[10px] font-bold uppercase tracking-widest opacity-40">CMYK</span> <EditableText text={color.cmyk || '0, 0, 0, 0'} className="text-xs font-mono opacity-80" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateColorValue(i, 'cmyk', v)} /></div>
+                      <div className="flex items-center gap-1.5"><span className="text-[10px] font-bold uppercase tracking-widest opacity-40">PMS</span> <EditableText text={color.pantone || '-'} className="text-xs font-mono opacity-80" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateColorValue(i, 'pantone', v)} /></div>
                    </div>
                    <EditableText text={color.usage} className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'usage', val)} isPreview={isPreview} />
                 </div>
@@ -1602,10 +1662,23 @@ const ColorModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
                   </div>
                   <div className="space-y-3">
                       <div className="flex justify-between items-center"><EditableText text={color.name} className="font-bold text-xl" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'name', val)} isPreview={isPreview} /></div>
-                      <div className={`flex items-center justify-between p-3 rounded-xl ${isDarkMode ? 'bg-black/30' : 'bg-white'} border border-transparent hover:border-indigo-200 transition-colors`}>
-                          <span className="font-mono text-sm uppercase opacity-70">{color.hex}</span>
-                          <button onClick={() => navigator.clipboard.writeText(color.hex)} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar HEX"><Copy size={14} /></button>
+                      
+                      {/* CAJA DE CÓDIGOS EXTENDIDA */}
+                      <div className={`flex flex-col p-2.5 rounded-xl ${isDarkMode ? 'bg-black/30' : 'bg-white'} border border-transparent hover:border-indigo-200 transition-colors gap-1.5`}>
+                          <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">HEX</span><span className="font-mono text-sm uppercase opacity-70">{color.hex}</span></div>
+                              <button onClick={() => navigator.clipboard.writeText(color.hex)} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar HEX"><Copy size={12} /></button>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-dashed border-slate-200 dark:border-white/10 pt-1.5">
+                              <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">CMYK</span><EditableText text={color.cmyk || '0, 0, 0, 0'} className="font-mono text-xs uppercase opacity-70" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'cmyk', val)} isPreview={isPreview} /></div>
+                              <button onClick={() => navigator.clipboard.writeText(color.cmyk || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar CMYK"><Copy size={12} /></button>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-dashed border-slate-200 dark:border-white/10 pt-1.5">
+                              <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">PMS</span><EditableText text={color.pantone || '-'} className="font-mono text-xs uppercase opacity-70" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'pantone', val)} isPreview={isPreview} /></div>
+                              <button onClick={() => navigator.clipboard.writeText(color.pantone || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar Pantone"><Copy size={12} /></button>
+                          </div>
                       </div>
+
                       <EditableText text={color.usage} className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'usage', val)} isPreview={isPreview} />
                   </div>
               </div>
@@ -2652,16 +2725,24 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                         </button>
                                     </div>
                                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
-                                        <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                        <button onClick={() => {
+                                        <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                       
+                                         <button onClick={async () => {
                                           if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
-                                            alert("Cuenta borrada con éxito (Simulación)");
-                                            if(onLogout) onLogout();
-                                            onClose();
+                                            try {
+                                              if (supabase) {
+                                                // Borrar portal de la base de datos
+                                                await supabase.from('portals').delete().eq('user_id', content.id);
+                                              }
+                                              idbClear().catch(console.error); // Vaciar búnker
+                                              if(onLogout) onLogout();
+                                              onClose();
+                                            } catch (err) {
+                                              alert("Error al eliminar datos: " + err.message);
+                                            }
                                           }
                                         }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
                                           Eliminar mi cuenta definitivamente
-                                        </button>
-                                    </div>
+                                        </button>                                    </div>
                                  </div>
                             </div>
                           </div>
@@ -3345,7 +3426,7 @@ const fetchPortal = async () => {
             p_slug: currentSlug, // 🛡️ Corregido: Ahora usa la variable real existente
             p_password: hashedAttempt
           });
-                    
+
           if (error) throw error;
           if (!data) {
             setNotFound(true);
@@ -3444,12 +3525,17 @@ setProfileContent({
           const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
           const filePath = `${userId}/${fileName}`; 
           
-          const { error } = await supabase.storage.from('portals_assets').upload(filePath, blob);
+const { error } = await supabase.storage.from('portals_assets').upload(filePath, blob);
           if (error) throw error;
           
           const { data } = supabase.storage.from('portals_assets').getPublicUrl(filePath);
-          return data.publicUrl; 
-        } catch (e) {
+          
+          // 🧹 OPTIMIZACIÓN DE MEMORIA: Liberar RAM y borrar del búnker individualmente
+          URL.revokeObjectURL(node);
+          idbDelete(node).catch(e => console.error("Error borrando de IDB:", e));
+          
+          return data.publicUrl;
+                } catch (e) {
           console.error("Error subiendo imagen:", e);
           return node;
         }
@@ -3537,7 +3623,8 @@ if (processedProfile.hasChanges) {
   localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems, design, profileContent: processedProfile.result, isDarkMode, language, currentFont }));
 }
 
-        setSaveStatus('saved');
+setSaveStatus('saved');
+        idbClear().catch(console.error); // 🧹 LIMPIEZA: Vaciamos la DB local porque ya está a salvo en Supabase
         if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
         setTimeout(() => setSaveStatus('idle'), 2500);
 
@@ -3580,27 +3667,43 @@ if (processedProfile.hasChanges) {
     return () => subscription?.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const savedData = localStorage.getItem('brandPortalData');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        if (parsed.canvasItems) setCanvasItems(parsed.canvasItems);
-        if (parsed.design) setDesign(parsed.design);
-        if (parsed.profileContent) setProfileContent(parsed.profileContent);
-        if (parsed.isDarkMode !== undefined) setIsDarkMode(parsed.isDarkMode);
-        if (parsed.language) setLanguage(parsed.language);
-        if (parsed.currentFont) setCurrentFont(parsed.currentFont);
-      } catch (e) {
-        console.error("Failed to load data", e);
+useEffect(() => {
+    const loadData = async () => {
+      const savedData = localStorage.getItem('brandPortalData');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          
+          // 🛡️ MODO RESCATE: Revivimos imágenes muertas antes de pintar el Canvas
+          const recoveredCanvas = await recoverLostBlobs(parsed.canvasItems || []);
+          const recoveredProfile = await recoverLostBlobs(parsed.profileContent || {});
+
+          if (recoveredCanvas.hasChanges || recoveredProfile.hasChanges) {
+             parsed.canvasItems = recoveredCanvas.result;
+             parsed.profileContent = recoveredProfile.result;
+             localStorage.setItem('brandPortalData', JSON.stringify(parsed));
+             console.log("🛡️ BrandBara: Imágenes rescatadas con éxito tras recarga.");
+          }
+
+          if (parsed.canvasItems) setCanvasItems(parsed.canvasItems);
+          if (parsed.design) setDesign(parsed.design);
+          if (parsed.profileContent) setProfileContent(parsed.profileContent);
+          if (parsed.isDarkMode !== undefined) setIsDarkMode(parsed.isDarkMode);
+          if (parsed.language) setLanguage(parsed.language);
+          if (parsed.currentFont) setCurrentFont(parsed.currentFont);
+        } catch (e) {
+          console.error("Failed to load data", e);
+        }
       }
-    }
+      
+      const cookiesStatus = localStorage.getItem('brandbara_cookies_status');
+      if (!cookiesStatus) {
+        const timer = setTimeout(() => setShowCookieBanner(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    };
     
-    const cookiesStatus = localStorage.getItem('brandbara_cookies_status');
-    if (!cookiesStatus) {
-      const timer = setTimeout(() => setShowCookieBanner(true), 1500);
-      return () => clearTimeout(timer);
-    }
+    loadData();
   }, []);
 
   const handleCookieAction = (status) => {
@@ -4466,20 +4569,12 @@ const isInitialMount = useRef(true);
                     </button>
                   )}
                   
-                  {!effectiveIsPublicView && (
-                    <button onClick={() => {
-                        if (effectiveIsPreview) {
-                            navigate(`/${activeSlug}/edit`);
-                            setIsPreview(false);
-                        } else {
-                            navigate(`/${activeSlug || profileContent.slug}`);
-                            setIsPreview(true);
-                        }
-                    }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
+{!effectiveIsPublicView && (
+                    <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
                       {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
                     </button>
                   )}
-                  
+                                    
                   {!effectiveIsPreview && !effectiveIsPublicView && (
                     <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                       {currentUser && profileContent.avatar ? (
@@ -4543,17 +4638,9 @@ const isInitialMount = useRef(true);
                 {!effectiveIsPublicView && (
                   <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
                     <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
-                    <button onClick={() => {
-                        if (effectiveIsPreview) {
-                            navigate(`/${activeSlug}/edit`);
-                            setIsPreview(false);
-                        } else {
-                            navigate(`/${activeSlug || profileContent.slug}`);
-                            setIsPreview(true);
-                        }
-                    }} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
-                      <span>{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
-                    </button>
+<button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
+  <span>{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
+</button>
                     {!isPreview && (
                       <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className="h-full px-7 flex items-center justify-center gap-3 rounded-xl bg-[#1a1a1a] dark:bg-white text-white dark:text-slate-900 text-[13px] font-medium shadow-sm hover:opacity-80 transition-opacity">
                         <span>{t.ui.publish}</span>
@@ -4570,12 +4657,12 @@ const isInitialMount = useRef(true);
         })()}
         {/* --- FIN HEADER UNIFICADO --- */}
 
-        {/* BOTÓN OWNER: VOLVER A EDITAR (Esquina inferior derecha) */}
-        {effectiveIsPreview && !effectiveIsPublicView && (
-           <button onClick={() => { navigate(`/${activeSlug}/edit`); setIsPreview(false); }} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
-              <Edit3 size={16} /> {t.ui.backToEdit}
-           </button>
-        )}
+{/* BOTÓN OWNER: VOLVER A EDITAR (Esquina inferior derecha) */}
+{effectiveIsPreview && !effectiveIsPublicView && (
+   <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
+      <Edit3 size={16} /> {t.ui.backToEdit}
+   </button>
+)}
 
         {/* CTA PLG PARA VISITANTES NO REGISTRADOS (Esquina inferior izquierda) */}
         {effectiveIsPublicView && !isAuthenticated && (
