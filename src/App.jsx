@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -161,7 +162,7 @@ const TRANSLATIONS = {
         colorSecondaryName: "Color Secundario", colorSecondaryUsage: "Soporte y validaciones.", 
         colorAccentName: "Color de Acento", colorAccentUsage: "Destacados y llamadas a la acción.",
         colorNeutralName: "Neutro", colorNeutralUsage: "Textos y bordes.", 
-        colorErrorName: "Error", colorErrorUsage: "Alertas y estados críticos.",
+colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
         editorialContent: "Example editorial content...", 
         typoSamples: { Display: "Titular", H1: "Encabezado", H2: "Subtítulo", Body: "Cuerpo de texto legible.", Caption: "Texto auxiliar." }, 
         partnerCaption: "Descripción del acuerdo." 
@@ -505,6 +506,15 @@ const isVideoUrl = (url) => {
   return url && (url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo'));
 };
 
+// --- FUNCIÓN DE HASHING (SEGURIDAD DE CONTRASEÑAS DEL PORTAL) ---
+const hashPassword = async (password) => {
+  if (!password) return null;
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 // ==============================================================================
 // === FILE: UserProfileModal.tsx === (O donde tengas el EditableText)
 // ==============================================================================
@@ -669,7 +679,7 @@ const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
   return (
      <div className="w-full h-full flex flex-col items-center justify-center relative min-h-[140px]">
          <div 
-            onClick={() => !isPreview && document.getElementById(`bento-up-${id}`).click()} 
+onClick={() => !isPreview && triggerFileInput(`bento-up-${id}`)}
             className={`flex flex-col items-center justify-center ${!isPreview ? 'cursor-pointer' : ''} p-6 w-full h-full`}
          >
             <ImageIcon size={32} className={`mb-3 opacity-20 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
@@ -692,8 +702,8 @@ const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
 // === FILE: DeviceMockup.tsx ===
 // ==============================================================================
 
-const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPreview }) => {
-  const currentSize = SOCIAL_SIZES[type] || SOCIAL_SIZES.post;
+const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPreview, t }) => {
+    const currentSize = SOCIAL_SIZES[type] || SOCIAL_SIZES.post;
 
   let Icon = ImageIcon;
   if (type === 'laptop') Icon = Laptop;
@@ -727,7 +737,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
       <div onClick={() => !isPreview && onUpload()} className={`relative ${currentSize.w} ${currentSize.h} ${frameClass} overflow-hidden group/dev ${!isPreview ? 'cursor-pointer' : ''} transition-transform hover:scale-105 shrink-0 ${isAvatar || isHeader ? 'border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 shadow-md' : ''}`}>
          <div className={`w-full h-full ${isAvatar || isHeader ? '' : 'bg-white'} relative ${innerClass} overflow-hidden`}>
             {src ? <img src={src} className="w-full h-full object-cover" alt={label} /> : <div className={`w-full h-full flex items-center justify-center ${isAvatar || isHeader ? 'text-slate-300' : 'bg-slate-100 text-slate-300'}`}><Icon size={32} /></div>}
-            {!isPreview && <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/dev:opacity-100 flex flex-col items-center justify-center transition-opacity"><div className="bg-white/20 p-3 rounded-full mb-2"><Upload size={24} className="text-white" /></div><span className="text-[10px] text-white font-bold uppercase tracking-widest">Subir</span></div>}
+<div className="absolute inset-0 bg-black/40 opacity-0 group-hover/dev:opacity-100 flex flex-col items-center justify-center transition-opacity"><div className="bg-white/20 p-3 rounded-full mb-2"><Upload size={24} className="text-white" /></div><span className="text-[10px] text-white font-bold uppercase tracking-widest">{t?.ui?.upload || 'Subir'}</span></div>
          </div>
          {isDevice && (type === 'mobile' || type === 'tablet' || type === 'reel') && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-slate-700 rounded-b-xl pointer-events-none"></div>}
          
@@ -1114,23 +1124,21 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
   const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) update({ ...content, logo: URL.createObjectURL(file) }); };
   const scrollToModule = (id) => { const element = document.getElementById(`module-${id}`); if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   
-  // 1. Filtramos módulos activos (quitamos cabecera y pie) [cite: 1758]
+  // 1. Filtramos módulos activos (quitamos cabecera y pie) [cite: 1429]
   const navItems = allItems.filter(i => i.type !== 'header' && i.type !== 'footer');
 
-  // 2. Lógica para obtener el nombre exacto que el usuario ve en el portal [cite: 1614-1621]
+  // 2. Lógica para obtener el nombre exacto que el usuario ve en el portal [cite: 1428]
   const getModuleDisplayName = (item) => {
-    // Si el usuario editó el título manualmente en el módulo, usamos ese
     if (item.content?.title && typeof item.content.title === 'string' && item.content.title.trim() !== "") return item.content.title;
-    // Si no, buscamos el título oficial en la traducción de módulos (Ej: "Iconografía", "Web")
     if (t.modules[item.type]?.title) return t.modules[item.type].title;
-    // Fallback: Nombre de la herramienta en UI o tipo capitalizado
     return t.ui[item.type] || item.type.charAt(0).toUpperCase() + item.type.slice(1);
   };
   
   return (
     <div className={`w-full p-4 md:p-5 flex flex-col md:flex-row justify-between items-center gap-6 relative z-20 transition-all duration-500 backdrop-blur-xl ${design.radius} ${design.border} ${design.shadow} ${isDarkMode ? 'bg-slate-950/80 border-white/10 shadow-2xl' : 'bg-white/80 border-white/40 shadow-xl'}`}>
       <div className={`flex items-center gap-4 flex-shrink-0`}>
-        <div onClick={() => !isPreview && document.getElementById('header-logo-upload').click()} className={`relative h-12 w-12 md:h-14 md:w-14 flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden border flex items-center justify-center transition-all ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+        {/* REPARADO AQUÍ: triggerFileInput + Clases de estilo recuperadas */}
+        <div onClick={() => !isPreview && triggerFileInput('header-logo-upload')} className={`relative h-12 w-12 md:h-14 md:w-14 flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden border flex items-center justify-center transition-all ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
           {content?.logo ? <img src={content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={20} className="opacity-40" />}
           {!isPreview && <input id="header-logo-upload" type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />}
         </div>
@@ -1149,7 +1157,6 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
           <ChevronDown size={14} className="opacity-50 group-hover:rotate-180 transition-transform" />
         </button>
         
-        {/* LISTADO DINÁMICO MEJORADO */}
         <div className={`absolute top-full right-0 mt-2 w-full py-2 rounded-2xl border shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
           <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
             {navItems.map((item, i) => (
@@ -1167,7 +1174,9 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
       </div>
     </div>
   );
-});const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
+});
+
+const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
   const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
@@ -1180,16 +1189,13 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
     { id: 'grid3', label: t.modules.layout.grid3, cols: 1 }, // Baseline
     { id: 'grid4', label: t.modules.layout.grid4, cols: 4 }, // Hierarchical
   ];
-
   // Robust initialization
   const usageExamples = content?.usageExamples || [];
-  const usageTitle = content?.usageTitle || t.modules.layout.usageTitle; // Editable Title
-  const usageDesc = content?.usageDesc || t.modules.layout.usageDesc;   // Editable Desc
+  const usageTitle = content?.usageTitle || t.modules.layout.usageTitle; // Title
+  const usageDesc = content?.usageDesc || t.modules.layout.usageDesc;   // Desc
   
   const addExample = () => update({ ...content, usageExamples: [...usageExamples, { id: Date.now(), src: null, title: 'Nuevo Caso', desc: 'Descripción del caso...', selectedGrid: 'grid1', templateUrl: '' }] });
-  
   const updateExample = (id, field, value) => {
-    // Immutable update pattern using map
     const newExamples = usageExamples.map(e => e.id === id ? { ...e, [field]: value } : e);
     update({ ...content, usageExamples: newExamples });
   };
@@ -1204,7 +1210,6 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
       newExamples.splice(index + 1, 0, newExample);
       update({ ...content, usageExamples: newExamples });
   };
-
   return (
     <div className="p-6 md:p-10 relative">
       <ModuleHeader title={t.modules.layout.title} desc={t.modules.layout.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
@@ -1244,7 +1249,7 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
               </div>
           )}
           <GridOverlay type={selectedGrid} />
-          {!isPreview && (<> <div onClick={() => document.getElementById('layout-up').click()} className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors z-0"></div> <input id="layout-up" type="file" className="hidden" accept="image/*" onChange={handlePreviewUpload} /> </>)}
+          {!isPreview && (<> <div onClick={() => triggerFileInput('layout-up')} className="absolute inset-0 cursor-pointer hover:bg-black/10 transition-colors z-0"></div> <input id="layout-up" type="file" className="hidden" accept="image/*" onChange={handlePreviewUpload} /> </>)}
       </div>
 
       <div className="space-y-12 mt-12">
@@ -1271,17 +1276,24 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
                  {!isPreview && (
                     <div className="flex flex-wrap gap-1.5 mb-4 p-1.5 bg-white/50 dark:bg-black/20 rounded-xl border border-slate-200 dark:border-white/10">
                         {grids.map(g => (
-                            <button key={g.id} onClick={() => updateExample(example.id, 'selectedGrid', g.id)} className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${example.selectedGrid === g.id ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}>{g.label.split(' ')[0]}</button>
+                           <button key={g.id} onClick={() => updateExample(example.id, 'selectedGrid', g.id)} className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${example.selectedGrid === g.id ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-indigo-600'}`}>{g.label.split(' ')[0]}</button>
                         ))}
                     </div>
                  )}
 
-                 <div onClick={() => !isPreview && document.getElementById(`ex-up-${example.id}`).click()} className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-800 mb-6 relative flex items-center justify-center cursor-pointer shadow-inner">
-                    {example.src ? <img src={example.src} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={example.title} /> : <ImageIcon className="opacity-20" size={48} />}
+                 <div 
+                    onClick={() => !isPreview && triggerFileInput(`ex-up-${example.id}`)} 
+                    className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-slate-200 dark:bg-slate-800 mb-6 relative flex items-center justify-center cursor-pointer shadow-inner"
+                 >
+                    {example.src ? (
+                       <img src={example.src} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={example.title} />
+                    ) : (
+                       <ImageIcon className="opacity-20" size={48} />
+                    )}
                     <GridOverlay type={example.selectedGrid} />
-                    {!isPreview && <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white backdrop-blur-[2px] z-30"><Upload size={24}/><span className="text-xs font-bold mt-2 uppercase">Subir</span></div>}
+                    {!isPreview && <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white backdrop-blur-[2px] z-30"><Upload size={24}/><span className="text-xs font-bold mt-2 uppercase">{t?.ui?.upload || 'Subir'}</span></div>}
                  </div>
-
+                 
                  {!isPreview && <input id={`ex-up-${example.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleExampleUpload(e, example.id)} />}
                  
                  <div className="space-y-2 flex-1">
@@ -1512,8 +1524,7 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
             </div>
 
             {/* Description Text */}
-            <div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-center'}`}>
-                <EditableText 
+<div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>                <EditableText 
                     text={content.safeAreaDescription || "El área de seguridad es el espacio vital que debe rodear al logotipo para asegurar su legibilidad y prominencia."} 
                     className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto`}
                     tag="p"
@@ -2193,11 +2204,7 @@ const CobrandingModule = React.memo(({ isDarkMode, design, content, update, t, i
 
 const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const colorBase = design.palette?.base || 'indigo';
-  const assets = content.assets || [
-    { id: 1, title: 'Plantillas de Presentación', desc: 'Plantillas corporativas para Keynote y PowerPoint.', format: 'PPTX / KEY, 25MB', url: '' },
-    { id: 2, title: 'Documentos corporativos', desc: 'Membretes, tarjetas de visita y carpetas.', format: 'ZIP / PDF, 15MB', url: '' },
-    { id: 3, title: 'Brand guidelines', desc: 'Manual de identidad visual corporativa completo.', format: 'PDF, 30MB', url: '' }
-  ];
+const assets = content.assets?.length ? content.assets : DEFAULT_ASSETS;
 
   const addAsset = () => {
     const newAsset = { id: Date.now(), title: 'Nuevo Material', desc: 'Descripción del archivo...', format: 'PDF, 1MB', url: '' };
@@ -2394,13 +2401,13 @@ const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPrevie
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
   const removeDevice = (id) => update({ ...content, items: (content.items || []).filter(item => item.id !== id) });
   const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
+  
   useEffect(() => { if (!content.items) { update({ ...content, items: [ { id: 1, type: 'laptop', src: null }, { id: 2, type: 'tablet', src: null }, { id: 3, type: 'mobile', src: null } ]}); } }, []);
-
   const description = content.description || "Descripción del proyecto web y sus objetivos principales.";
-
+  
   return (
     <div className="p-6 md:p-10 relative">
-<ModuleHeader 
+      <ModuleHeader 
         title={content.title || t.modules.web.title} 
         onTitleChange={(v) => update({ ...content, title: v })}
         desc={description} 
@@ -2408,14 +2415,23 @@ const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPrevie
         isDarkMode={isDarkMode} 
         isPreview={isPreview}
       >
-                  <div className="flex gap-2">
-             <button onClick={() => addDevice('laptop')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Laptop size={16}/></button>
-             <button onClick={() => addDevice('tablet')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Tablet size={16}/></button>
-             <button onClick={() => addDevice('mobile')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`}><Smartphone size={16}/></button>
+          <div className="flex gap-2">
+             <button onClick={() => addDevice('laptop')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Laptop size={16}/></button>
+             <button onClick={() => addDevice('tablet')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Tablet size={16}/></button>
+             <button onClick={() => addDevice('mobile')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Smartphone size={16}/></button>
           </div>
       </ModuleHeader>
-
-      <div className="flex flex-wrap items-end justify-center gap-8 mt-6 mb-8">{devices.map((device) => (<div key={device.id} className={`${device.type === 'laptop' ? 'w-full flex justify-center mb-4 md:mb-0 order-first md:order-none' : ''}`}><input id={`web-dev-${device.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleDeviceUpload(e, device.id)} /><DeviceMockup type={device.type} src={device.src} label={t.modules.web[device.type]} isDarkMode={isDarkMode} isPreview={isPreview} onUpload={() => document.getElementById(`web-dev-${device.id}`).click()} onDelete={() => removeDevice(device.id)} /></div>))}</div>
+      
+      {/* CORREGIDO: Recuperamos la retícula y el bucle .map original */}
+      <div className="flex flex-wrap items-end justify-center gap-8 mt-6 mb-8">
+        {devices.map((device) => (
+          <div key={device.id} className={`${device.type === 'laptop' ? 'w-full flex justify-center mb-4 md:mb-0 order-first md:order-none' : ''}`}>
+            <input id={`web-dev-${device.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleDeviceUpload(e, device.id)} />
+            <DeviceMockup type={device.type} src={device.src} label={t.modules.web[device.type]} isDarkMode={isDarkMode} isPreview={isPreview} onUpload={() => triggerFileInput(`web-dev-${device.id}`)} onDelete={() => removeDevice(device.id)} t={t} />
+          </div>
+        ))}
+      </div>
+      
       <DynamicBlocks blocks={content?.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -2432,7 +2448,7 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
 
   return (
     <div className="p-6 md:p-10 relative">
-<ModuleHeader 
+      <ModuleHeader 
         title={content.title || t.modules.social.title} 
         onTitleChange={(v) => update({ ...content, title: v })}
         desc={content.desc || t.modules.social.desc} 
@@ -2440,16 +2456,26 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
         isDarkMode={isDarkMode} 
         isPreview={isPreview}
       >
-                  <div className="flex gap-2">
-             <button onClick={() => addDevice('post')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="Post (4:5)"><Instagram size={16}/></button>
-             <button onClick={() => addDevice('reel')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="Reel (9:16)"><Smartphone size={16}/></button>
-             <button onClick={() => addDevice('youtube')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="YouTube (16:9)"><Youtube size={16}/></button>
-             <button onClick={() => addDevice('avatar')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="Avatar"><User size={16}/></button>
-             <button onClick={() => addDevice('x_header')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="X Header"><RectangleHorizontal size={16}/></button>
-             <button onClick={() => addDevice('yt_header')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200 text-zinc-600'}`} title="YT Header"><RectangleHorizontal size={16}/></button>
+          <div className="flex gap-2">
+             <button onClick={() => addDevice('post')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="Post (4:5)"><Instagram size={16}/></button>
+             <button onClick={() => addDevice('reel')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="Reel (9:16)"><Smartphone size={16}/></button>
+             <button onClick={() => addDevice('youtube')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="YouTube (16:9)"><Youtube size={16}/></button>
+             <button onClick={() => addDevice('avatar')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="Avatar"><User size={16}/></button>
+             <button onClick={() => addDevice('x_header')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="X Header"><RectangleHorizontal size={16}/></button>
+             <button onClick={() => addDevice('yt_header')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`} title="YT Header"><RectangleHorizontal size={16}/></button>
           </div>
       </ModuleHeader>
-      <div className="flex flex-wrap items-end justify-center gap-8 mt-6 mb-8">{items.map((device) => (<div key={device.id} className={`${(device.type === 'youtube' || device.type === 'x_header' || device.type === 'yt_header') ? 'w-full flex justify-center mb-4 md:mb-0 order-first md:order-none' : ''}`}><input id={`soc-dev-${device.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleDeviceUpload(e, device.id)} /><DeviceMockup type={device.type} src={device.src} label={t.modules.social[device.type]} isDarkMode={isDarkMode} isPreview={isPreview} onUpload={() => document.getElementById(`soc-dev-${device.id}`).click()} onDelete={() => removeDevice(device.id)} /></div>))}</div>
+      
+      {/* CORREGIDO: Restauramos el contenedor y el mapeo .map de las redes */}
+      <div className="flex flex-wrap items-end justify-center gap-8 mt-6 mb-8">
+        {items.map((device) => (
+          <div key={device.id} className={`${(device.type === 'youtube' || device.type === 'x_header' || device.type === 'yt_header') ? 'w-full flex justify-center mb-4 md:mb-0 order-first md:order-none' : ''}`}>
+            <input id={`soc-dev-${device.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleDeviceUpload(e, device.id)} />
+            <DeviceMockup type={device.type} src={device.src} label={t.modules.social[device.type]} isDarkMode={isDarkMode} isPreview={isPreview} onUpload={() => triggerFileInput(`soc-dev-${device.id}`)} onDelete={() => removeDevice(device.id)} t={t} />
+          </div>
+        ))}
+      </div>
+      
       <DynamicBlocks blocks={content?.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -2460,7 +2486,8 @@ const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPre
 // === FILE: UserProfileModal.tsx ===
 // ==============================================================================
 
-const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange }) => {  const [activeTab, setActiveTab] = useState('profile');
+const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange, checkLimit }) => {  
+  const [activeTab, setActiveTab] = useState('profile');
   const [showDangerZone, setShowDangerZone] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
   
@@ -2481,8 +2508,8 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
   }, []);
 
   const handleAvatarUpload = (e) => { 
-    const file = e.target.files[0]; 
-    if (file) update({ ...content, avatar: URL.createObjectURL(file) }); 
+    const file = e.target.files[0];
+    if (file && checkLimit(file)) update({ ...content, avatar: URL.createObjectURL(file) }); 
   };
   
   const updateData = (field, value) => update({ ...content, [field]: value });
@@ -2524,7 +2551,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
               </div>
               <button onClick={() => { 
                   if(window.confirm("¿Seguro que quieres cerrar sesión? Si tienes cambios sin 'Publicar', podrían perderse.")) {
-                      if(onLogout) onLogout(); 
+                      if(onLogout) onLogout();
                       onClose(); 
                   }
               }} className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors px-4">
@@ -2534,6 +2561,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+          
            <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10"><X size={24} className={isDarkMode ? 'text-white' : 'text-slate-900'} /></button>
 
            <div className="p-8 md:p-12 max-w-3xl">
@@ -2546,6 +2574,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             <div className={`w-32 h-32 rounded-full overflow-hidden border-4 shadow-xl ${isDarkMode ? 'border-indigo-500/30' : 'border-indigo-500/10'}`}>
                                 {content.avatar ? <img src={content.avatar} className="w-full h-full object-cover"/> : <div className={`w-full h-full flex items-center justify-center ${isDarkMode ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-400'}`}><User size={48}/></div>}
                             </div>
+                            
                             <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2.5 rounded-full cursor-pointer hover:scale-110 transition-transform shadow-lg border-4 border-white dark:border-[#0f111a]"><Upload size={16}/><input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload}/></label>
                         </div>
                         <div className="flex-1 space-y-6 w-full">
@@ -2556,18 +2585,18 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             
                             <div className="space-y-2">
                               <label className="text-xs font-bold uppercase tracking-wider opacity-50">URL Personalizada</label>
-<div className={`flex items-center px-4 rounded-xl border overflow-hidden transition-all ${
+                              <div className={`flex items-center px-4 rounded-xl border overflow-hidden transition-all ${
                                 slugStatus === 'taken' ? 'border-rose-500 ring-2 ring-rose-500/20' : 
                                 slugStatus === 'available' ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 
                                 (isDarkMode ? 'bg-black/20 border-white/10 focus-within:border-indigo-500' : 'bg-slate-50 border-slate-200 focus-within:border-indigo-500')
                               }`}>
+                          
                                 <span className="opacity-50 text-sm mr-1 hidden sm:inline">brandbara.com/</span>
                                 <span className="opacity-50 text-sm mr-1 sm:hidden">.../</span>
                        
                                 <input 
                                   type="text" 
                                   value={content.slug || ''} 
-                                  // ¡Llamamos a nuestra nueva función!
                                   onChange={(e) => handleSlugChange(e.target.value)} 
                                   placeholder="mi-agencia" 
                                   className={`w-full py-3 bg-transparent outline-none font-bold flex-1 ${
@@ -2583,7 +2612,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                   {slugStatus === 'taken' && <X size={16} className="text-rose-500" />}
                                 </div>
                               </div>
-                              
+                             
                               {/* Mensajes de ayuda o error */}
                               {slugStatus === 'taken' ? (
                                 <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-1">
@@ -2592,7 +2621,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               ) : (
                                 <p className="text-[10px] opacity-60 mt-1">Este será el enlace público que compartirás con tus clientes.</p>
                               )}
-                                                          </div>
+                            </div>
 
                             <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label><textarea value={content.bio || ''} onChange={(e) => updateData('bio', e.target.value)} rows={4} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                         </div>
@@ -2600,7 +2629,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                  </div>
               )}
 
-              {activeTab === 'account' && (
+              {activeTab === 'account' && 
                   <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.account}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.accountDesc}</p></div>
                       <div className="space-y-6 max-w-lg">
@@ -2613,30 +2642,30 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             </div>
                             <p className="text-[10px] opacity-60">El email no se puede cambiar por motivos de seguridad.</p>
                           </div>
-                          
+    
                           <div className="pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
                             <h4 className="font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {safeT.auth.password}</h4>
-<button 
-  onClick={async () => {
-    if (!content.email) return;
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(content.email, {
-        redirectTo: window.location.origin,
-      });
-      if (error) throw error;
-      alert("¡Enlace enviado! Revisa la bandeja de entrada de " + content.email);
-    } catch (err) {
-      alert("Error enviando email: " + err.message);
-    }
-  }} 
-  className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}
->
-  {safeT.profileTabs.changePass}
-</button>
+                            <button 
+                              onClick={async () => {
+                                if (!content.email) return;
+                                try {
+                                  const { error } = await supabase.auth.resetPasswordForEmail(content.email, {
+                                    redirectTo: window.location.origin,
+                                  });
+                                  if (error) throw error;
+                                  alert("¡Enlace enviado! Revisa la bandeja de entrada de " + content.email);
+                                } catch (err) {
+                                  alert("Error enviando email: " + err.message);
+                                }
+                              }} 
+                              className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}
+                            >
+                              {safeT.profileTabs.changePass}
+                            </button>
                           </div>
 
                           <div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
-<button 
+                            <button 
                                 onClick={() => setShowDangerZone(!showDangerZone)}
                                 className="w-full flex items-center justify-between group"
                             >
@@ -2655,7 +2684,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                             onClick={onResetCanvas}
                                             className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 font-bold text-xs transition-all shadow-sm active:scale-95"
                                         >
-                                            <Wand2 size={14} /> Empezar de cero (Resetear)
+                                          <Wand2 size={14} /> Empezar de cero (Resetear)
                                         </button>
                                     </div>
                                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
@@ -2669,16 +2698,17 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                           Eliminar mi cuenta definitivamente
                                         </button>
                                     </div>
-                                </div>
+                                 </div>
                             </div>
                           </div>
                       </div>
                   </div>
-              )}
+              }
 
               {activeTab === 'preferences' && (
                   <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300">
                       <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.preferences}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.prefDesc}</p></div>
+                 
                       <div className="space-y-6">
                           
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
@@ -2697,7 +2727,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                   <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Protege tu portal con una clave global para visitantes." : "Solo disponible en el Plan PRO."}</p>
                                 </div>
                               </div>
-                              <button 
+                               <button 
                                 disabled={userPlan !== 'PRO'} 
                                 onClick={() => updateData('isPasswordProtected', !content.isPasswordProtected)} 
                                 className={`w-12 h-6 rounded-full p-1 transition-colors ${content.isPasswordProtected ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-white/20'}`}
@@ -2706,7 +2736,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               </button>
                             </div>
                             {content.isPasswordProtected && userPlan === 'PRO' && (
-                              <div className="relative group animate-in slide-in-from-top-2 duration-200">
+                               <div className="relative group animate-in slide-in-from-top-2 duration-200">
                                 <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
                                 <input 
                                   type="password" 
@@ -2717,7 +2747,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 />
                               </div>
                             )}
-                          </div>
+                           </div>
 
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4><p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p></div></div>
@@ -2742,6 +2772,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
     </div>
   );
 });
+
 
 const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
   const safeT = t || TRANSLATIONS.ES;
@@ -2935,10 +2966,12 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
   if (!isOpen) return null;
   
   const currentHTML = LEGAL_CONTENT[page]?.[lang] || LEGAL_CONTENT.privacy.ES;
+  
+  // 🛡️ BLINDAJE XSS: Sanitizamos el HTML antes de que toque el DOM
+  const cleanHTML = DOMPurify.sanitize(currentHTML);
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      {/* Contenedor principal idéntico a ManageSubscriptionModal y AuthModal */}
       <div 
         role="dialog" 
         aria-modal="true"
@@ -2946,7 +2979,6 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
           isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'
         }`}
       >
-        {/* Cabecera idéntica a AuthModal (padding, close button, selector de idioma nativo) */}
         <div className="flex-shrink-0 p-8 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
           <h2 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
             Documentación Legal
@@ -2976,11 +3008,10 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
           </div>
         </div>
 
-        {/* Zona de contenido con select-text para permitir copiado y VoiceOver */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-10 select-text">
           <div 
             className="text-sm leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: currentHTML }} 
+            dangerouslySetInnerHTML={{ __html: cleanHTML }} 
           />
         </div>
       </div>
@@ -3157,31 +3188,35 @@ const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
 };
 
 const Editor = () => {
-    const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
-    const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const activeSlug = pathParts[0] || '';
+
+  const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [userPlan, setUserPlan] = useState('FREE');
   const [showWatermark, setShowWatermark] = useState(true);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [activeLegalPage, setActiveLegalPage] = useState(null);
   const [limitMessage, setLimitMessage] = useState("");
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-const [showBetaModal, setShowBetaModal] = useState(false);
-const [pendingUpgrade, setPendingUpgrade] = useState(false);
-const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showBetaModal, setShowBetaModal] = useState(false);
+  const [pendingUpgrade, setPendingUpgrade] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const [accessInput, setAccessInput] = useState("");
-const [isPublicView, setIsPublicView] = useState(false);
+  const [isPublicView, setIsPublicView] = useState(false);
   const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  // 1. Añade este estado para el candado del Remix Mágico
   const [isRemixLocked, setIsRemixLocked] = useState(false);
-  const [portalOwnerId, setPortalOwnerId] = useState(null); // Única declaración limpia
-// 2. Función INTELIGENTE que cambia el diseño de los módulos
+  const [portalOwnerId, setPortalOwnerId] = useState(null);
+
+  // 2. Función INTELIGENTE que cambia el diseño de los módulos
   const cycleModuleLayout = (moduleId, moduleType) => {
     setCanvasItems(prevItems => prevItems.map(mod => {
       if (mod.id === moduleId) {
         const c = mod.content || {};
         
-        // A) Módulos con arquitectura propia ya programada
         if (moduleType === 'bento') {
           return { ...mod, content: { ...c, layoutIndex: ((c.layoutIndex || 0) + 1) % 4 } };
         }
@@ -3197,7 +3232,6 @@ const [isPublicView, setIsPublicView] = useState(false);
           return { ...mod, content: { ...c, layout: c.layout === 'list' ? 'grid' : 'list' } };
         }
 
-        // B) Módulos genéricos (Identidad, Editorial, Assets...)
         let layouts = ['default', 'grid', 'stack'];
         if (moduleType === 'editorial') layouts = ['default', 'grid', 'stack', 'bento'];
         
@@ -3209,11 +3243,9 @@ const [isPublicView, setIsPublicView] = useState(false);
     }));
   };
 
-  // --- ESTADOS PARA VALIDACIÓN DEL SLUG ---
-  const [slugStatus, setSlugStatus] = useState(null); // 'checking', 'available', 'taken', null
+  const [slugStatus, setSlugStatus] = useState(null);
   const [slugCheckTimeout, setSlugCheckTimeout] = useState(null);
 
-  // Detección automática del idioma al cargar si no hay guardado en local
   const [language, setLanguage] = useState(() => {
     try {
       const savedData = localStorage.getItem('brandPortalData');
@@ -3222,9 +3254,7 @@ const [isPublicView, setIsPublicView] = useState(false);
         if (parsed.language) return parsed.language;
       }
     } catch (e) {}
-    // Detecta el idioma del navegador, y si no existe asume español
     const browserLang = (navigator.language || navigator.userLanguage || 'ES').toLowerCase();
-    // Si empieza por 'es', configuramos 'ES', para el resto configuramos 'EN'
     return browserLang.startsWith('es') ? 'ES' : 'EN';
   });
 
@@ -3245,41 +3275,28 @@ const [isPublicView, setIsPublicView] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
-const [currentUser, setCurrentUser] = useState(null);
-const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
 
-// --- FUNCIÓN DE CIERRE DE SESIÓN TOTAL ---
+  const [currentUser, setCurrentUser] = useState(null);
+  const [saveStatus, setSaveStatus] = useState('idle');
+
   const handleSignOut = async () => {
     try {
       if (supabase) await supabase.auth.signOut();
     } catch (error) {
       console.error("Error cerrando sesión en Supabase:", error);
     } finally {
-      // 1. Limpiamos Supabase
       setCurrentUser(null);
       setIsAuthenticated(false);
-      
-      // 2. Limpiamos el LocalStorage para que no recargue datos viejos al refrescar
       localStorage.removeItem('brandPortalData');
-      
-      // 3. Restauramos el Perfil a blanco
       setProfileContent({});
-      
-      // 4. Restauramos el Diseño por defecto
-      setDesign({ 
-        style: DESIGN_STYLES.crystal, 
-        palette: COLOR_PALETTES[0], 
-        font: 'Inter', 
-        canvasBg: 'bg-slate-50', 
-        spacing: SPACING_OPTIONS.normal 
-      });
+      setDesign({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
       setCurrentFont('Inter');
       
-      // 5. Restauramos los módulos del Canvas por defecto
       setCanvasItems([
         { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
         { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
@@ -3298,33 +3315,36 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
         { id: 'assets', type: 'assets', content: {} },
         { id: 'footer-1', type: 'footer', content: { copyright: "" } }
       ]);
-
-      // 6. Avisamos al usuario
       showToast("Sesión cerrada correctamente.");
     }
   };
 
-// 1. EFECTO DE AUTENTICACIÓN (Supabase)
+  // 1. EFECTO DE AUTENTICACIÓN Y TELETRANSPORTE (Supabase)
   useEffect(() => {
     if (!supabase) return;
     
-    const handleSession = (session) => {
+    const handleSession = async (session) => {
       if (session) { 
         setCurrentUser(session.user); 
         setIsAuthenticated(true);
-        
-        // Magia UX: Extraemos el nombre con el que se acaba de registrar
         const fullName = session.user.user_metadata?.full_name || '';
         
+        // TELETRANSPORTE AL TALLER DE TRABAJO
+        const { data: portalData } = await supabase.from('portals').select('slug').eq('user_id', session.user.id).single();
+        const finalSlug = portalData?.slug || (fullName ? fullName.toLowerCase().replace(/[^a-z0-9-]/g, '-') : '');
+
+        if (finalSlug && location.pathname === '/') {
+           navigate(`/${finalSlug}/edit`, { replace: true });
+           return;
+        }
+
         setProfileContent(prev => {
           const isDefaultName = !prev.name || prev.name === 'Alex Designer' || prev.name === 'Tu Nombre / Marca';
           return {
             ...prev, 
             email: session.user.email,
-            // Si no tiene nombre o tiene el por defecto, le ponemos su nombre real
             name: (isDefaultName && fullName) ? fullName : (prev.name || 'Mi Marca'),
-            // Autogeneramos una URL amigable (slug) basada en su nombre si no tiene una
-            slug: (!prev.slug && fullName) ? fullName.toLowerCase().replace(/[^a-z0-9-]/g, '-') : (prev.slug || '')
+            slug: finalSlug || prev.slug
           };
         }); 
       } else {
@@ -3334,28 +3354,22 @@ const [saveStatus, setSaveStatus] = useState('idle'); // 'idle', 'saving', 'save
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => handleSession(session));
-    
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleSession(session);
     });
-    
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, location.pathname]); 
 
-// 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
+  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
   useEffect(() => {
-    const path = window.location.pathname.replace('/', '').trim();
+    const path = location.pathname.replace('/', '').trim();
     
     if (path && path !== '' && path !== 'info') {
       setIsLoadingPortal(true);
       
-const fetchPortal = async () => {
+      const fetchPortal = async () => {
         if (!supabase) return;
-        
-        // 1. CORTAMOS LA URL COMO UN BISTURÍ
-        // Ej: brandbara.com/capeo/edit -> pathParts = ['capeo', 'edit']
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        const currentSlug = pathParts[0] || '';
+        const currentSlug = activeSlug;
         const isEditRoute = pathParts[1] === 'edit';
 
         try {
@@ -3371,14 +3385,11 @@ const fetchPortal = async () => {
             return;
           }
 
-          // SI EL PORTAL ESTÁ BLOQUEADO (CON CONTRASEÑA)
           if (data.status === 'locked') {
-            // 🚨 DEFENSA: Si alguien intenta forzar /edit en un portal bloqueado, patada a la raíz
             if (isEditRoute) {
-              window.location.replace(`/${currentSlug}`);
+              navigate(`/${currentSlug}`, { replace: true });
               return;
             }
-            
             setIsPublicView(true);
             setIsPreview(true);
             setIsUnlocked(false);
@@ -3393,10 +3404,8 @@ const fetchPortal = async () => {
             return;
           }
 
-          // SI EL PORTAL CARGA CON ÉXITO
           if (data.status === 'success') {
             setPortalOwnerId(data.user_id); 
-            
             const canvasData = data.canvas_data || {};
             if (canvasData.items) setCanvasItems(canvasData.items);
             if (canvasData.design) setDesign(canvasData.design);
@@ -3409,22 +3418,18 @@ const fetchPortal = async () => {
               portalPassword: data.password_hash || '' 
             });
             
-            // 2. VERIFICACIÓN CRÍTICA DE IDENTIDAD
             const isActualOwner = currentUser && currentUser.id === data.user_id;
             
             if (isEditRoute) {
               if (!isActualOwner) {
-                // 🚨 TROLL DETECTADO: Intenta entrar a /edit sin ser el dueño. Patada a la vista pública.
-                window.location.replace(`/${currentSlug}`);
+                navigate(`/${currentSlug}`, { replace: true });
                 return;
               } else {
-                // DUEÑO AUTORIZADO EN MODO EDICIÓN
                 setIsPublicView(false);
                 setIsPreview(false);
                 setIsUnlocked(true);
               }
             } else {
-              // VISTA PÚBLICA PURA: Si la URL no tiene /edit, TODO el mundo (incluso el dueño) lo ve como Preview
               setIsPublicView(true);
               setIsPreview(true);
               setIsUnlocked(true);
@@ -3434,41 +3439,31 @@ const fetchPortal = async () => {
           console.error("Error al cargar el portal:", err);
           setNotFound(true);
         }
-        
         setIsLoadingPortal(false);
       };
       
       fetchPortal();
-    
     } else {
       setIsPublicView(false);
     }
-  }, [currentUser, window.location.pathname]); // Escucha activa de sesión y rutas
+  }, [currentUser, location.pathname]); 
 
-  // Estado para el banner de cookies
-const [showCookieBanner, setShowCookieBanner] = useState(false);
-const [profileContent, setProfileContent] = useState({}); // <--- AÑADE ESTA LÍNEA
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
+  const [profileContent, setProfileContent] = useState({});
 
-  // --- ESCÁNER MÁGICO DE IMÁGENES (Con Compresión Automática) ---
   const processBlobsInObject = async (obj, userId) => {
     let hasChanges = false;
     const traverse = async (node) => {
       if (!node) return node;
-      
       if (typeof node === 'string' && node.startsWith('blob:')) {
         hasChanges = true;
         try {
           const response = await fetch(node);
           let blob = await response.blob();
           
-          // COMPRESIÓN: Solo si es una imagen (y no un SVG vectorial)
           if (blob.type.startsWith('image/') && blob.type !== 'image/svg+xml') {
             const file = new File([blob], "temp_image", { type: blob.type });
-            const options = {
-              maxSizeMB: 0.8, // Máximo 800 KB por imagen (calidad HD, peso pluma)
-              maxWidthOrHeight: 1920,
-              useWebWorker: true,
-            };
+            const options = { maxSizeMB: 0.8, maxWidthOrHeight: 1920, useWebWorker: true };
             try {
               blob = await imageCompression(file, options);
             } catch (compressError) {
@@ -3505,50 +3500,46 @@ const [profileContent, setProfileContent] = useState({}); // <--- AÑADE ESTA L�
     const result = await traverse(obj);
     return { result, hasChanges };
   };
+
 const savePortalData = async (isManual = false) => {
-    // 🚨 BLINDAJE CRÍTICO: Prevenir que la data de un portal ajeno contamine el navegador del visitante
-    const currentPath = window.location.pathname.replace('/', '').trim();
-    const isBrandRoute = currentPath && currentPath !== 'info';
-    const isViewingOtherPortal = isBrandRoute && (!currentUser || currentUser.id !== portalOwnerId);
-
-    if (isViewingOtherPortal) return; // Si es un visitante en un portal público, ABORTAR GUARDADO
-
-    // 1. Guardado en LocalStorage (Copia de seguridad instantánea anti-pérdidas)
+    // 1. Guardado local de seguridad
     const dataToSave = { canvasItems, design, profileContent, isDarkMode, language, currentFont };
     localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
 
-    // Si es un autoguardado y no está logueado, no hacemos nada en la DB
+    // 2. Comprobación de usuario
     if (!isManual && (!isAuthenticated || !currentUser)) return;
-    // Si le dio a "Publicar" a mano y no está logueado, abrimos modal
     if (isManual && (!isAuthenticated || !currentUser)) {
         setIsAuthModalOpen(true);
         return;
     }
 
-    // INICIO DEL CHIVATO
     setSaveStatus('saving');
 
+    // 3. Sincronización con Supabase
     if (supabase) {
       try {
         if (isManual) showToast("Procesando imágenes y publicando portal...");
-        
-        // Pasa el escáner para subir las imágenes nuevas solo cuando pulsamos "Publicar" o guardar
         const processedCanvas = isManual ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
         const processedProfile = isManual ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
-
-        // --- SOLUCIÓN AL ERROR FOREIGN KEY ---
-        // 1. Nos aseguramos de que el usuario exista en la tabla profiles con formato ISO
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: currentUser.id,
-            updated_at: new Date().toISOString() 
-          });
-          
+        const { error: profileError } = await supabase.from('profiles').upsert({ id: currentUser.id, updated_at: new Date().toISOString() });
         if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
-        // ------------------------------------
+// Hashear la contraseña antes de enviar a Supabase
+        let securePasswordHash = null;
+        if (processedProfile.result?.isPasswordProtected && processedProfile.result?.portalPassword) {
+            // Si la contraseña ya está en formato hash (porque no se ha tocado), la mantenemos
+            if (processedProfile.result.portalPassword.length === 64) {
+               securePasswordHash = processedProfile.result.portalPassword;
+            } else {
+               // Si es texto plano nuevo, la ciframos
+               securePasswordHash = await hashPassword(processedProfile.result.portalPassword);
+               // IMPORTANTE: Evitamos que la contraseña en texto plano se guarde en canvas_data
+               processedProfile.result.portalPassword = securePasswordHash; 
+            }
+        } else {
+            // Si se quita la protección, eliminamos el password del objeto local también
+            delete processedProfile.result.portalPassword;
+        }
 
-        // 2. Guardamos el portal con total seguridad y formato ISO
         const { error } = await supabase
           .from('portals')
           .upsert({ 
@@ -3556,29 +3547,18 @@ const savePortalData = async (isManual = false) => {
             user_id: currentUser.id,
             slug: processedProfile.result?.slug || currentUser.id,
             brand_name: processedProfile.result?.name || 'Mi Marca',
-            canvas_data: {
-              items: processedCanvas.result,
-              design: design,
-              profile: processedProfile.result
-            },
+            canvas_data: { items: processedCanvas.result, design: design, profile: processedProfile.result },
             is_protected: processedProfile.result?.isPasswordProtected || false,
-            password_hash: processedProfile.result?.portalPassword || null, // Soluciona el bug del muro de contraseña
-            updated_at: new Date().toISOString() // Formato estricto para evitar fallos de Supabase
+            password_hash: securePasswordHash, // Enviamos el Hash, NUNCA el texto plano
+            updated_at: new Date().toISOString()
           });
-
-        if (error) throw error;
+                  if (error) throw error;
         
-        // Actualizamos la UI si el escáner cambió blobs locales por URLs de Supabase
         if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
         if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
 
-        // Feedback Visual
         setSaveStatus('saved');
-        if (isManual) {
-           showToast("¡Portal publicado y sincronizado con éxito!");
-        } 
-        
-        // Ocultar el check verde después de 2.5 segundos
+        if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
         setTimeout(() => setSaveStatus('idle'), 2500);
 
       } catch (err) {
@@ -3588,16 +3568,16 @@ const savePortalData = async (isManual = false) => {
       }
     }
   };
+
   const [canvasItems, setCanvasItems] = useState([
-        { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
+    { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
     { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
-    { id: 'identity', type: 'identity', content: {} }, // Nuevo módulo insertado aquí
+    { id: 'identity', type: 'identity', content: {} },
     { id: 'logo', type: 'logo', content: {} },
     { id: 'color', type: 'color', content: { colors: [] } },
     { id: 'typography', type: 'typography', content: { levels: [] } },
     { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
     { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-    // Ensure bento has 5 items with unique IDs from the start
     { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
     { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
     { id: 'icons', type: 'icons', content: {} },
@@ -3607,45 +3587,19 @@ const savePortalData = async (isManual = false) => {
     { id: 'footer-1', type: 'footer', content: { copyright: "" } }
   ]);
 
-const [showUpdatePassword, setShowUpdatePassword] = useState(false);
-
-  useEffect(() => {
-    if (!supabase) return;
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      // Si el evento es PASSWORD_RECOVERY, Supabase ya validó el token de la URL
-      if (event === 'PASSWORD_RECOVERY') {
-        setShowUpdatePassword(true); // Desplegamos el modal por encima de todo
-      }
-    });
-
-    return () => {
-      if (authListener && authListener.subscription) {
-        authListener.subscription.unsubscribe();
-      }
-    };
-  }, []);
-
-  
-// ESTADO ÚNICO PARA EL MODAL DE RECUPERACIÓN (Asegúrate de que no haya otro igual arriba)
+  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
 
   // DETECCIÓN INTELIGENTE DE RECUPERACIÓN DE CONTRASEÑA
   useEffect(() => {
     if (!supabase) return;
-    
-    // Sintaxis moderna y segura de Supabase v2
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Si el evento es PASSWORD_RECOVERY, Supabase ya validó el token de la URL
       if (event === 'PASSWORD_RECOVERY') {
-        setShowUpdatePassword(true); // Desplegamos el modal por encima de todo
+        setShowUpdatePassword(true);
       }
     });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+    return () => subscription?.unsubscribe();
   }, []);
 
-// Load from LocalStorage on mount
   useEffect(() => {
     const savedData = localStorage.getItem('brandPortalData');
     if (savedData) {
@@ -3662,69 +3616,66 @@ const [showUpdatePassword, setShowUpdatePassword] = useState(false);
       }
     }
     
-    // Check Cookies status
     const cookiesStatus = localStorage.getItem('brandbara_cookies_status');
     if (!cookiesStatus) {
-      // Retraso de 1.5s para no agobiar al usuario nada más entrar
       const timer = setTimeout(() => setShowCookieBanner(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
 
-const handleCookieAction = (status) => {
-  localStorage.setItem('brandbara_cookies_status', status);
-  setShowCookieBanner(false);
-};
+  const handleCookieAction = (status) => {
+    localStorage.setItem('brandbara_cookies_status', status);
+    setShowCookieBanner(false);
+  };
 
-// NUEVO BLOQUE (PASO 3 - GUARDADO GLOBAL MEJORADO)
-  const isInitialMount = useRef(true);
+const isInitialMount = useRef(true);
+  
   useEffect(() => {
-    // 1. Evitamos que guarde una página vacía nada más actualizar (El borrado fantasma)
+    // 1. Evitar guardado en el primer renderizado
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
-    // 🚨 BLINDAJE CRÍTICO: No activar el temporizador si estamos husmeando en un portal ajeno
-    const currentPath = window.location.pathname.replace('/', '').trim();
-    const isBrandRoute = currentPath && currentPath !== 'info';
-    const isViewingOtherPortal = isBrandRoute && (!currentUser || currentUser.id !== portalOwnerId);
+    // 2. BLOQUEO MAESTRO: Si no hay usuario autenticado, jamás autoguardar.
+    if (!isAuthenticated || !currentUser) return;
 
-    if (isViewingOtherPortal) return;
+    // 3. BLOQUEO DE DUEÑO: Validar la propiedad antes de permitir el guardado.
+    const isBrandRouteCheck = activeSlug && activeSlug !== 'info';
+    
+    if (isBrandRouteCheck) {
+      if (!portalOwnerId) return; 
+      if (currentUser.id !== portalOwnerId) return; 
+    }
 
-    // 2. Esperamos 1.5 segundos después de la última tecla antes de guardar (Debounce)
+    // 4. Si ha superado los bloqueos, es seguro iniciar el autoguardado.
     const debounceTimer = setTimeout(() => {
       savePortalData();
     }, 1500);
 
-    // Si el usuario vuelve a teclear antes de 1.5s, cancelamos el temporizador anterior
     return () => clearTimeout(debounceTimer);
-  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId]);
+    
+  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId, activeSlug]);
 
-// Calculate used storage dynamically based on content - Moved AFTER canvasItems declaration and wrapped in useMemo
   const usedStorage = React.useMemo(() => {
     let size = 0;
-    // Profile Avatar (approx 0.5MB)
     if (profileContent.avatar) size += 0.5;
 
     canvasItems.forEach(item => {
         const c = item.content || {};
-        // Images ~0.8MB, Videos ~5MB, Icons ~0.1MB
-        if (c.logo) size += 0.5; // Header/Footer
-        if (c.bgType === 'image' && c.bgValue) size += 1.2; // Hero
-        if (c.variations) size += (c.variations || []).filter(v => v.src).length * 0.6; // Logo Vars
-        if (c.safeAreaImage) size += 0.5; // Safe Area
-        if (c.dos) size += (c.dos || []).filter(d => d.image).length * 0.5; // Dos
-        if (c.donts) size += (c.donts || []).filter(d => d.image).length * 0.5; // Donts
-        if (c.images) size += (c.images || []).filter(i => i.src).length * 0.8; // Image Module
-        if (c.previewImage) size += 0.8; // Layout Preview
-        if (c.usageExamples) size += (c.usageExamples || []).filter(e => e.src).length * 0.8; // Layout Examples
+        if (c.logo) size += 0.5; 
+        if (c.bgType === 'image' && c.bgValue) size += 1.2; 
+        if (c.variations) size += (c.variations || []).filter(v => v.src).length * 0.6; 
+        if (c.safeAreaImage) size += 0.5; 
+        if (c.dos) size += (c.dos || []).filter(d => d.image).length * 0.5; 
+        if (c.donts) size += (c.donts || []).filter(d => d.image).length * 0.5; 
+        if (c.images) size += (c.images || []).filter(i => i.src).length * 0.8; 
+        if (c.previewImage) size += 0.8; 
+        if (c.usageExamples) size += (c.usageExamples || []).filter(e => e.src).length * 0.8; 
         
-        // Items (Bento, Web, Social) - FIXED Logic using reduce
         if (c.items) {
             size += (c.items || []).reduce((acc, curr) => {
                 if (curr.src) {
-                    // Check if explicit video type OR if the module type implies video (reel, youtube)
                     const isVideo = curr.type === 'video' || curr.type === 'reel' || curr.type === 'youtube';
                     return acc + (isVideo ? 5 : 0.8);
                 }
@@ -3732,13 +3683,9 @@ const handleCookieAction = (status) => {
             }, 0);
         }
         
-        // Editorial Blocks
         if (c.blocks) size += (c.blocks || []).filter(b => b.type === 'image' && b.src).length * 0.8;
-        
-        // Icons
         if (c.customIcons) size += (c.customIcons || []).filter(i => i.src).length * 0.1;
         
-        // Partners - FIXED Logic using reduce
         if (c.partners) {
             size += (c.partners || []).reduce((acc, curr) => {
                 if (curr.src) {
@@ -3749,41 +3696,30 @@ const handleCookieAction = (status) => {
             }, 0);
         }
         
-        // Extra Blocks
         if (c.extraBlocks) size += (c.extraBlocks || []).filter(b => b.type === 'image' && b.src).length * 0.8;
     });
     
-    // --- CÁLCULO DEL LÍMITE SEGÚN EL PLAN ---
     const limit = userPlan === 'FREE' ? 20 : 1024;
     return Math.min(size, limit).toFixed(1);
-}, [canvasItems, profileContent, userPlan]);
-  // --- INTERCEPTOR DE SUBIDAS (BLOQUEADOR) ---
-// --- INTERCEPTOR DE SUBIDAS INVULNERABLE ---
-  useEffect(() => {
-    const originalCreateObjectURL = window.URL.createObjectURL;
+  }, [canvasItems, profileContent, userPlan]);
 
-    window.URL.createObjectURL = function(file) {
-      if (file instanceof File || file instanceof Blob) {
-        const fileSizeMB = file.size / (1024 * 1024);
-        const currentLimit = userPlan === 'FREE' ? 20 : 1024;
-        const currentUsed = parseFloat(usedStorage);
-        const remainingSpace = currentLimit - currentUsed;
+// --- FUNCIÓN DE VALIDACIÓN DE ESPACIO (Sustituye al Monkey-Patch) ---
+  const validateStorageLimit = React.useCallback((file) => {
+    if (!file || !(file instanceof File || file instanceof Blob)) return true;
+    
+    const fileSizeMB = file.size / (1024 * 1024);
+    const currentLimit = userPlan === 'FREE' ? 20 : 1024;
+    const currentUsed = parseFloat(usedStorage);
+    const remainingSpace = currentLimit - currentUsed;
 
-        if (currentUsed >= currentLimit || fileSizeMB > remainingSpace) {
-          setLimitMessage(`El archivo pesa ${fileSizeMB.toFixed(1)} MB y solo tienes ${Math.max(0, remainingSpace).toFixed(1)} MB disponibles.`);
-          setIsManageModalOpen(true);
-          return ""; 
-        }
-      }
-      return originalCreateObjectURL.apply(this, arguments);
-    };
-
-    return () => {
-      window.URL.createObjectURL = originalCreateObjectURL;
-    };
+    if (currentUsed >= currentLimit || fileSizeMB > remainingSpace) {
+      setLimitMessage(`El archivo pesa ${fileSizeMB.toFixed(1)} MB y solo tienes ${Math.max(0, remainingSpace).toFixed(1)} MB disponibles.`);
+      setIsManageModalOpen(true);
+      return false; // Bloquea la subida
+    }
+    return true; // Permite la subida
   }, [userPlan, usedStorage]);
-  
-  // Actualizador de traducciones DEEP
+
   useEffect(() => {
      setCanvasItems(prev => prev.map(item => {
         if(item.type === 'header') return { ...item, content: { ...item.content, title: t.modules.header.title } };
@@ -3798,22 +3734,14 @@ const handleCookieAction = (status) => {
            });
            return { ...item, content: { ...item.content, colors: newColors } };
         }
-        if(item.type === 'logo') {
-           return { ...item, content: { ...item.content, dos: [{text: t.defaults.logoDos}], donts: [{text: t.defaults.logoDonts}] } };
-        }
-        if(item.type === 'editorial' && item.content.blocks) {
-           return { ...item, content: { ...item.content, blocks: [{type:'text', content: t.defaults.editorialContent }] } };
-        }
+        if(item.type === 'logo') return { ...item, content: { ...item.content, dos: [{text: t.defaults.logoDos}], donts: [{text: t.defaults.logoDonts}] } };
+        if(item.type === 'editorial' && item.content.blocks) return { ...item, content: { ...item.content, blocks: [{type:'text', content: t.defaults.editorialContent }] } };
         return item;
      }));
   }, [language, t]);
 
-  // --- FUNCIÓN QUE COMPRUEBA SI EL ENLACE ESTÁ LIBRE ---
   const handleSlugChange = (newSlug) => {
-    // 1. Limpiamos: solo minúsculas, números y guiones
     const sanitizedSlug = newSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    
-    // Guardamos lo que teclea
     setProfileContent({ ...profileContent, slug: sanitizedSlug });
 
     if (!sanitizedSlug) {
@@ -3821,23 +3749,15 @@ const handleCookieAction = (status) => {
       return;
     }
 
-    setSlugStatus('checking'); // Icono dando vueltas
+    setSlugStatus('checking'); 
 
-    // 2. Si el usuario sigue tecleando, paramos el reloj
     if (slugCheckTimeout) clearTimeout(slugCheckTimeout);
 
-    // 3. Esperamos medio segundo a que termine y preguntamos a Supabase
     const timeoutId = setTimeout(async () => {
       try {
-        const { data, error } = await supabase
-          .from('portals') // Tu tabla de portales
-          .select('slug, user_id')
-          .eq('slug', sanitizedSlug)
-          .single();
+        const { data, error } = await supabase.from('portals').select('slug, user_id').eq('slug', sanitizedSlug).single();
+        if (error && error.code !== 'PGRST116') throw error; 
 
-        if (error && error.code !== 'PGRST116') throw error; // Ignoramos si no encuentra nada
-
-        // Si encontró datos, y el dueño NO es el usuario actual, ¡está pillado!
         if (data && data.user_id !== currentUser?.id) {
           setSlugStatus('taken'); 
         } else {
@@ -3852,48 +3772,35 @@ const handleCookieAction = (status) => {
     setSlugCheckTimeout(timeoutId);
   };
 
-const generateRandomStyle = () => {
+  const generateRandomStyle = () => {
     const styleKeys = Object.keys(DESIGN_STYLES);
     const randomStyleKey = styleKeys[Math.floor(Math.random() * styleKeys.length)];
     const randomStyle = DESIGN_STYLES[randomStyleKey];
     const randomPalette = COLOR_PALETTES[Math.floor(Math.random() * COLOR_PALETTES.length)];
     const randomFont = FONTS[Math.floor(Math.random() * FONTS.length)];
     
-    setDesign({ 
-        style: randomStyle, 
-        palette: randomPalette, 
-        font: randomFont, 
-        canvasBg: design.canvasBg,
-        spacing: design.spacing
-    });
+    setDesign({ style: randomStyle, palette: randomPalette, font: randomFont, canvasBg: design.canvasBg, spacing: design.spacing });
     setCurrentFont(randomFont);
 
     setCanvasItems(prevItems => prevItems.map(item => {
-if (item.type === 'footer') return { ...item, content: { ...item.content, layout: Math.floor(Math.random() * 3) } };
-        if (item.type === 'bento') {
-            // Asignamos uno de los 4 diseños bento predefinidos y matemáticamente perfectos
-            return { ...item, content: { ...item.content, layoutIndex: Math.floor(Math.random() * 4) } };
-        }
-        return item;          }));
+        if (item.type === 'footer') return { ...item, content: { ...item.content, layout: Math.floor(Math.random() * 3) } };
+        if (item.type === 'bento') return { ...item, content: { ...item.content, layoutIndex: Math.floor(Math.random() * 4) } };
+        return item;     
+    }));
   };  
+
   const changeLayout = (layoutKey) => {
     const selectedLayout = DESIGN_STYLES[layoutKey];
     setDesign(prev => ({ ...prev, style: selectedLayout, font: selectedLayout.font }));
     setCurrentFont(selectedLayout.font);
     setShowLayoutSelector(false);
-    setActiveAccordion(null); // Close accordion on selection
+    setActiveAccordion(null); 
   };
 
-  const toggleAccordion = (id) => {
-      setActiveAccordion(activeAccordion === id ? null : id);
-  };
+  const toggleAccordion = (id) => { setActiveAccordion(activeAccordion === id ? null : id); };
 
   const handleToolClick = (type) => {
-    // Si es perfil, abrir modal
-    if (type === 'profile') {
-        setIsProfileOpen(true);
-        return;
-    }
+    if (type === 'profile') { setIsProfileOpen(true); return; }
     const scrollContainer = document.getElementById('canvas-scroll-area');
     let insertIndex = canvasItems.length;
     if (scrollContainer) {
@@ -3948,7 +3855,8 @@ if (item.type === 'footer') return { ...item, content: { ...item.content, layout
       ]};
       case 'editorial': return { blocks: [{type:'text', content: t.defaults.editorialContent}] };
       case 'image': return { images: [1,2,3,4] };
-case 'bento': return { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${Date.now()}-${i}`, type: 'image', src: null })), layoutIndex: 0 };      case 'header': return { title: t.modules.header.title, logo: null };
+      case 'bento': return { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${Date.now()}-${i}`, type: 'image', src: null })), layoutIndex: 0 };      
+      case 'header': return { title: t.modules.header.title, logo: null };
       case 'layout': return { selectedGrid: 'grid1' };
       case 'cobranding': return {};
       case 'assets': return { assets: [
@@ -3965,33 +3873,22 @@ case 'bento': return { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${
   const removeComponent = (id) => setCanvasItems(canvasItems.filter(i => i.id !== id));
   const updateComponent = (id, c) => setCanvasItems(canvasItems.map(i => i.id === id ? { ...i, content: c } : i));
 
-const renderCanvasItem = (item, index) => {
-    // Create a safe composite design object with defaults
+  const renderCanvasItem = (item, index) => {
     const style = design.style || DESIGN_STYLES.crystal;
     const palette = design.palette || COLOR_PALETTES[0];
     const spacingClass = design.spacing?.value || 'mb-16';
     const font = design.font || 'Inter';
-
-    // ✨ NUEVO: Inyectamos la alineación del tema (Bandera vs Centro)
     const alignmentClass = style.align || 'text-left';
-
-    // Mix the font into the style object so modules can access design.font if needed
     const activeDesign = { ...style, font };
-
-    // ✨ NUEVO: Fondos limpios para soportar transparencias
     const currentBg = isDarkMode ? (style.cardBgDark || 'bg-[#161b26]') : style.cardBg;
     
-    // ✨ NUEVO: Clases de la tarjeta con alineación, sombra integrada y transición fluida (700ms)
     const cardClasses = `relative group transition-all duration-700 ease-in-out ${style.radius} ${style.border} ${style.shadow} ${currentBg} ${isDarkMode ? 'border-white/5' : palette.border} ${alignmentClass} ${spacingClass} overflow-hidden`;
     
-    if (item.type === 'header') {
-            return null;
-    }
+    if (item.type === 'header') return null;
 
-if (item.type === 'footer') {
+    if (item.type === 'footer') {
         return (
           <React.Fragment key={item.id}>
-             {/* Ocultación total de la marca de agua en portales públicos de clientes */}
              {!effectiveIsPublicView && (
                  <div className="w-full flex justify-center py-8 select-none">
                     <a 
@@ -4006,60 +3903,52 @@ if (item.type === 'footer') {
                     </a>
                  </div>
              )}
-   
              <div id={`module-${item.id}`} className="mt-0">
                 <FooterModule content={item.content} update={(c)=>updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />
              </div>
           </React.Fragment>
         );
-}
+    }
     if (item.type === 'profile') return null;
 
-return (
-<div id={`module-${item.id}`} key={item.id} className={cardClasses}>
-
-        {/* BLOQUEO APLICADO A LOS CONTROLES DE MÓDULO */}
+    return (
+      <div id={`module-${item.id}`} key={item.id} className={cardClasses}>
         {!effectiveIsPreview && item.type !== 'hero' && (
           <div className="absolute top-3 right-3 flex gap-1 z-30 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
-            
-            {/* ✨ NUEVO BOTÓN: CAMBIAR ESTRUCTURA ✨ */}
             <button 
               onClick={(e) => { e.stopPropagation(); cycleModuleLayout(item.id, item.type); }} 
               className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors mr-1"
               title="Cambiar estructura"
             >              <LayoutTemplate size={14} />
             </button>
-
-            {/* BOTONES DE MOVER */}
             <div className="flex border-r border-slate-200 dark:border-white/10 pr-1 mr-1">
               <button onClick={() => moveComponent(index, index - 1)} disabled={index <= 1} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronUp size={14} /></button>
               <button onClick={() => moveComponent(index, index + 1)} disabled={index >= canvasItems.length - 2} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronDown size={14} /></button>
             </div>
-            
-            {/* BOTÓN ELIMINAR */}
             <button onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
           </div>
         )}
 {(() => {
           switch(item.type) {
-            case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'typography': return <TypographyModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'color': return <ColorModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'image': return <ImageModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'editorial': return <EditorialModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'bento': return <BentoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'layout': return <LayoutModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />;
-            case 'icons': return <IconsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
-            case 'web': return <WebModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
-            case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
-            case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
-            case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} />;
+            case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'typography': return <TypographyModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'color': return <ColorModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'image': return <ImageModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'editorial': return <EditorialModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'bento': return <BentoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'layout': return <LayoutModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'icons': return <IconsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'web': return <WebModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
+            case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
             case 'profile': return null;
             default: return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
           }
-        })()}      </div>
+        })()}
+              </div>
     );
   };
 
@@ -4070,20 +3959,11 @@ return (
     </div>
   );
 
-// ==============================================================================
-  // BLINDAJE PERIMETRAL DE PRIVACIDAD SÍNCRONO 2026
-  // ==============================================================================
-  const currentSlugPath = window.location.pathname.replace('/', '').trim();
-  const isBrandRoute = currentSlugPath && currentSlugPath !== '' && currentSlugPath !== 'info';
+  const isBrandRoute = activeSlug && activeSlug !== 'info';
   const isActualOwner = currentUser && portalOwnerId && currentUser.id === portalOwnerId;
 
-  // Forzado estricto: Si es ruta de cliente y no es dueño, bloqueamos TODO. Si es dueño o Home, usamos el estado local.
   const effectiveIsPublicView = (isBrandRoute && !isActualOwner) ? true : isPublicView;
   const effectiveIsPreview = (isBrandRoute && !isActualOwner) ? true : isPreview;
-
-  // =========================================================================
-  // PANTALLAS DE INTERCEPCIÓN (VISTA PÚBLICA Y MURO DE CONTRASEÑA)
-  // =========================================================================
 
   if (isLoadingPortal) {
     return <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><Wand2 className="animate-spin text-indigo-500 mb-4" size={40} /><p className="font-bold">Cargando portal...</p></div>;
@@ -4093,7 +3973,6 @@ return (
     return <div className={`flex h-screen w-full items-center justify-center flex-col ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><AlertCircle size={60} className="text-rose-500 mb-4"/><h1 className="text-2xl font-black mb-2">Portal no encontrado</h1><p className="opacity-60">Esta URL no existe o ha sido eliminada.</p></div>;
   }
 
-// EL MURO DE CONTRASEÑA (Ruta 2 BLINDADA)
   if (effectiveIsPublicView && profileContent?.isPasswordProtected && !isUnlocked) {
         return (
       <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -4107,12 +3986,14 @@ return (
           </p>
 <form onSubmit={async (e) => {
             e.preventDefault();
-            setIsLoadingPortal(true); // Ponemos la pantalla de carga principal
+            setIsLoadingPortal(true); 
             
-            // Lanzamos de nuevo el fetch, pero esta vez la variable accessInput tiene texto
+            // Cifrar la entrada del usuario antes de enviarla a comparar
+            const hashedInput = await hashPassword(accessInput);
+
             const { data, error } = await supabase.rpc('get_portal_secure', {
-                p_slug: currentSlugPath,
-                p_password: accessInput
+                p_slug: activeSlug,
+                p_password: hashedInput // Enviamos el Hash al backend
             });
 
             if (error || !data || data.status === 'locked') {
@@ -4120,14 +4001,13 @@ return (
                 setAccessInput("");
                 setIsLoadingPortal(false);
             } else if (data.status === 'success') {
-                // Éxito: Descargamos el lienzo visual y desbloqueamos
                 const canvasData = data.canvas_data || {};
                 if (canvasData.items) setCanvasItems(canvasData.items);
                 if (canvasData.design) setDesign(canvasData.design);
                 setProfileContent({
                     ...canvasData.profile,
                     isPasswordProtected: true,
-                    portalPassword: "" // Limpiamos la prueba
+                    portalPassword: "" 
                 });
                 setIsUnlocked(true);
                 setIsLoadingPortal(false);
@@ -4146,8 +4026,7 @@ return (
               <Key size={18} /> Desbloquear Portal
             </button>
           </form>
-                  </div>
-        {/* Renderizamos el Toast aquí por si fallan la contraseña */}
+        </div>
         {toastMessage && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
             <div className={`px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -4176,12 +4055,13 @@ return (
         />
       )}
 
+      {/* User Profile Modal */}
 {/* User Profile Modal */}
       <UserProfileModal 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)}
-onLogout={handleSignOut}
-        // ...        isDarkMode={isDarkMode} 
+        onLogout={handleSignOut}
+        isDarkMode={isDarkMode} 
         t={t} 
         content={profileContent} 
         update={setProfileContent}
@@ -4190,9 +4070,9 @@ onLogout={handleSignOut}
         userPlan={userPlan}
         slugStatus={slugStatus}
         handleSlugChange={handleSlugChange}
+        checkLimit={validateStorageLimit}
         onResetCanvas={() => {
           if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
-            // 1. Restaurar todos los módulos por defecto
             const defaultCanvas = [
                 { id: 'header-1', type: 'header', content: { title: profileContent.name || "Portal de Marca", logo: null, layout: 'standard' } },
                 { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
@@ -4212,7 +4092,6 @@ onLogout={handleSignOut}
                 { id: 'footer-1', type: 'footer', content: { copyright: `© ${new Date().getFullYear()} ${profileContent.name || 'BrandBara'}` } }
             ];
             setCanvasItems(defaultCanvas);
-            // 2. Restaurar diseño (Color, bordes, sombras)
             setDesign({ 
                 style: DESIGN_STYLES.crystal, 
                 palette: COLOR_PALETTES[0], 
@@ -4220,16 +4099,15 @@ onLogout={handleSignOut}
                 canvasBg: 'bg-slate-50', 
                 spacing: SPACING_OPTIONS.normal 
             });
-            // 3. Restaurar tipografía
             setCurrentFont('Inter');
-            // 4. Cerrar modal y avisar
             setIsProfileOpen(false);
             if(showToast) showToast(" Portal restaurado a su estado de fábrica.");
           }
         }}
       />
 
-      {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}      <AuthModal
+      {/* MODAL DE AUTENTICACION - CONECTOR FAKE DOOR */}      
+      <AuthModal
         isOpen={isAuthModalOpen} 
         onClose={() => {
           setIsAuthModalOpen(false);
@@ -4239,8 +4117,6 @@ onLogout={handleSignOut}
           setCurrentUser(user);
           setIsAuthenticated(true);
           setIsAuthModalOpen(false);
-          
-          // Si venia de intentar comprar, mostramos la Beta ahora que tiene sesion
           if (pendingUpgrade) {
             setShowBetaModal(true);
             setPendingUpgrade(false);
@@ -4252,32 +4128,14 @@ onLogout={handleSignOut}
         t={t}
       />
 
-{/* MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY) */}
+      {/* MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY) */}
       <UpdatePasswordModal
         isOpen={showUpdatePassword}
         onClose={() => setShowUpdatePassword(false)}
         isDarkMode={isDarkMode}
       />
 
-      {/* MODAL DE SUSCRIPCION - INTERCEPTOR DE SEGURIDAD */}
-      <ManageSubscriptionModal 
-        isOpen={showSubscriptionModal} 
-        onClose={() => setShowSubscriptionModal(false)} 
-        onUpgrade={() => { 
-          setShowSubscriptionModal(false);
-          
-          if (!isAuthenticated) {
-            // OBLIGATORIO: Si no hay login, guardamos intencion y abrimos login
-            setPendingUpgrade(true);
-            setIsAuthModalOpen(true);
-          } else {
-            // SI YA ESTA LOGUEADO: Directo al mensaje de Beta
-            setShowBetaModal(true);
-          }
-        }} 
-        isDarkMode={isDarkMode}
-      />
-            {/* NOTIFICACIONES BONITAS (TOAST) */}
+      {/* NOTIFICACIONES BONITAS (TOAST) */}
       {toastMessage && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-5 duration-300">
           <div className={`px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold text-sm border ${isDarkMode ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
@@ -4287,7 +4145,7 @@ onLogout={handleSignOut}
         </div>
       )}
 
-{/* MODAL DE AVISO DE LÍMITE EXCEDIDO */}
+      {/* MODAL DE AVISO DE LÍMITE EXCEDIDO */}
       {isManageModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'} border p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200`}>
@@ -4304,7 +4162,7 @@ onLogout={handleSignOut}
                 <button 
                   onClick={() => {
                     setIsManageModalOpen(false);
-                    setShowSubscriptionModal(true); // Esto abre la tabla de precios
+                    setShowSubscriptionModal(true); 
                   }}
                   className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20"
                 >
@@ -4322,33 +4180,31 @@ onLogout={handleSignOut}
         </div>
       )}
 
-{/* MODAL DE SUSCRIPCIÓN (LA TABLA) */}
+      {/* MODAL DE SUSCRIPCIÓN (LA TABLA) */}
       <ManageSubscriptionModal 
         isOpen={showSubscriptionModal} 
         onClose={() => setShowSubscriptionModal(false)} 
         t={t}
         onUpgrade={() => {
-                    setShowSubscriptionModal(false); // Cerramos la tabla
-          
+          setShowSubscriptionModal(false); 
           if (!isAuthenticated) {
-            // SI NO ESTÁ LOGUEADO: Recordamos la intención y pedimos registro
             setPendingUpgrade(true);
             setIsAuthModalOpen(true);
-            showToast("🔒 Crea una cuenta para continuar con el Plan PRO.");
+            showToast(" Crea una cuenta para continuar con el Plan PRO.");
           } else {
-            // SI YA ESTÁ LOGUEADO: Directo al mensaje de Beta Cerrada
             setShowBetaModal(true);
           }
         }} 
         isDarkMode={isDarkMode}
       />
-            {/* MODAL BONITO DE BETA CERRADA (FAKE DOOR) */}
+      
+      {/* MODAL BONITO DE BETA CERRADA (FAKE DOOR) */}
       {showBetaModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'} border p-8 rounded-3xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200`}>
-<div className="flex flex-col items-center text-center">
+            <div className="flex flex-col items-center text-center">
               <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                <span className="text-4xl">🎁</span>
+                <span className="text-4xl"></span>
               </div>
               <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                 {t.ui.publish === "Publicar" ? "¡Gracias por tu interés!" : "Thanks for your interest!"}
@@ -4360,7 +4216,7 @@ onLogout={handleSignOut}
               </p>
               
               <div className="space-y-3 w-full">
-<a 
+                <a 
                   href="https://tally.so/r/EkJ4dN" 
                   target="_blank" 
                   rel="noopener noreferrer"
@@ -4369,26 +4225,16 @@ onLogout={handleSignOut}
                 >
                   {t.ui.publish === "Publicar" ? "Ir a la encuesta" : "Take the survey"}
                 </a>
-                                <button 
+                <button 
                   onClick={() => setShowBetaModal(false)}
                   className={`w-full py-3.5 rounded-xl font-bold transition-colors text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'}`}
                 >
                   {t.ui.publish === "Publicar" ? "Quizás más tarde" : "Maybe later"}
                 </button>
               </div>
-            </div>              <h3 className={`text-2xl font-black mb-3 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Beta Cerrada</h3>
-              <p className={`text-sm mb-8 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                ¡Nos encanta tu interés! Actualmente estamos en fase de Beta Cerrada y las plazas <strong>PRO</strong> están llenas. Te avisaremos en cuanto abramos nuevos cupos.
-              </p>
-              
-              <button 
-                onClick={() => setShowBetaModal(false)}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 active:scale-95 uppercase tracking-widest text-xs"
-              >
-                Entendido
-              </button>
-            </div>
+            </div>             
           </div>
+        </div>
       )}
 
       {/* MODAL DE TEXTOS LEGALES */}
@@ -4398,11 +4244,12 @@ onLogout={handleSignOut}
         onClose={() => setActiveLegalPage(null)} 
         isDarkMode={isDarkMode} 
       />
-{/* SIDEBAR */}
+
+      {/* SIDEBAR */}
       {!effectiveIsPreview && (
        <aside className={`fixed inset-y-0 left-0 z-50 w-[300px] flex flex-col h-full border-r transition-transform duration-300 lg:relative lg:translate-x-0 shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} ${isDarkMode ? 'bg-[#0f111a] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="p-8 flex flex-col h-full">
-{/* Logo que recarga la herramienta */}
+          {/* Logo que recarga la herramienta */}
           <div className="flex items-center justify-between mb-8">
               <div 
                 onClick={() => window.location.href = '/'} 
@@ -4496,7 +4343,7 @@ onLogout={handleSignOut}
                 </div>
               </div>
 
-{/* FONDO CANVAS SECTION (Sin acordeón) */}
+              {/* FONDO CANVAS SECTION (Sin acordeón) */}
               <div className="mt-8">
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   Fondo Canvas
@@ -4507,8 +4354,6 @@ onLogout={handleSignOut}
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Sun size={12}/> Modo Claro</label>
                     <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-                        
-                        {/* El cuadrado de color perfecto */}
                         <div 
                           className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
                           style={{ backgroundColor: design.customBgLight || '#f8fafc', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
@@ -4534,8 +4379,6 @@ onLogout={handleSignOut}
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Moon size={12}/> Modo Oscuro</label>
                     <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
-                        
-                        {/* El cuadrado de color perfecto */}
                         <div 
                           className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
                           style={{ backgroundColor: design.customBgDark || '#0a0c10', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
@@ -4569,7 +4412,7 @@ onLogout={handleSignOut}
                 </div>
               </div>
               
-{/* TOOLS SECTION */}
+              {/* TOOLS SECTION */}
               <div>
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.ui.tools}</h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -4593,8 +4436,8 @@ onLogout={handleSignOut}
       </aside>
     )}
 
-{/* CANVAS */}
-<main 
+    {/* CANVAS */}
+    <main 
         className="flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden" 
         style={{ 
           fontFamily: currentFont, 
@@ -4615,7 +4458,7 @@ onLogout={handleSignOut}
           return (
             <div className="absolute top-4 lg:top-8 left-0 right-0 z-[60] flex justify-center pointer-events-none px-4 lg:px-8">
               
-{/* === VERSIÓN RESPONSIVE COMPACTA === */}
+              {/* === VERSIÓN RESPONSIVE COMPACTA === */}
               <div className={`lg:hidden flex items-center justify-between w-full max-w-md h-[56px] p-2 rounded-2xl shadow-xl border pointer-events-auto backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#151924]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
                 <div className="flex items-center gap-1.5">
                   {!effectiveIsPublicView && (
@@ -4644,7 +4487,15 @@ onLogout={handleSignOut}
                   )}
                   
                   {!effectiveIsPublicView && (
-                    <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
+                    <button onClick={() => {
+                        if (effectiveIsPreview) {
+                            navigate(`/${activeSlug}/edit`);
+                            setIsPreview(false);
+                        } else {
+                            navigate(`/${activeSlug || profileContent.slug}`);
+                            setIsPreview(true);
+                        }
+                    }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
                       {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
                     </button>
                   )}
@@ -4661,7 +4512,7 @@ onLogout={handleSignOut}
                 </div>
               </div>
 
-{/* === VERSIÓN ESCRITORIO === */}
+              {/* === VERSIÓN ESCRITORIO === */}
               <div className="hidden lg:flex flex-nowrap justify-center gap-6 xl:gap-8 w-full max-w-[1000px] pointer-events-auto">
                 
                 {/* 1. PÍLDORA NAVEGACIÓN */}
@@ -4708,11 +4559,19 @@ onLogout={handleSignOut}
                   </div>
                 )}
 
-{/* 3. PÍLDORA ACCIONES BLINDADA AL 100% PARA VISITANTES Y EXTRAÑOS */}
+                {/* 3. PÍLDORA ACCIONES BLINDADA AL 100% PARA VISITANTES Y EXTRAÑOS */}
                 {!effectiveIsPublicView && (
                   <div className={`h-[60px] flex items-center p-2.5 gap-1.5 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200/70 shadow-slate-200/50 backdrop-blur-xl'}`}>
                     <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-full w-12 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.profile}><User size={16} /></button>
-                    <button onClick={() => setIsPreview(!isPreview)} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
+                    <button onClick={() => {
+                        if (effectiveIsPreview) {
+                            navigate(`/${activeSlug}/edit`);
+                            setIsPreview(false);
+                        } else {
+                            navigate(`/${activeSlug || profileContent.slug}`);
+                            setIsPreview(true);
+                        }
+                    }} className={`h-full px-5 flex items-center justify-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50')}`}>
                       <span>{isPreview ? 'Volver a Editar' : t.ui.preview}</span>
                     </button>
                     {!isPreview && (
@@ -4729,11 +4588,11 @@ onLogout={handleSignOut}
             </div>
           );
         })()}
-{/* --- FIN HEADER UNIFICADO --- */}
+        {/* --- FIN HEADER UNIFICADO --- */}
 
         {/* BOTÓN OWNER: VOLVER A EDITAR (Esquina inferior derecha) */}
         {effectiveIsPreview && !effectiveIsPublicView && (
-           <button onClick={() => setIsPreview(false)} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
+           <button onClick={() => { navigate(`/${activeSlug}/edit`); setIsPreview(false); }} className="fixed bottom-8 right-8 z-50 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all animate-in fade-in slide-in-from-bottom-4">
               <Edit3 size={16} /> {t.ui.backToEdit}
            </button>
         )}
@@ -4771,7 +4630,8 @@ onLogout={handleSignOut}
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;500;600;700;900&family=Open+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Nunito:wght@400;700;900&family=Outfit:wght@400;700;900&family=Work+Sans:wght@400;500;600;700;900&display=swap');
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: transparent; border-radius: 20px; }
         .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); }
