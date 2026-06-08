@@ -111,6 +111,28 @@ const FONT_DESCRIPTIONS = {
   'Outfit': 'Una tipografía geométrica sans-serif diseñada para marcas modernas. Limpia, versátil y con ligaduras únicas.'
 };
 
+// ==========================================
+// PLANTILLA DE INICIALIZACIÓN PLG (ESTADO DE FÁBRICA)
+// ==========================================
+const getInitialCanvas = (t) => [
+  { id: 'header-1', type: 'header', content: { title: t?.modules?.header?.title || "Portal de Marca", logo: null, layout: 'standard' } },
+  { id: 'hero', type: 'hero', content: { subtitle: t?.modules?.hero?.subtitle || "Un sistema visual diseñado para escalar." } },
+  { id: 'identity', type: 'identity', content: {} },
+  { id: 'logo', type: 'logo', content: {} },
+  { id: 'color', type: 'color', content: { colors: [] } },
+  { id: 'typography', type: 'typography', content: { levels: [] } },
+  { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
+  { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
+  { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
+  { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: t?.defaults?.editorialContent || "Contenido..." }] } },
+  { id: 'icons', type: 'icons', content: {} },
+  { id: 'web', type: 'web', content: {} },
+  { id: 'social', type: 'social', content: {} },
+  { id: 'cobranding', type: 'cobranding', content: {} },
+  { id: 'assets', type: 'assets', content: {} },
+  { id: 'footer-1', type: 'footer', content: { copyright: "" } }
+];
+
 const TRANSLATIONS = {
   ES: {
     ui: {
@@ -222,9 +244,9 @@ const TRANSLATIONS = {
         colorPrimaryName: "Primary Color", colorPrimaryUsage: "Brand's dominant color.", 
         colorSecondaryName: "Secondary Color", colorSecondaryUsage: "Support and validations.", 
         colorAccentName: "Accent Color", colorAccentUsage: "Highlights and call to actions.",
-        colorNeutralName: "Neutral", colorNeutralUsage: "Texts and borders.", 
+colorNeutralName: "Neutral", colorNeutralUsage: "Texts and borders.", 
         colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
-        editorialContent: "Example editorial content...", 
+                editorialContent: "Example editorial content...", 
         typoSamples: { Display: "Headline", H1: "Header", H2: "Subtitle", Body: "Readable body text.", Caption: "Auxiliary text." }, 
         partnerCaption: "Agreement description." 
     },
@@ -878,8 +900,11 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   const isDarkBg = isDarkMode || content?.bgType === 'image';
   const titleColorClass = isDarkBg ? 'text-white' : 'text-slate-900';
   const subtitleColorClass = isDarkBg ? 'text-white/90' : 'text-slate-600';
-
   const customTextColor = content?.textColor ? { color: content.textColor } : {};
+
+  // Nuevas banderas de visibilidad
+  const showTitle = content.showTitle !== false;
+  const showSubtitle = content.showSubtitle !== false;
 
   return (
     <div className="w-full min-h-[50vh] flex flex-col items-center justify-center p-12 text-center relative group overflow-hidden" style={bgStyle}>
@@ -888,13 +913,20 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
       
       {!isPreview && (
         <div className="absolute top-4 right-4 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-full shadow-2xl border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
-            <button onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-full transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={18} /></button>
-            <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors"><ImagePlus size={18} /></button>
+          
+          {/* Toggles de Texto (NUEVO) */}
+          <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1.5 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5 flex gap-1 items-center">
+             <button onClick={() => updateContent({showTitle: !showTitle})} className={`p-1.5 rounded transition-colors ${showTitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Título"><Type size={14}/></button>
+             <button onClick={() => updateContent({showSubtitle: !showSubtitle})} className={`p-1.5 rounded transition-colors ${showSubtitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Subtítulo"><FileText size={14}/></button>
+          </div>
+
+          <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
+            <button onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-lg transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={16} /></button>
+            <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"><ImagePlus size={16} /></button>
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             <div className="w-px h-6 bg-slate-300 dark:bg-white/20 mx-1 my-auto"></div>
             <div className="relative">
-              <button onClick={() => { setShowTextMenu(!showTextMenu); setShowColorPicker(false); }} className={`p-2.5 rounded-full transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`} title="Opciones de texto"><Type size={18} /></button>
+              <button onClick={() => { setShowTextMenu(!showTextMenu); setShowColorPicker(false); }} className={`p-2.5 rounded-lg transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`} title="Opciones de tipografía"><Type size={16} /></button>
               {showTextMenu && (
                 <div className="absolute top-full right-0 mt-3 p-4 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-4 animate-in fade-in slide-in-from-top-3 duration-200">
                   <div>
@@ -956,7 +988,6 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                         )}
                         {!content?.textColor && (
                             <div className="text-center py-6 px-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                              <span className="text-3xl block mb-2"></span>
                               <p className="text-xs text-slate-500 dark:text-slate-400">El color del texto se ajusta automáticamente según el fondo.</p>
                             </div>
                         )}
@@ -968,8 +999,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
         </div>
       )}      
       <div className="relative z-10 max-w-5xl w-full">
-       <EditableText text={content?.title || t.modules.hero.title} className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} tag="h1" isPreview={isPreview} onChange={(v) => update({...content, title: v})} style={customTextColor} />
-       <EditableText text={content?.subtitle || t.modules.hero.subtitle} className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} tag="p" isPreview={isPreview} onChange={(v) => update({...content, subtitle: v})} style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} />
+       {showTitle && <EditableText text={content?.title || t.modules.hero.title} className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} tag="h1" isPreview={isPreview} onChange={(v) => update({...content, title: v})} style={customTextColor} />}
+       {showSubtitle && <EditableText text={content?.subtitle || t.modules.hero.subtitle} className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} tag="p" isPreview={isPreview} onChange={(v) => update({...content, subtitle: v})} style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} />}
       </div>
     </div>
   );
@@ -1384,13 +1415,12 @@ const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPre
   );
 });
 
-const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => { // 👈 Inyectamos checkLimit
-//   const addRule = (type) => { const current = content[type] || []; update({ ...content, [type]: [...current, { text: '...', image: null }] }); };
+const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => { 
   const removeRule = (type, i) => { const current = content[type] || []; update({ ...content, [type]: current.filter((_, idx) => idx !== i) }); };
   const updateRuleText = (type, i, val) => { const current = [...(content[type] || [])]; current[i].text = val; update({ ...content, [type]: current }); };
   const handleRuleImageUpload = (e, type, index) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && checkLimit(file)) {
       const url = URL.createObjectURL(file);
       const newRules = [...(content[type] || [])];
       newRules[index] = { ...newRules[index], image: url };
@@ -1403,7 +1433,7 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   const addVariation = () => update({...content, variations: [...variations, { id: Date.now(), label: 'Versión...', desc: 'Descripción...', bg: 'light', src: null }]});
   const removeVariation = (id) => update({...content, variations: variations.filter(v => v.id !== id)});
   const updateVariation = (id, field, value) => update({...content, variations: variations.map(v => v.id === id ? {...v, [field]: value} : v)});
-  const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(file) updateVariation(id, 'src', URL.createObjectURL(file)); };
+  const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(file && checkLimit(file)) updateVariation(id, 'src', URL.createObjectURL(file)); };
 
   const handleLogoDownload = (e, src, label) => {
     e.stopPropagation();
@@ -1423,26 +1453,53 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   
   const handleSafeAreaUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && checkLimit(file)) {
       const url = URL.createObjectURL(file);
       update({ ...content, safeAreaImage: url });
     }
   };
 
   const isCenterLayout = content.layout === 'center';
+  const showDos = content.showDos !== false;
+  const showDonts = content.showDonts !== false;
+  const showSafeArea = content.showSafeArea !== false;
+  
+  // Colores personalizables
+  const dosColor = content.dosColor || '#10b981'; // emerald-500 por defecto
+  const dontsColor = content.dontsColor || '#f43f5e'; // rose-500 por defecto
 
   return (
-    <div className="p-6 md:p-10 relative">
+    <div className="p-6 md:p-10 relative group/logo-module">
+      {/* BARRA DE HERRAMIENTAS EXCLUSIVA DEL LOGO (MODO EDICIÓN) */}
+      {!isPreview && (
+          <div className="absolute top-4 right-4 flex gap-1 z-30 opacity-0 group-hover/logo-module:opacity-100 transition-opacity p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
+              <button onClick={() => update({...content, showSafeArea: !showSafeArea})} className={`p-1.5 rounded transition-colors ${showSafeArea ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Área Seguridad">
+                  <Grid size={14}/>
+              </button>
+              <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
+              <button onClick={() => update({...content, showDos: !showDos})} className={`p-1.5 rounded transition-colors ${showDos ? 'text-emerald-500' : 'text-slate-400 hover:text-emerald-500'}`} title="Mostrar/Ocultar Usos Correctos">
+                  <Check size={14}/>
+              </button>
+              <button onClick={() => update({...content, showDonts: !showDonts})} className={`p-1.5 rounded transition-colors ${showDonts ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`} title="Mostrar/Ocultar Usos Incorrectos">
+                  <X size={14}/>
+              </button>
+          </div>
+      )}
+
       <ModuleHeader 
-        title={t.modules.logo.title} 
-        desc={t.modules.logo.desc} 
+        title={content.title || t.modules.logo.title} 
+        onTitleChange={(v) => update({ ...content, title: v })}
+        desc={content.desc || t.modules.logo.desc} 
+        onDescChange={(v) => update({ ...content, desc: v })}
         isDarkMode={isDarkMode} 
         isPreview={isPreview}
         isCenterLayout={isCenterLayout}
       >
-        <button onClick={addVariation} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-colors flex-shrink-0 shadow-sm ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}>
-          <Plus size={14}/> {t.modules.logo.addVariant}
-        </button>
+        {!isPreview && (
+            <button onClick={addVariation} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-colors flex-shrink-0 shadow-sm ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}>
+            <Plus size={14}/> {t.modules.logo.addVariant}
+            </button>
+        )}
       </ModuleHeader>
 
       <div className={`flex flex-col gap-6 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-10 mt-10 md:items-start ${isCenterLayout ? 'items-center' : ''}`}>
@@ -1465,18 +1522,18 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
 
                     {!isPreview && (
                         <>
-<div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <button 
-            onClick={() => updateVariation(variant.id, 'bg', variant.bg === 'light' ? 'dark' : 'light')} 
-            className={`p-2 backdrop-blur-md rounded-full shadow-md touch-manipulation transition-colors ${variant.bg === 'dark' ? 'bg-white/20 text-white hover:bg-white/40' : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
-            title={t.ui.change}
-        >
-            <SunMoon size={16}/>
-        </button>
-        <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation" title={t.ui.cancel}><Trash2 size={16}/></button>
-    </div>
-    
-    <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
+                            <div className="absolute top-3 right-3 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <button 
+                                    onClick={() => updateVariation(variant.id, 'bg', variant.bg === 'light' ? 'dark' : 'light')} 
+                                    className={`p-2 backdrop-blur-md rounded-full shadow-md touch-manipulation transition-colors ${variant.bg === 'dark' ? 'bg-white/20 text-white hover:bg-white/40' : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
+                                    title={t.ui.change}
+                                >
+                                    <SunMoon size={16}/>
+                                </button>
+                                <button onClick={() => removeVariation(variant.id)} className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 shadow-md touch-manipulation" title={t.ui.cancel}><Trash2 size={16}/></button>
+                            </div>
+                            
+                            <div onClick={() => document.getElementById(`var-up-${variant.id}`).click()} className="absolute inset-0 cursor-pointer hover:bg-black/5 transition-colors z-0"></div>
                             <input id={`var-up-${variant.id}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleVariationUpload(e, variant.id)} />
                         </>
                     )}
@@ -1489,118 +1546,141 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
          ))}
       </div>
       
-      <div className="mt-16">
-        <h4 className={`text-xs font-bold uppercase tracking-widest mb-6 opacity-50 px-1 ${isCenterLayout ? 'text-center' : ''}`}>{t.modules.logo.safeArea}</h4>
-        <div className={`w-full aspect-[2/1] md:aspect-[3/1] ${design.radius} border flex flex-col items-center justify-center relative ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12`}>
-            {/* Safe Area Container */}
-            <div className="relative group/safe">
-                {/* The Logo Box */}
-                <div 
-                    onClick={() => !isPreview && document.getElementById('safe-area-upload').click()}
-                    className={`w-40 h-20 border border-dashed border-indigo-500/50 flex items-center justify-center relative ${!isPreview ? 'cursor-pointer hover:bg-indigo-500/5 transition-colors' : ''}`}
-                >
-                    {content.safeAreaImage ? (
-                        <img src={content.safeAreaImage} alt="Safe Area Logo" className="w-full h-full object-contain p-2" />
-                    ) : (
-                        <span className="text-sm font-mono font-bold text-indigo-500">LOGO</span>
+      {showSafeArea && (
+          <div className="mt-16 animate-in fade-in duration-300">
+            <h4 className={`text-xs font-bold uppercase tracking-widest mb-6 opacity-50 px-1 ${isCenterLayout ? 'text-center' : ''}`}>{t.modules.logo.safeArea}</h4>
+            <div className={`w-full aspect-[2/1] md:aspect-[3/1] ${design.radius} border flex flex-col items-center justify-center relative ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12`}>
+                {/* Safe Area Container */}
+                <div className="relative group/safe">
+                    {/* The Logo Box */}
+                    <div 
+                        onClick={() => !isPreview && document.getElementById('safe-area-upload').click()}
+                        className={`w-40 h-20 border border-dashed border-indigo-500/50 flex items-center justify-center relative ${!isPreview ? 'cursor-pointer hover:bg-indigo-500/5 transition-colors' : ''}`}
+                    >
+                        {content.safeAreaImage ? (
+                            <img src={content.safeAreaImage} alt="Safe Area Logo" className="w-full h-full object-contain p-2" />
+                        ) : (
+                            <span className="text-sm font-mono font-bold text-indigo-500">LOGO</span>
+                        )}
+                        {!isPreview && <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/safe:opacity-100 transition-opacity"><Upload size={16} className="text-indigo-500" /></div>}
+                    </div>
+                    {!isPreview && <input id="safe-area-upload" type="file" className="hidden" accept="image/*" onChange={handleSafeAreaUpload} />}
+
+                    {/* X Value Top */}
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-indigo-400 font-mono flex flex-col items-center">
+                       <div className="h-4 border-l border-indigo-300/50 mb-1"></div>
+                       <EditableText 
+                          text={content.safeAreaXValue || "30px"} 
+                          className="text-center min-w-[30px] whitespace-nowrap" 
+                          isDarkMode={isDarkMode} 
+                          isPreview={isPreview} 
+                          onChange={(v) => update({...content, safeAreaXValue: v})} 
+                       />
+                    </div>
+                    
+                    {/* X Value Right */}
+                    <div className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-indigo-400 font-mono flex items-center">
+                       <div className="w-4 border-t border-indigo-300/50 mr-1"></div>
+                       <EditableText 
+                          text={content.safeAreaXValue || "30px"} 
+                          className="text-center min-w-[30px] whitespace-nowrap" 
+                          isDarkMode={isDarkMode} 
+                          isPreview={isPreview} 
+                          onChange={(v) => update({...content, safeAreaXValue: v})} 
+                       />
+                    </div>
+                    
+                    {/* Corner Markers */}
+                    <div className="absolute -top-2 -left-2 w-4 h-4 border-t border-l border-indigo-500/30"></div>
+                    <div className="absolute -top-2 -right-2 w-4 h-4 border-t border-r border-indigo-500/30"></div>
+                    <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b border-l border-indigo-500/30"></div>
+                    <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b border-r border-indigo-500/30"></div>
+                </div>
+
+                {/* Description Text */}
+                <div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>
+                    <EditableText 
+                        text={content.safeAreaDescription || "El área de seguridad es el espacio vital que debe rodear al logotipo para asegurar su legibilidad y prominencia."} 
+                        className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto`}
+                        tag="p"
+                        isDarkMode={isDarkMode} 
+                        isPreview={isPreview}
+                        onChange={(v) => update({...content, safeAreaDescription: v})}
+                    />
+                </div>
+             </div>
+          </div>
+      )}
+
+      {(showDos || showDonts) && (
+          <div className={`flex flex-col md:grid ${showDos && showDonts ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-8 mt-16`}>
+            
+            {showDos && (
+                <div className={`p-6 md:p-8 ${design.radius} border animate-in fade-in duration-300`} style={{ backgroundColor: isDarkMode ? `${dosColor}15` : `${dosColor}10`, borderColor: isDarkMode ? `${dosColor}30` : `${dosColor}40` }}>
+                  <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-lg font-bold flex items-center gap-3" style={{ color: dosColor }}><Check size={20} /> {t.modules.logo.correct}</h4>
+                    {!isPreview && (
+                        <div className="flex items-center gap-2">
+                            <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Correctos"/>
+                            <button onClick={() => update({...content, dos: [...dos, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dosColor, backgroundColor: `${dosColor}20` }}><Plus size={20}/></button>
+                        </div>
                     )}
-                    {!isPreview && <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/safe:opacity-100 transition-opacity"><Upload size={16} className="text-indigo-500" /></div>}
+                  </div>
+                  <div className={`grid grid-cols-1 ${!showDonts ? 'md:grid-cols-2 gap-8' : 'gap-8'}`}>
+                    {dos.map((rule, i) => (
+                      <div key={`do-${i}`} className="group relative">
+                         <div 
+                            onClick={() => !isPreview && document.getElementById(`rule-dos-${i}`).click()}
+                            className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer border-dashed' : ''}`}
+                            style={{ borderHoverColor: dosColor }}
+                         >
+                            {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
+                         </div>
+                         {!isPreview && <input id={`rule-dos-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'dos', i)} />}
+                         
+                         <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('dos', i, v)} />
+                         
+                         {!isPreview && <button onClick={() => removeRule('dos', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                {!isPreview && <input id="safe-area-upload" type="file" className="hidden" accept="image/*" onChange={handleSafeAreaUpload} />}
+            )}
 
-                {/* X Value Top */}
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-indigo-400 font-mono flex flex-col items-center">
-                   <div className="h-4 border-l border-indigo-300/50 mb-1"></div>
-                   <EditableText 
-                      text={content.safeAreaXValue || "30px"} 
-                      className="text-center min-w-[30px] whitespace-nowrap" 
-                      isDarkMode={isDarkMode} 
-                      isPreview={isPreview} 
-                      onChange={(v) => update({...content, safeAreaXValue: v})} 
-                   />
+            {showDonts && (
+                <div className={`p-6 md:p-8 ${design.radius} border animate-in fade-in duration-300`} style={{ backgroundColor: isDarkMode ? `${dontsColor}15` : `${dontsColor}10`, borderColor: isDarkMode ? `${dontsColor}30` : `${dontsColor}40` }}>
+                  <div className="flex items-center justify-between mb-8">
+                    <h4 className="text-lg font-bold flex items-center gap-3" style={{ color: dontsColor }}><AlertCircle size={20} /> {t.modules.logo.incorrect}</h4>
+                    {!isPreview && (
+                        <div className="flex items-center gap-2">
+                             <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Incorrectos"/>
+                             <button onClick={() => update({...content, donts: [...donts, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dontsColor, backgroundColor: `${dontsColor}20` }}><Plus size={20}/></button>
+                        </div>
+                    )}
+                  </div>
+                  <div className={`grid grid-cols-1 ${!showDos ? 'md:grid-cols-2 gap-8' : 'gap-8'}`}>
+                    {donts.map((rule, i) => (
+                      <div key={`dont-${i}`} className="group relative">
+                         <div 
+                            onClick={() => !isPreview && document.getElementById(`rule-donts-${i}`).click()}
+                            className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer border-dashed' : ''}`}
+                         >
+                            {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
+                         </div>
+                         {!isPreview && <input id={`rule-donts-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'donts', i)} />}
+                         
+                         <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('donts', i, v)} />
+                         
+                         {!isPreview && <button onClick={() => removeRule('donts', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                
-                {/* X Value Right */}
-                <div className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-indigo-400 font-mono flex items-center">
-                   <div className="w-4 border-t border-indigo-300/50 mr-1"></div>
-                   <EditableText 
-                      text={content.safeAreaXValue || "30px"} 
-                      className="text-center min-w-[30px] whitespace-nowrap" 
-                      isDarkMode={isDarkMode} 
-                      isPreview={isPreview} 
-                      onChange={(v) => update({...content, safeAreaXValue: v})} 
-                   />
-                </div>
-                
-                {/* Corner Markers */}
-                <div className="absolute -top-2 -left-2 w-4 h-4 border-t border-l border-indigo-500/30"></div>
-                <div className="absolute -top-2 -right-2 w-4 h-4 border-t border-r border-indigo-500/30"></div>
-                <div className="absolute -bottom-2 -left-2 w-4 h-4 border-b border-l border-indigo-500/30"></div>
-                <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b border-r border-indigo-500/30"></div>
-            </div>
+            )}
+            
+          </div>
+      )}
 
-{/* Description Text */}
-            <div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>
-                <EditableText 
-                    text={content.safeAreaDescription || "El área de seguridad es el espacio vital que debe rodear al logotipo para asegurar su legibilidad y prominencia."} 
-                    className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto`}
-                    tag="p"
-                    isDarkMode={isDarkMode} 
-                    isPreview={isPreview}
-                    onChange={(v) => update({...content, safeAreaDescription: v})}
-                />
-            </div>
-         </div>
-      </div>
-
-      <div className="flex flex-col md:grid md:grid-cols-2 gap-8 mt-16">
-        <div className={`p-6 md:p-8 ${design.radius} border ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'}`}>
-          <div className="flex items-center justify-between mb-8">
-            <h4 className="text-lg font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-3"><Check size={20} /> {t.modules.logo.correct}</h4>
-            {!isPreview && <button onClick={() => addRule('dos')} className="p-2 hover:bg-emerald-500/20 rounded-full text-emerald-600 dark:text-emerald-400 transition-colors"><Plus size={20}/></button>}
-          </div>
-          <div className="space-y-8">
-            {dos.map((rule, i) => (
-              <div key={`do-${i}`} className="group relative">
-<div 
-                    onClick={() => !isPreview && document.getElementById(`rule-dos-${i}`).click()}
-                    className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer hover:border-indigo-500 border-dashed' : ''}`}
-                 >
-                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
-                 </div>
-                                  {!isPreview && <input id={`rule-dos-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'dos', i)} />}
-                 
-                 <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('dos', i, v)} />
-                 
-                 {!isPreview && <button onClick={() => removeRule('dos', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={`p-6 md:p-8 ${design.radius} border ${isDarkMode ? 'bg-rose-500/10 border-rose-500/30' : 'bg-rose-50 border-rose-200'}`}>
-          <div className="flex items-center justify-between mb-8">
-            <h4 className="text-lg font-bold text-rose-600 dark:text-rose-400 flex items-center gap-3"><AlertCircle size={20} /> {t.modules.logo.incorrect}</h4>
-            {!isPreview && <button onClick={() => addRule('donts')} className="p-2 hover:bg-rose-500/20 rounded-full text-rose-600 dark:text-rose-400 transition-colors"><Plus size={20}/></button>}
-          </div>
-          <div className="space-y-8">
-            {donts.map((rule, i) => (
-              <div key={`dont-${i}`} className="group relative">
-<div 
-                    onClick={() => !isPreview && document.getElementById(`rule-donts-${i}`).click()}
-                    className={`w-full aspect-[4/3] md:aspect-video ${design.radius} bg-black/5 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-transparent mb-3 transition-colors ${!isPreview ? 'cursor-pointer hover:border-indigo-500 border-dashed' : ''}`}
-                 >
-                    {rule.image ? <img src={rule.image} alt="Rule" className="w-full h-full object-cover" /> : <div className="flex flex-col items-center gap-2 opacity-30"><ImageIcon size={24} /><span className="text-[10px] font-bold uppercase">{t.ui.upload}</span></div>}
-                 </div>
-                                  {!isPreview && <input id={`rule-donts-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleRuleImageUpload(e, 'donts', i)} />}
-                 
-                 <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('donts', i, v)} />
-                 
-                 {!isPreview && <button onClick={() => removeRule('donts', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
       <DynamicBlocks blocks={content.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -2241,7 +2321,11 @@ const CobrandingModule = React.memo(({ isDarkMode, design, content, update, t, i
 
 const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const colorBase = design.palette?.base || 'indigo';
-const assets = content.assets?.length ? content.assets : DEFAULT_ASSETS;
+  const assets = content.assets?.length ? content.assets : [
+    { id: 1, title: 'Plantillas de Presentación', desc: 'Plantillas corporativas para Keynote y PowerPoint.', format: 'PPTX / KEY, 25MB', url: '' },
+    { id: 2, title: 'Documentos corporativos', desc: 'Membretes, tarjetas de visita y carpetas.', format: 'ZIP / PDF, 15MB', url: '' },
+    { id: 3, title: 'Brand guidelines', desc: 'Manual de identidad visual corporativa completo.', format: 'PDF, 30MB', url: '' }
+  ];
 
   const addAsset = () => {
     const newAsset = { id: Date.now(), title: 'Nuevo Material', desc: 'Descripción del archivo...', format: 'PDF, 1MB', url: '' };
@@ -3343,28 +3427,11 @@ const Editor = () => {
       localStorage.removeItem('brandPortalData');
       setProfileContent({});
       setDesign({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
-      setCurrentFont('Inter');
+setCurrentFont('Inter');
       
-      setCanvasItems([
-        { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
-        { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
-        { id: 'identity', type: 'identity', content: {} },
-        { id: 'logo', type: 'logo', content: {} },
-        { id: 'color', type: 'color', content: { colors: [] } },
-        { id: 'typography', type: 'typography', content: { levels: [] } },
-        { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
-        { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-        { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
-        { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
-        { id: 'icons', type: 'icons', content: {} },
-        { id: 'web', type: 'web', content: {} },
-        { id: 'social', type: 'social', content: {} },
-        { id: 'cobranding', type: 'cobranding', content: {} },
-        { id: 'assets', type: 'assets', content: {} },
-        { id: 'footer-1', type: 'footer', content: { copyright: "" } }
-      ]);
+      setCanvasItems(getInitialCanvas(t));
       showToast("Sesión cerrada correctamente.");
-    }
+        }
   };
 
   // 1. EFECTO DE AUTENTICACIÓN Y TELETRANSPORTE (Supabase)
@@ -3636,23 +3703,7 @@ setSaveStatus('saved');
     }
   };
 
-  const [canvasItems, setCanvasItems] = useState([
-    { id: 'header-1', type: 'header', content: { title: "Portal de Marca", logo: null, layout: 'standard' } },
-    { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
-    { id: 'identity', type: 'identity', content: {} },
-    { id: 'logo', type: 'logo', content: {} },
-    { id: 'color', type: 'color', content: { colors: [] } },
-    { id: 'typography', type: 'typography', content: { levels: [] } },
-    { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
-    { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-    { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
-    { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
-    { id: 'icons', type: 'icons', content: {} },
-    { id: 'web', type: 'web', content: {} },
-    { id: 'social', type: 'social', content: {} },
-    { id: 'cobranding', type: 'cobranding', content: {} },
-    { id: 'footer-1', type: 'footer', content: { copyright: "" } }
-  ]);
+const [canvasItems, setCanvasItems] = useState(getInitialCanvas(t));
 
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
 
@@ -4154,28 +4205,10 @@ const isInitialMount = useRef(true);
         slugStatus={slugStatus}
         handleSlugChange={handleSlugChange}
         checkLimit={validateStorageLimit}
-        onResetCanvas={() => {
+onResetCanvas={() => {
           if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
-            const defaultCanvas = [
-                { id: 'header-1', type: 'header', content: { title: profileContent.name || "Portal de Marca", logo: null, layout: 'standard' } },
-                { id: 'hero', type: 'hero', content: { subtitle: "Un sistema visual diseñado para escalar." } },
-                { id: 'identity', type: 'identity', content: {} },
-                { id: 'logo', type: 'logo', content: {} },
-                { id: 'color', type: 'color', content: { colors: [] } },
-                { id: 'typography', type: 'typography', content: { levels: [] } },
-                { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
-                { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-                { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
-                { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: "Contenido editorial de ejemplo..." }] } },
-                { id: 'icons', type: 'icons', content: {} },
-                { id: 'web', type: 'web', content: {} },
-                { id: 'social', type: 'social', content: {} },
-                { id: 'cobranding', type: 'cobranding', content: {} },
-                { id: 'assets', type: 'assets', content: {} },
-                { id: 'footer-1', type: 'footer', content: { copyright: `© ${new Date().getFullYear()} ${profileContent.name || 'BrandBara'}` } }
-            ];
-            setCanvasItems(defaultCanvas);
-            setDesign({ 
+            setCanvasItems(getInitialCanvas(t));
+                        setDesign({ 
                 style: DESIGN_STYLES.crystal, 
                 palette: COLOR_PALETTES[0], 
                 font: 'Inter', 
