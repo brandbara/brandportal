@@ -136,8 +136,8 @@ const TRANSLATIONS = {
         desc: "Los valores fundamentales que definen quiénes somos y cómo operamos.",
         precision: "Precisión", precisionDesc: "Apuntamos a resultados exactos en cada proyecto que emprendemos.",
         integrity: "Integridad", integrityDesc: "La honestidad y los estándares éticos son la base de nuestras operaciones.",
-        innovation: "Innovación", innovationDesc: "Siempre buscando el próximo horizonte en tecnología y servicio.",
-        excellence: "Excelencia", excellenceDesc: "Estableciendo el punto de referencia de calidad en el panorama moderno."
+        innovation: "Innovación", innovationDesc: "Always seeking the next horizon in technology and service.",
+        excellence: "Excellence", excellenceDesc: "Estableciendo el punto de referencia de calidad en el panorama moderno."
       },
       logo: { title: "Logotipo", desc: "Versiones principales y permitidas de la marca.", uploadLabel: "Logotipo (2MB)", safeArea: "Area de Seguridad", correct: "Usos Correctos", incorrect: "Usos Incorrectos", addVariant: "Añadir Versión" },
       color: { title: "Paleta de Color", desc: "Colores corporativos para uso digital e impreso.", addColor: "Añadir Color" },
@@ -168,8 +168,8 @@ const TRANSLATIONS = {
         partnerCaption: "Descripción del acuerdo." 
     },
     cookie: { title: "Valoramos tu privacidad", desc: "Utilizamos cookies propias y de terceros para personalizar el contenido, analizar nuestro tráfico y ofrecerte una experiencia increíble. Al hacer clic en 'Aceptar todas', das tu consentimiento.", manage: "Solo Necesarias", reject: "Rechazar", accept: "Aceptar Todas" },
-    auth: { loginTitle: "Bienvenido de nuevo", registerTitle: "Crea tu cuenta", loginDesc: "Inicia sesión para publicar tu portal.", registerDesc: "Regístrate para guardar y publicar tu progreso.", loginBtn: "Iniciar Sesión", registerBtn: "Registrarse", name: "Nombre completo", namePlaceholder: "Tu nombre", email: "Correo Electrónico", emailPlaceholder: "ejemplo@correo.com", password: "Contraseña", termsPre: "He leído y acepto los", termsLink: "Términos de Uso", privacyAnd: "y la", privacyLink: "Política de Privacidad", success: "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal." },
-    profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferencias", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
+    auth: { loginTitle: "Bienvenido de nuevo", registerTitle: "Crea tu cuenta", loginDesc: "Inicia sesión para publicar tu portal.", registerDesc: "Regístrate para guardar y guardar tu progreso.", loginBtn: "Iniciar Sesión", registerBtn: "Registrarse", name: "Nombre completo", namePlaceholder: "Tu nombre", email: "Correo Electrónico", emailPlaceholder: "ejemplo@correo.com", password: "Contraseña", termsPre: "He leído y acepto los", termsLink: "Términos de Uso", privacyAnd: "y la", privacyLink: "Política de Privacidad", success: "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal." },
+    profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferences", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
   },
   EN: {
     ui: {
@@ -202,7 +202,7 @@ const TRANSLATIONS = {
       logo: { title: "Logo", desc: "Main and allowed brand versions.", uploadLabel: "Logo (2MB)", safeArea: "Safe Area", correct: "Do's", incorrect: "Don'ts", addVariant: "Add Version" },
       color: { title: "Color Palette", desc: "Corporate colors for digital and print use.", addColor: "Add Color" },
       typography: { title: "Typography", desc: "Visual hierarchy and typographic scale.", size: "Size", weight: "Weight", addLevel: "Add Level", showMore: "View all styles", showLess: "View less" },
-      image: { title: "Moodboard", desc: "Inspiración visual y fotografía.", addImage: "Add Image" },
+      image: { title: "Moodboard", desc: "Visual inspiration and photography.", addImage: "Add Image" },
       editorial: { title: "Editorial Kit", desc: "Mixed content for brand narrative.", btnText: "Text", btnImage: "Image", downloadText: "Download Editorial Kit", toggleDownload: "Enable download" },
       layout: { title: "Layout System", desc: "8px base grids for spatial consistency.", grid1: "12 Columns", grid2: "Modular", grid3: "Baseline", grid4: "Hierarchical", uploadLabel: "Usage example", downloadText: "Download Template", toggleDownload: "Download link", usageTitle: "Study Cases & Application", usageDesc: "Detailed visualization of graphic structure." },
       bento: { title: "Bento Box", desc: "Multimedia gallery with flexible distribution." },
@@ -232,6 +232,7 @@ const TRANSLATIONS = {
     profileTabs: { title: "Settings", public: "Public Profile", publicDesc: "Information visible to other users and in your shared projects.", account: "Account", accountDesc: "Manage your credentials and security.", preferences: "Preferences", prefDesc: "Customize your BrandBara experience.", space: "Storage", filesMsg: "Files uploaded to the portal.", logout: "Log Out", changePass: "Change password", lang: "Language", langDesc: "Select the interface language.", notif: "Email Notifications", notifDesc: "Receive news and security alerts.", cookies: "Analytics Cookies", cookiesDesc: "Help us improve the platform anonymously.", role: "Role / Title", bio: "Biography" }
   }
 };
+
 // ==============================================================================
 // BLINDAJE LEGAL GLOBAL - NIVEL EMPRESARIAL (ADAPTACIÓN STANDARDS V2.0)
 // ==============================================================================
@@ -800,16 +801,16 @@ const GridOverlay = ({ type }) => (
 
 // --- 5. MÓDULOS DE CONTENIDO ---
 
-const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
+const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [activeTab, setActiveTab] = useState('bg'); // 'bg' o 'text'
+  const [activeTab, setActiveTab] = useState('bg'); 
   const [showTextMenu, setShowTextMenu] = useState(false);
 
   const updateContent = (changes) => { update({ ...content, ...changes }); };
   
   const handleImageUpload = (e) => { 
       const file = e.target.files[0]; 
-      if (file) { 
+      if (file && checkLimit(file)) { 
           const url = URL.createObjectURL(file); 
           updateContent({ bgType: 'image', bgValue: url });
           setShowColorPicker(false); 
@@ -834,38 +835,17 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
       {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/10' : 'bg-gradient-to-b from-slate-50'}`} />}
       {content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0" />}
       
-{!isPreview && (
+      {!isPreview && (
         <div className="absolute top-4 right-4 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-          
-          {/* CONTENEDOR PRINCIPAL DEL MENÚ */}
           <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-full shadow-2xl border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
-            
-            {/* Botón Brocha (Color) */}
             <button onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-full transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={18} /></button>
-            
-            {/* Botón Imagen (Fondo) */}
             <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors"><ImagePlus size={18} /></button>
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-            
             <div className="w-px h-6 bg-slate-300 dark:bg-white/20 mx-1 my-auto"></div>
-            
-            {/* NUEVO BOTÓN TEXTO (Tamaño y Kerning) */}
             <div className="relative">
-              <button 
-                onClick={() => {
-                  setShowTextMenu(!showTextMenu);
-                  setShowColorPicker(false);
-                }} 
-                className={`p-2.5 rounded-full transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}
-                title="Opciones de texto"
-              >
-                <Type size={18} />
-              </button>
-
-{showTextMenu && (
+              <button onClick={() => { setShowTextMenu(!showTextMenu); setShowColorPicker(false); }} className={`p-2.5 rounded-full transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`} title="Opciones de texto"><Type size={18} /></button>
+              {showTextMenu && (
                 <div className="absolute top-full right-0 mt-3 p-4 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-4 animate-in fade-in slide-in-from-top-3 duration-200">
-                  
-                  {/* Selector de Tamaño */}
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Tamaño</span>
                     <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
@@ -873,8 +853,6 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                       <button onClick={() => updateContent({ textSize: 'large' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textSize !== 'medium' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Grande</button>
                     </div>
                   </div>
-
-                  {/* NUEVO: Selector de Peso */}
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Grosor (Peso)</span>
                     <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
@@ -883,35 +861,23 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                       <button onClick={() => updateContent({ textWeight: 'black' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${!content?.textWeight || content?.textWeight === 'black' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Bold</button>
                     </div>
                   </div>
-
-                  {/* Selector de Kerning */}
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Separación (Kerning)</span>
                     <div className="flex flex-col gap-1">
-                      <button onClick={() => updateContent({ textSpacing: 'tight' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'tight' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                        Apretado
-                      </button>
-                      <button onClick={() => updateContent({ textSpacing: 'normal' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${!content?.textSpacing || content?.textSpacing === 'normal' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                        Normal
-                      </button>
-                      <button onClick={() => updateContent({ textSpacing: 'wide' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'wide' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>
-                        Separado
-                      </button>
+                      <button onClick={() => updateContent({ textSpacing: 'tight' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'tight' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Apretado</button>
+                      <button onClick={() => updateContent({ textSpacing: 'normal' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${!content?.textSpacing || content?.textSpacing === 'normal' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Normal</button>
+                      <button onClick={() => updateContent({ textSpacing: 'wide' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'wide' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Separado</button>
                     </div>
                   </div>
-
                 </div>
               )}
-                          </div>
-
-            {/* EL SUBMENÚ DE COLOR ORIGINAL */}
+            </div>
             {showColorPicker && (
               <div className="absolute top-full right-0 mt-3 p-5 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-5 animate-in fade-in slide-in-from-top-3 duration-200">
                 <div className="bg-slate-100 dark:bg-white/5 p-1 rounded-full flex gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                     <button onClick={() => setActiveTab('bg')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'bg' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.background || 'Fondo'}</button>
                     <button onClick={() => setActiveTab('text')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'text' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.text || 'Texto'}</button>
                 </div>
-
                 {activeTab === 'bg' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
@@ -926,14 +892,13 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                         </div>
                     </div>
                 )}
-
                 {activeTab === 'text' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
                             <input type="color" value={content?.textColor || (isDarkBg ? '#ffffff' : '#111111')} onChange={(e) => updateContent({ textColor: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
                             <input type="text" value={content?.textColor || ''} onChange={(e) => updateContent({ textColor: e.target.value })} placeholder="Auto" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
                         </div>
-                        {content?.textColor && (
+                       {content?.textColor && (
                             <button onClick={() => updateContent({ textColor: null })} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 rounded-xl text-xs font-bold transition-colors">
                                 <X size={14}/> {t.ui.reset || 'Restaurar automático'}
                             </button>
@@ -952,27 +917,13 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
         </div>
       )}      
       <div className="relative z-10 max-w-5xl w-full">
-       
-<EditableText 
-         text={content?.title || t.modules.hero.title} 
-         className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} 
-         tag="h1"
-            isPreview={isPreview} 
-            onChange={(v) => update({...content, title: v})} 
-            style={customTextColor} 
-        />
-                <EditableText 
-            text={content?.subtitle || t.modules.hero.subtitle} 
-            className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} 
-            tag="p" 
-            isPreview={isPreview} 
-            onChange={(v) => update({...content, subtitle: v})} 
-            style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} 
-        />
+       <EditableText text={content?.title || t.modules.hero.title} className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} tag="h1" isPreview={isPreview} onChange={(v) => update({...content, title: v})} style={customTextColor} />
+       <EditableText text={content?.subtitle || t.modules.hero.subtitle} className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} tag="p" isPreview={isPreview} onChange={(v) => update({...content, subtitle: v})} style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} />
       </div>
     </div>
   );
 });
+
 const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const [editingIconId, setEditingIconId] = useState(null);
 
@@ -1175,30 +1126,42 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
   );
 });
 
-const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
+const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => {  
   const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
   const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
-  const handlePreviewUpload = (e) => { const file = e.target.files[0]; if(file) update({ ...content, previewImage: URL.createObjectURL(file) }); };
+  
+  // 🛡️ Subida principal de la retícula base con validación de cuota
+  const handlePreviewUpload = (e) => { 
+    const file = e.target.files[0]; 
+    if(file && checkLimit(file)) update({ ...content, previewImage: URL.createObjectURL(file) }); 
+  };
   
   const selectedGrid = content?.selectedGrid || 'grid1';
   const grids = [
     { id: 'grid1', label: t.modules.layout.grid1, cols: 12 },
-    { id: 'grid2', label: t.modules.layout.grid2, cols: 6 }, // Modular
-    { id: 'grid3', label: t.modules.layout.grid3, cols: 1 }, // Baseline
-    { id: 'grid4', label: t.modules.layout.grid4, cols: 4 }, // Hierarchical
+    { id: 'grid2', label: t.modules.layout.grid2, cols: 6 }, 
+    { id: 'grid3', label: t.modules.layout.grid3, cols: 1 }, 
+    { id: 'grid4', label: t.modules.layout.grid4, cols: 4 }, 
   ];
-  // Robust initialization
+
+  // Inicialización única de variables
   const usageExamples = content?.usageExamples || [];
-  const usageTitle = content?.usageTitle || t.modules.layout.usageTitle; // Title
-  const usageDesc = content?.usageDesc || t.modules.layout.usageDesc;   // Desc
+  const usageTitle = content?.usageTitle || t.modules.layout.usageTitle; 
+  const usageDesc = content?.usageDesc || t.modules.layout.usageDesc;   
   
   const addExample = () => update({ ...content, usageExamples: [...usageExamples, { id: Date.now(), src: null, title: 'Nuevo Caso', desc: 'Descripción del caso...', selectedGrid: 'grid1', templateUrl: '' }] });
+  
   const updateExample = (id, field, value) => {
     const newExamples = usageExamples.map(e => e.id === id ? { ...e, [field]: value } : e);
     update({ ...content, usageExamples: newExamples });
   };
-  const handleExampleUpload = (e, id) => { const file = e.target.files[0]; if (file) updateExample(id, 'src', URL.createObjectURL(file)); };
+
+  // 🛡️ Subida blindada de los casos de estudio individuales con checkLimit
+  const handleExampleUpload = (e, id) => { 
+    const file = e.target.files[0]; 
+    if (file && checkLimit(file)) updateExample(id, 'src', URL.createObjectURL(file)); 
+  };
   
   const duplicateExample = (id) => {
       const index = usageExamples.findIndex(e => e.id === id);
@@ -1209,6 +1172,7 @@ const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPre
       newExamples.splice(index + 1, 0, newExample);
       update({ ...content, usageExamples: newExamples });
   };
+
   return (
     <div className="p-6 md:p-10 relative">
       <ModuleHeader title={t.modules.layout.title} desc={t.modules.layout.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
@@ -1369,8 +1333,8 @@ const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPre
   );
 });
 
-const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
-  const addRule = (type) => { const current = content[type] || []; update({ ...content, [type]: [...current, { text: '...', image: null }] }); };
+const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => { // 👈 Inyectamos checkLimit
+//   const addRule = (type) => { const current = content[type] || []; update({ ...content, [type]: [...current, { text: '...', image: null }] }); };
   const removeRule = (type, i) => { const current = content[type] || []; update({ ...content, [type]: current.filter((_, idx) => idx !== i) }); };
   const updateRuleText = (type, i, val) => { const current = [...(content[type] || [])]; current[i].text = val; update({ ...content, [type]: current }); };
   const handleRuleImageUpload = (e, type, index) => {
@@ -1522,8 +1486,9 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                 <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b border-r border-indigo-500/30"></div>
             </div>
 
-            {/* Description Text */}
-<div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>                <EditableText 
+{/* Description Text */}
+            <div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>
+                <EditableText 
                     text={content.safeAreaDescription || "El área de seguridad es el espacio vital que debe rodear al logotipo para asegurar su legibilidad y prominencia."} 
                     className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto`}
                     tag="p"
@@ -1532,7 +1497,7 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                     onChange={(v) => update({...content, safeAreaDescription: v})}
                 />
             </div>
-        </div>
+         </div>
       </div>
 
       <div className="flex flex-col md:grid md:grid-cols-2 gap-8 mt-16">
@@ -3192,6 +3157,9 @@ const Editor = () => {
   const pathParts = location.pathname.split('/').filter(Boolean);
   const activeSlug = pathParts[0] || '';
 
+  // 🛡️ ESTADO INTEGRADO: Para interceptar la clave de Supabase de forma segura
+  const [portalPasswordRaw, setPortalPasswordRaw] = useState(null);
+
   const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [userPlan, setUserPlan] = useState('FREE');
@@ -3358,26 +3326,26 @@ const Editor = () => {
     });
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]); 
-
-  // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
+ 
+// 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
   useEffect(() => {
     const path = location.pathname.replace('/', '').trim();
     
     if (path && path !== '' && path !== 'info') {
       setIsLoadingPortal(true);
       
-      const fetchPortal = async () => {
+const fetchPortal = async () => {
         if (!supabase) return;
         const currentSlug = activeSlug;
         const isEditRoute = pathParts[1] === 'edit';
 
         try {
-const hashedAttempt = await hashPassword(accessInput);
-const { data, error } = await supabase.rpc('get_portal_secure', {
-    p_slug: currentSlugPath,
-    p_password: hashedAttempt
-});
-
+          const hashedAttempt = await hashPassword(accessInput);
+          const { data, error } = await supabase.rpc('get_portal_secure', {
+            p_slug: currentSlug, // 🛡️ Corregido: Ahora usa la variable real existente
+            p_password: hashedAttempt
+          });
+                    
           if (error) throw error;
           if (!data) {
             setNotFound(true);
