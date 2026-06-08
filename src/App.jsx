@@ -162,7 +162,7 @@ const TRANSLATIONS = {
         colorSecondaryName: "Color Secundario", colorSecondaryUsage: "Soporte y validaciones.", 
         colorAccentName: "Color de Acento", colorAccentUsage: "Destacados y llamadas a la acción.",
         colorNeutralName: "Neutro", colorNeutralUsage: "Textos y bordes.", 
-colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
+        colorErrorName: "Error", colorErrorUsage: "Alertas y estados críticos.",
         editorialContent: "Example editorial content...", 
         typoSamples: { Display: "Titular", H1: "Encabezado", H2: "Subtítulo", Body: "Cuerpo de texto legible.", Caption: "Texto auxiliar." }, 
         partnerCaption: "Descripción del acuerdo." 
@@ -202,7 +202,7 @@ colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
       logo: { title: "Logo", desc: "Main and allowed brand versions.", uploadLabel: "Logo (2MB)", safeArea: "Safe Area", correct: "Do's", incorrect: "Don'ts", addVariant: "Add Version" },
       color: { title: "Color Palette", desc: "Corporate colors for digital and print use.", addColor: "Add Color" },
       typography: { title: "Typography", desc: "Visual hierarchy and typographic scale.", size: "Size", weight: "Weight", addLevel: "Add Level", showMore: "View all styles", showLess: "View less" },
-      image: { title: "Moodboard", desc: "Visual inspiration and photography.", addImage: "Add Image" },
+      image: { title: "Moodboard", desc: "Inspiración visual y fotografía.", addImage: "Add Image" },
       editorial: { title: "Editorial Kit", desc: "Mixed content for brand narrative.", btnText: "Text", btnImage: "Image", downloadText: "Download Editorial Kit", toggleDownload: "Enable download" },
       layout: { title: "Layout System", desc: "8px base grids for spatial consistency.", grid1: "12 Columns", grid2: "Modular", grid3: "Baseline", grid4: "Hierarchical", uploadLabel: "Usage example", downloadText: "Download Template", toggleDownload: "Download link", usageTitle: "Study Cases & Application", usageDesc: "Detailed visualization of graphic structure." },
       bento: { title: "Bento Box", desc: "Multimedia gallery with flexible distribution." },
@@ -222,17 +222,16 @@ colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
         colorSecondaryName: "Secondary Color", colorSecondaryUsage: "Support and validations.", 
         colorAccentName: "Accent Color", colorAccentUsage: "Highlights and call to actions.",
         colorNeutralName: "Neutral", colorNeutralUsage: "Texts and borders.", 
-        colorErrorName: "Error", colorErrorUsage: "Alertas y estados críticos.",
+        colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
         editorialContent: "Example editorial content...", 
         typoSamples: { Display: "Headline", H1: "Header", H2: "Subtitle", Body: "Readable body text.", Caption: "Auxiliary text." }, 
         partnerCaption: "Agreement description." 
     },
     cookie: { title: "We value your privacy", desc: "We use first and third-party cookies to personalize content, analyze our traffic, and offer you an incredible experience. By clicking 'Accept all', you give your consent.", manage: "Only Necessary", reject: "Reject", accept: "Accept All" },
-    auth: { loginTitle: "Welcome back", registerTitle: "Create your account", loginDesc: "Log in to publish your portal.", registerDesc: "Sign up to save and publish your progress.", loginBtn: "Log In", registerBtn: "Sign Up", name: "Full name", namePlaceholder: "Your name", email: "Email", emailPlaceholder: "example@email.com", password: "Password", termsPre: "I have read and accept the", termsLink: "Terms of Use", privacyAnd: "and the", privacyLink: "Privacy Policy", success: "Successfully logged in! You can now publish your portal." },
+    auth: { loginTitle: "Welcome back", registerTitle: "Create your account", loginDesc: "Log in to publish your portal.", registerDesc: "Sign up to save and publish your progress.", loginBtn: "Log In", registerBtn: "Sign Up", name: "Full name", namePlaceholder: "Your name", email: "Email", emailPlaceholder: "example@email.com", password: "Password", termsPre: "I have read and accept the", termsLink: "Terms of Use", privacyAnd: "and the", privacyLink: "Privacy Policy", success: "Successfully logged in\! You can now publish your portal." },
     profileTabs: { title: "Settings", public: "Public Profile", publicDesc: "Information visible to other users and in your shared projects.", account: "Account", accountDesc: "Manage your credentials and security.", preferences: "Preferences", prefDesc: "Customize your BrandBara experience.", space: "Storage", filesMsg: "Files uploaded to the portal.", logout: "Log Out", changePass: "Change password", lang: "Language", langDesc: "Select the interface language.", notif: "Email Notifications", notifDesc: "Receive news and security alerts.", cookies: "Analytics Cookies", cookiesDesc: "Help us improve the platform anonymously.", role: "Role / Title", bio: "Biography" }
   }
 };
-
 // ==============================================================================
 // BLINDAJE LEGAL GLOBAL - NIVEL EMPRESARIAL (ADAPTACIÓN STANDARDS V2.0)
 // ==============================================================================
@@ -3373,10 +3372,11 @@ const Editor = () => {
         const isEditRoute = pathParts[1] === 'edit';
 
         try {
-          const { data, error } = await supabase.rpc('get_portal_secure', {
-            p_slug: currentSlug,
-            p_password: accessInput || null
-          });
+const hashedAttempt = await hashPassword(accessInput);
+const { data, error } = await supabase.rpc('get_portal_secure', {
+    p_slug: currentSlugPath,
+    p_password: hashedAttempt
+});
 
           if (error) throw error;
           if (!data) {
@@ -3410,14 +3410,15 @@ const Editor = () => {
             if (canvasData.items) setCanvasItems(canvasData.items);
             if (canvasData.design) setDesign(canvasData.design);
             
-            setProfileContent({
-              ...canvasData.profile,
-              slug: data.slug,
-              name: data.brand_name,
-              isPasswordProtected: data.is_protected,
-              portalPassword: data.password_hash || '' 
-            });
-            
+setPortalPasswordRaw(data.password_hash || null);
+setProfileContent({
+  ...canvasData.profile,
+  slug: data.slug,
+  name: data.brand_name,
+  isPasswordProtected: data.is_protected,
+  portalPassword: data.is_protected ? "locked" : "" 
+});
+
             const isActualOwner = currentUser && currentUser.id === data.user_id;
             
             if (isEditRoute) {
@@ -3519,8 +3520,9 @@ const savePortalData = async (isManual = false) => {
     if (supabase) {
       try {
         if (isManual) showToast("Procesando imágenes y publicando portal...");
-        const processedCanvas = isManual ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
-        const processedProfile = isManual ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
+// 🛡️ BACKGROUND AUTO-UPLOAD: Subimos los blobs a Supabase también durante el autoguardado si hay sesión
+const processedCanvas = currentUser?.id ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
+const processedProfile = currentUser?.id ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
         const { error: profileError } = await supabase.from('profiles').upsert({ id: currentUser.id, updated_at: new Date().toISOString() });
         if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
 // Hashear la contraseña antes de enviar a Supabase
@@ -3548,14 +3550,24 @@ const savePortalData = async (isManual = false) => {
             slug: processedProfile.result?.slug || currentUser.id,
             brand_name: processedProfile.result?.name || 'Mi Marca',
             canvas_data: { items: processedCanvas.result, design: design, profile: processedProfile.result },
-            is_protected: processedProfile.result?.isPasswordProtected || false,
-            password_hash: securePasswordHash, // Enviamos el Hash, NUNCA el texto plano
-            updated_at: new Date().toISOString()
+is_protected: processedProfile.result?.isPasswordProtected || false,
+// Ciframos la contraseña con SHA-256 si existe y el usuario la ha cambiado
+password_hash: processedProfile.result?.portalPassword && processedProfile.result.portalPassword !== "locked" 
+  ? await hashPassword(processedProfile.result.portalPassword) 
+  : (processedProfile.result?.portalPassword === "locked" ? portalPasswordRaw : null),
+updated_at: new Date().toISOString()
           });
                   if (error) throw error;
         
-        if (processedCanvas.hasChanges) setCanvasItems(processedCanvas.result);
-        if (processedProfile.hasChanges) setProfileContent(processedProfile.result);
+// Sincronizamos el estado de React y actualizamos LocalStorage con los enlaces permanentes de Supabase
+if (processedCanvas.hasChanges) {
+  setCanvasItems(processedCanvas.result);
+  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems: processedCanvas.result, design, profileContent, isDarkMode, language, currentFont }));
+}
+if (processedProfile.hasChanges) {
+  setProfileContent(processedProfile.result);
+  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems, design, profileContent: processedProfile.result, isDarkMode, language, currentFont }));
+}
 
         setSaveStatus('saved');
         if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
