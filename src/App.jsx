@@ -114,24 +114,28 @@ const FONT_DESCRIPTIONS = {
 // ==========================================
 // PLANTILLA DE INICIALIZACIÓN PLG (ESTADO DE FÁBRICA)
 // ==========================================
-const getInitialCanvas = (t) => [
-  { id: 'header-1', type: 'header', content: { title: t?.modules?.header?.title || "Portal de Marca", logo: null, layout: 'standard' } },
-  { id: 'hero', type: 'hero', content: { subtitle: t?.modules?.hero?.subtitle || "Un sistema visual diseñado para escalar." } },
-  { id: 'identity', type: 'identity', content: {} },
-  { id: 'logo', type: 'logo', content: {} },
-  { id: 'color', type: 'color', content: { colors: [] } },
-  { id: 'typography', type: 'typography', content: { levels: [] } },
-  { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
-  { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
-  { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
-  { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: t?.defaults?.editorialContent || "Contenido..." }] } },
-  { id: 'icons', type: 'icons', content: {} },
-  { id: 'web', type: 'web', content: {} },
-  { id: 'social', type: 'social', content: {} },
-  { id: 'cobranding', type: 'cobranding', content: {} },
-  { id: 'assets', type: 'assets', content: {} },
-  { id: 'footer-1', type: 'footer', content: { copyright: "" } }
-];
+const getInitialCanvas = (t) => {
+  const safeT = t || TRANSLATIONS['ES']; // 🛡️ Guardia: Si 't' no existe, usamos español para que no pete
+  
+  return [
+    { id: 'header-1', type: 'header', content: { title: safeT.modules?.header?.title || "Portal de Marca", logo: null, layout: 'standard' } },
+    { id: 'hero', type: 'hero', content: { subtitle: safeT.modules?.hero?.subtitle || "Un sistema visual diseñado para escalar." } },
+    { id: 'identity', type: 'identity', content: {} },
+    { id: 'logo', type: 'logo', content: {} },
+    { id: 'color', type: 'color', content: { colors: [] } },
+    { id: 'typography', type: 'typography', content: { levels: [] } },
+    { id: 'image', type: 'image', content: { images: [1, 2, 3, 4] } },
+    { id: 'layout', type: 'layout', content: { selectedGrid: 'grid1', usageExamples: [] } },
+    { id: 'bento', type: 'bento', content: { items: Array(5).fill(null).map((_, i) => ({ id: `bento-${i}`, type: 'image', src: null })), layoutIndex: 0 } },
+    { id: 'editorial', type: 'editorial', content: { blocks: [{type:'text', content: safeT.defaults?.editorialContent || "Contenido..." }] } },
+    { id: 'icons', type: 'icons', content: {} },
+    { id: 'web', type: 'web', content: {} },
+    { id: 'social', type: 'social', content: {} },
+    { id: 'cobranding', type: 'cobranding', content: {} },
+    { id: 'assets', type: 'assets', content: {} },
+    { id: 'footer-1', type: 'footer', content: { copyright: "" } }
+  ];
+};
 
 const TRANSLATIONS = {
   ES: {
@@ -542,15 +546,18 @@ const hashPassword = async (password) => {
 // SISTEMA DE PERSISTENCIA LOCAL (BÚNKER ANTI-PÉRDIDAS)
 // ==============================================================================
 
-// 1. Interceptor Silencioso: Cada vez que la app crea un blob, lo guarda en IndexedDB
-const originalCreateObjectURL = window.URL.createObjectURL;
-window.URL.createObjectURL = function(obj) {
-  const url = originalCreateObjectURL.call(this, obj);
-  if (obj instanceof Blob || obj instanceof File) {
-     idbSet(url, obj).catch(e => console.error("Error guardando en IDB:", e));
-  }
+// 1. Creador de URLs Seguras (Guarda en IDB explícitamente sin mutar el navegador)
+const createSafeBlobUrl = (file) => {
+  const url = createSafeBlobUrl(file)
+  idbSet(url, file).catch(e => console.error("Error guardando en IDB:", e));
   return url;
 };
+
+const createExtraBlock = (type, param) => (
+  type === 'text'
+    ? { id: Date.now() + Math.random(), type: 'text', cols: param, content: Array(param).fill('') }
+    : { id: Date.now() + Math.random(), type: 'image', src: null }
+);
 
 // 2. Motor de Rescate Asíncrono: Busca enlaces muertos y los revive
 const recoverLostBlobs = async (obj) => {
@@ -840,7 +847,7 @@ const DynamicBlocks = React.memo(({ blocks, update, isDarkMode, design, t, isPre
     update(newBlocks);
   };
   const updateTextContent = (rowIndex, colIndex, value) => { const newBlocks = blocks.map((block, i) => i === rowIndex ? { ...block, content: block.content.map((c, j) => j === colIndex ? value : c) } : block); update(newBlocks); };
-  const handleImageUpload = (e, index) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); updateBlock(index, 'src', url); } };
+  const handleImageUpload = (e, index) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); updateBlock(index, 'src', url); } };
 
   return (
     <div className="space-y-8 mt-8 w-full pt-2">
@@ -884,7 +891,7 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   const handleImageUpload = (e) => { 
       const file = e.target.files[0]; 
       if (file && checkLimit(file)) { 
-          const url = URL.createObjectURL(file); 
+          const url = createSafeBlobUrl(file); 
           updateContent({ bgType: 'image', bgValue: url });
           setShowColorPicker(false); 
       } 
@@ -1061,7 +1068,7 @@ const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isP
     return iconObj ? iconObj.component : Fingerprint;
   };
 
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
 
 return (
     <div className="p-6 md:p-10 relative">
@@ -1153,7 +1160,7 @@ return (
 });
 
 const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems, t, isPreview }) => {
-  const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) update({ ...content, logo: URL.createObjectURL(file) }); };
+  const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) update({ ...content, logo: createSafeBlobUrl(file) }); };
   const scrollToModule = (id) => { const element = document.getElementById(`module-${id}`); if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
   
   // 1. Filtramos módulos activos (quitamos cabecera y pie) [cite: 1429]
@@ -1209,14 +1216,13 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
 });
 
 const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => {  
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
-  const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });  const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
   
   // 🛡️ Subida principal de la retícula base con validación de cuota
   const handlePreviewUpload = (e) => { 
     const file = e.target.files[0]; 
-    if(file && checkLimit(file)) update({ ...content, previewImage: URL.createObjectURL(file) }); 
+    if(file && checkLimit(file)) update({ ...content, previewImage: createSafeBlobUrl(file) }); 
   };
   
   const selectedGrid = content?.selectedGrid || 'grid1';
@@ -1240,11 +1246,11 @@ const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPre
   };
 
   // 🛡️ Subida blindada de los casos de estudio individuales con checkLimit
-  const handleExampleUpload = (e, id) => { 
-    const file = e.target.files[0]; 
-    if (file && checkLimit(file)) updateExample(id, 'src', URL.createObjectURL(file)); 
-  };
-  
+const handleExampleUpload = (e, id) => { 
+   const file = e.target.files[0]; 
+   if (file && checkLimit(file)) updateExample(id, 'src', createSafeBlobUrl(file)); 
+};
+
   const duplicateExample = (id) => {
       const index = usageExamples.findIndex(e => e.id === id);
       if (index === -1) return;
@@ -1421,7 +1427,7 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   const handleRuleImageUpload = (e, type, index) => {
     const file = e.target.files[0];
     if (file && checkLimit(file)) {
-      const url = URL.createObjectURL(file);
+      const url = createSafeBlobUrl(file);
       const newRules = [...(content[type] || [])];
       newRules[index] = { ...newRules[index], image: url };
       update({ ...content, [type]: newRules });
@@ -1433,9 +1439,9 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
   const addVariation = () => update({...content, variations: [...variations, { id: Date.now(), label: 'Versión...', desc: 'Descripción...', bg: 'light', src: null }]});
   const removeVariation = (id) => update({...content, variations: variations.filter(v => v.id !== id)});
   const updateVariation = (id, field, value) => update({...content, variations: variations.map(v => v.id === id ? {...v, [field]: value} : v)});
-  const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(file && checkLimit(file)) updateVariation(id, 'src', URL.createObjectURL(file)); };
+const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(file && checkLimit(file)) updateVariation(id, 'src', createSafeBlobUrl(file)); };
 
-  const handleLogoDownload = (e, src, label) => {
+const handleLogoDownload = (e, src, label) => {
     e.stopPropagation();
     if (!src) return;
     const link = document.createElement('a');
@@ -1446,15 +1452,12 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
     document.body.removeChild(link);
   };
 
-  const handleAddExtra = (type, param) => {
-    const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null };
-    update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] });
-  };
+  const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
   
   const handleSafeAreaUpload = (e) => {
-    const file = e.target.files[0];
+        const file = e.target.files[0];
     if (file && checkLimit(file)) {
-      const url = URL.createObjectURL(file);
+      const url = createSafeBlobUrl(file);
       update({ ...content, safeAreaImage: url });
     }
   };
@@ -1564,7 +1567,7 @@ const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                         )}
                         {!isPreview && <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/safe:opacity-100 transition-opacity"><Upload size={16} className="text-indigo-500" /></div>}
                     </div>
-                    {!isPreview && <input id="safe-area-upload" type="file" className="hidden" accept="image/*" onChange={handleSafeAreaUpload} />}
+{!isPreview && <input id="safe-area-upload" type="file" className="hidden" accept="image/*" onChange={handleSafeAreaUpload} />}
 
                     {/* X Value Top */}
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-indigo-400 font-mono flex flex-col items-center">
@@ -1700,7 +1703,7 @@ const ColorModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const addColor = () => update({ ...content, colors: [...colors, { name: 'New', hex: '#000000', cmyk: '0,0,0,0', pantone: '-', usage: '...' }] });
   const removeColor = (i) => update({ ...content, colors: colors.filter((_, idx) => idx !== i) });
   const updateColorValue = (i, f, v) => { const n = [...colors]; n[i][f] = v; update({ ...content, colors: n }); };
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
 
   const isListLayout = content.layout === 'list';
 
@@ -1784,13 +1787,13 @@ const TypographyModule = React.memo(({ content, update, design, isDarkMode, t, i
   const updateLevel = (i, f, v) => { const n = [...levels]; n[i] = { ...n[i], [f]: v }; update({ ...content, levels: n }); };
   const moveLevel = (i, dir) => { const n = [...levels]; if (dir === 'up' && i > 0) [n[i], n[i-1]] = [n[i-1], n[i]]; if (dir === 'down' && i < n.length - 1) [n[i], n[i+1]] = [n[i+1], n[i]]; update({ ...content, levels: n }); };
   
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
-  
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+
   // Manejador para subir imágenes de muestra en modo Custom
   const handleSampleUpload = (e, index) => {
     const file = e.target.files[0];
     if (file) {
-      const url = URL.createObjectURL(file);
+      const url = createSafeBlobUrl(file);
       updateLevel(index, 'image', url);
     }
   };
@@ -1940,8 +1943,8 @@ const ImageModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const images = content.images || [1, 2, 3, 4];
   const addImage = () => update({ ...content, images: [...images, { id: Date.now() }] });
   const removeImage = (idx) => update({ ...content, images: images.filter((_, i) => i !== idx) });
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
-  const handleImageUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const newImages = [...images]; newImages[idx] = { ...newImages[idx], src: url }; update({ ...content, images: newImages }); } };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+  const handleImageUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newImages = [...images]; newImages[idx] = { ...newImages[idx], src: url }; update({ ...content, images: newImages }); } };
 
   return (
     <div className="p-6 md:p-10 relative">
@@ -1969,17 +1972,12 @@ const EditorialModule = React.memo(({ content, update, design, isDarkMode, t, is
   const updateBlock = (i, val) => { const newBlocks = [...blocks]; newBlocks[i].content = val; update({ ...content, blocks: newBlocks }); };
   const removeBlock = (i) => update({ ...content, blocks: blocks.filter((_, idx) => idx !== i) });
   
-  const handleAddExtra = (type, param) => { 
-    const newBlock = type === 'text' 
-      ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } 
-      : { id: Date.now(), type: 'image', src: null }; 
-    update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); 
-  };
-  
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+
   const handleImageUpload = (e, index) => { 
     const file = e.target.files[0]; 
     if(file) { 
-      const url = URL.createObjectURL(file); 
+      const url = createSafeBlobUrl(file); 
       const newBlocks = [...blocks]; 
       newBlocks[index].src = url; 
       update({ ...content, blocks: newBlocks }); 
@@ -2097,7 +2095,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
   const [activeSocialEdit, setActiveSocialEdit] = useState(null);
   
   const toggleField = (field) => update({ ...content, [field]: !content[field] });
-  const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) update({ ...content, logo: URL.createObjectURL(file) }); };
+  const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) update({ ...content, logo: createSafeBlobUrl(file) }); };
   const cycleLayout = () => { const next = (layout + 1) % 3; update({ ...content, layout: next }); };
   
   const socialPlatforms = [
@@ -2275,11 +2273,11 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
 });
 
 const CobrandingModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
   const addPartner = () => { const newItem = { id: Date.now(), src: null, type: 'image', caption: '', templateUrl: '' }; update({ ...content, partners: [...(content.partners || []), newItem] }); };
   const removePartner = (id) => update({ ...content, partners: (content.partners || []).filter(item => item.id !== id) });
   const updatePartner = (id, field, value) => { const newItems = (content.partners || []).map(item => item.id === id ? { ...item, [field]: value } : item); update({ ...content, partners: newItems }); };
-  const handlePartnerUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const type = file.type.startsWith('video') ? 'video' : 'image'; const newItems = (content.partners || []).map(item => item.id === id ? { ...item, src: url, type: type } : item); update({ ...content, partners: newItems }); } };
+  const handlePartnerUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const type = file.type.startsWith('video') ? 'video' : 'image'; const newItems = (content.partners || []).map(item => item.id === id ? { ...item, src: url, type: type } : item); update({ ...content, partners: newItems }); } };
   useEffect(() => { if (!content.partners) { update({ ...content, partners: [ { id: 1, src: null, type: 'image', caption: '', templateUrl: '' }, { id: 2, src: null, type: 'image', caption: '', templateUrl: '' } ]}); } }, []);
 
   return (
@@ -2338,7 +2336,7 @@ const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPre
     update({ ...content, assets: assets.map(a => a.id === id ? { ...a, [field]: value } : a) });
   };
   
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
 
   return (
     <div className="p-6 md:p-10 relative">
@@ -2441,8 +2439,8 @@ const BentoModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const items = content.items || [];
   const toggleLayout = () => { const nextIdx = (currentLayoutIdx + 1) % bentoLayouts.length; setCurrentLayoutIdx(nextIdx); update({ ...content, layoutIndex: nextIdx }); };
   const handleItemUpdate = (id, type, value) => { const newItems = items.map(it => it.id === id ? { ...it, type: type, src: value } : it); update({ ...content, items: newItems }); };
-  const handleItemUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const type = file.type.startsWith('video') ? 'video' : 'image'; handleItemUpdate(id, type, url); } };
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+  const handleItemUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const type = file.type.startsWith('video') ? 'video' : 'image'; handleItemUpdate(id, type, url); } };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
   const activeLayoutClasses = bentoLayouts[currentLayoutIdx] || bentoLayouts[0];
 
 return (
@@ -2477,13 +2475,13 @@ return (
 const IconsModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
   const [selectedLib, setSelectedLib] = useState(content.selectedLibrary || 'outlined');
   const [showLibSelector, setShowLibSelector] = useState(false);
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
   const libraries = [{ id: 'outlined', label: t.modules.icons.googleOutlined }, { id: 'rounded', label: t.modules.icons.googleRounded }, { id: 'sharp', label: t.modules.icons.googleSharp }, { id: 'custom', label: t.modules.icons.custom }];
   const googleIcons = [Home, Search, User, Settings, Bell, Mail]; 
   const addCustomIcon = () => { const newIcon = { id: Date.now(), src: null, name: 'Icon Name' }; update({ ...content, customIcons: [...(content.customIcons || []), newIcon] }); };
   const removeCustomIcon = (id) => update({ ...content, customIcons: (content.customIcons || []).filter(i => i.id !== id) });
   const updateCustomIcon = (id, field, value) => { const newIcons = (content.customIcons || []).map(icon => icon.id === id ? { ...icon, [field]: value } : icon); update({ ...content, customIcons: newIcons }); };
-  const handleCustomUpload = (e, id) => { const file = e.target.files[0]; if(file) { const url = URL.createObjectURL(file); updateCustomIcon(id, 'src', url); } };
+  const handleCustomUpload = (e, id) => { const file = e.target.files[0]; if(file) { const url = createSafeBlobUrl(file); updateCustomIcon(id, 'src', url); } };
   const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
   useEffect(() => { if(selectedLib === 'custom' && (!content.customIcons || content.customIcons.length === 0)) { update({ ...content, customIcons: Array(6).fill(null).map((_,i) => ({ id: Date.now()+i, src: null, name: t.ui.iconName })) }); } }, [selectedLib]);
@@ -2516,12 +2514,12 @@ const IconsModule = React.memo(({ isDarkMode, design, content, update, t, isPrev
 });
 
 const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
-  const handleWebUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const newDevices = content.devices ? [...content.devices] : [null, null, null]; newDevices[idx] = url; update({ ...content, devices: newDevices }); } };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+  const handleWebUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url =createSafeBlobUrl(file); const newDevices = content.devices ? [...content.devices] : [null, null, null]; newDevices[idx] = url; update({ ...content, devices: newDevices }); } };
   const devices = content.items || [];
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
   const removeDevice = (id) => update({ ...content, items: (content.items || []).filter(item => item.id !== id) });
-  const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
+  const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
   
   useEffect(() => { if (!content.items) { update({ ...content, items: [ { id: 1, type: 'laptop', src: null }, { id: 2, type: 'tablet', src: null }, { id: 3, type: 'mobile', src: null } ]}); } }, []);
   const description = content.description || "Descripción del proyecto web y sus objetivos principales.";
@@ -2560,10 +2558,10 @@ const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPrevie
 });
 
 const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-  const handleAddExtra = (type, param) => { const newBlock = type === 'text' ? { id: Date.now(), type: 'text', cols: param, content: Array(param).fill('') } : { id: Date.now(), type: 'image', src: null }; update({ ...content, extraBlocks: [...(content.extraBlocks || []), newBlock] }); };
+const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
   const removeDevice = (id) => update({ ...content, items: (content.items || []).filter(item => item.id !== id) });
-  const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = URL.createObjectURL(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
+  const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
   const items = content.items || [];
   useEffect(() => { if (!content.items) { update({ ...content, items: [ { id: 1, type: 'post', src: null }, { id: 2, type: 'reel', src: null }, { id: 3, type: 'youtube', src: null } ]}); } }, []);
 
@@ -2630,7 +2628,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
 
   const handleAvatarUpload = (e) => { 
     const file = e.target.files[0];
-    if (file && checkLimit(file)) update({ ...content, avatar: URL.createObjectURL(file) }); 
+    if (file && checkLimit(file)) update({ ...content, avatar: createSafeBlobUrl(file) }); 
   };
   
   const updateData = (field, value) => update({ ...content, [field]: value });
@@ -3623,9 +3621,25 @@ const { error } = await supabase.storage.from('portals_assets').upload(filePath,
     return { result, hasChanges };
   };
 
+  // Limpiador de URLs efímeras antes de guardar en caché local
+const stripBlobUrls = (obj) => {
+  if (!obj) return obj;
+  if (typeof obj === 'string') return obj.startsWith('blob:') ? null : obj;
+  if (Array.isArray(obj)) return obj.map(stripBlobUrls);
+  if (typeof obj === 'object') return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, stripBlobUrls(v)]));
+  return obj;
+};
+
 const savePortalData = async (isManual = false) => {
-    // 1. Guardado local de seguridad
-    const dataToSave = { canvasItems, design, profileContent, isDarkMode, language, currentFont };
+    // 1. Guardado local de seguridad (AHORA FILTRADO)
+    const dataToSave = { 
+      canvasItems: stripBlobUrls(canvasItems), 
+      design, 
+      profileContent: stripBlobUrls(profileContent), 
+      isDarkMode, 
+      language, 
+      currentFont 
+    };
     localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
 
     // 2. Comprobación de usuario
@@ -3649,17 +3663,13 @@ const processedProfile = currentUser?.id ? await processBlobsInObject(profileCon
 // Hashear la contraseña antes de enviar a Supabase
         let securePasswordHash = null;
         if (processedProfile.result?.isPasswordProtected && processedProfile.result?.portalPassword) {
-            // Si la contraseña ya está en formato hash (porque no se ha tocado), la mantenemos
             if (processedProfile.result.portalPassword.length === 64) {
                securePasswordHash = processedProfile.result.portalPassword;
             } else {
-               // Si es texto plano nuevo, la ciframos
                securePasswordHash = await hashPassword(processedProfile.result.portalPassword);
-               // IMPORTANTE: Evitamos que la contraseña en texto plano se guarde en canvas_data
                processedProfile.result.portalPassword = securePasswordHash; 
             }
         } else {
-            // Si se quita la protección, eliminamos el password del objeto local también
             delete processedProfile.result.portalPassword;
         }
 
@@ -3671,14 +3681,13 @@ const processedProfile = currentUser?.id ? await processBlobsInObject(profileCon
             slug: processedProfile.result?.slug || currentUser.id,
             brand_name: processedProfile.result?.name || 'Mi Marca',
             canvas_data: { items: processedCanvas.result, design: design, profile: processedProfile.result },
-is_protected: processedProfile.result?.isPasswordProtected || false,
-// Ciframos la contraseña con SHA-256 si existe y el usuario la ha cambiado
-password_hash: processedProfile.result?.portalPassword && processedProfile.result.portalPassword !== "locked" 
-  ? await hashPassword(processedProfile.result.portalPassword) 
-  : (processedProfile.result?.portalPassword === "locked" ? portalPasswordRaw : null),
-updated_at: new Date().toISOString()
+            is_protected: processedProfile.result?.isPasswordProtected || false,
+            // 🛡️ CORRECCIÓN DOBLE HASHING: Usamos directamente securePasswordHash sin volver a cifrar
+            password_hash: securePasswordHash || (processedProfile.result?.portalPassword === "locked" ? portalPasswordRaw : null),
+            updated_at: new Date().toISOString()
           });
-                  if (error) throw error;
+          
+          if (error) throw error;
         
 // Sincronizamos el estado de React y actualizamos LocalStorage con los enlaces permanentes de Supabase
 if (processedCanvas.hasChanges) {
