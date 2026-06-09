@@ -546,9 +546,9 @@ const hashPassword = async (password) => {
 // SISTEMA DE PERSISTENCIA LOCAL (BÚNKER ANTI-PÉRDIDAS)
 // ==============================================================================
 
-// 1. Creador de URLs Seguras (Guarda en IDB explícitamente sin mutar el navegador)
+// 1. Creador de URLs Seguras (Guarda en IDB explícitamente usando la API nativa)
 const createSafeBlobUrl = (file) => {
-  const url = createSafeBlobUrl(file)
+  const url = URL.createObjectURL(file); // 🛡️ ¡Corregido! Ahora llama a la API nativa del navegador
   idbSet(url, file).catch(e => console.error("Error guardando en IDB:", e));
   return url;
 };
