@@ -3,6 +3,8 @@ export const TRANSLATIONS = {
   ES: {
     ui: {
       generate: "Remix Mágico", coffee: "Invítame a un café", tools: "Herramientas", styles: "Estilos Globales",
+      remixLockTitle: "Bloquear Remix Mágico", remixLockDesc: "Evita que un clic accidental cambie al azar el estilo, los colores y las tipografías de tu portal.",
+      remixLockedToast: "Remix Mágico bloqueado. Puedes desbloquearlo en Ajustes → Preferencias.", remixLockedHint: "Bloqueado en Ajustes",
       publish: "Publicar", preview: "Vista Previa", backToEdit: "Volver a Editar", addText: "Añadir texto",
       upload: "Subir", change: "Cambiar", uploadMedia: "Subir Media", pasteLink: "Pegar enlace...",
       hideSection: "Ocultar", showSection: "Mostrar", hiddenSection: "Oculto",
@@ -172,11 +174,13 @@ export const TRANSLATIONS = {
     },
     cookie: { title: "Almacenamiento técnico", desc: "BrandBara solo usa el almacenamiento técnico necesario para funcionar (sesión, borrador y preferencias). No usamos cookies de analítica ni de publicidad.", more: "Más información", accept: "Entendido" },
     auth: { loginTitle: "Bienvenido de nuevo", registerTitle: "Crea tu cuenta", loginDesc: "Inicia sesión para publicar tu portal.", registerDesc: "Regístrate para guardar y guardar tu progreso.", loginBtn: "Iniciar Sesión", registerBtn: "Registrarse", name: "Nombre completo", namePlaceholder: "Tu nombre", email: "Correo Electrónico", emailPlaceholder: "ejemplo@correo.com", password: "Contraseña", termsPre: "He leído y acepto los", termsLink: "Términos de Uso", privacyAnd: "y la", privacyLink: "Política de Privacidad", success: "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal." },
-    profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferences", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
+    profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferencias", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
   },
   EN: {
     ui: {
       generate: "Magic Remix", coffee: "Buy me a coffee", tools: "Tools", styles: "Global Styles",
+      remixLockTitle: "Lock Magic Remix", remixLockDesc: "Prevents an accidental click from randomly changing your portal's style, colors and fonts.",
+      remixLockedToast: "Magic Remix is locked. You can unlock it in Settings → Preferences.", remixLockedHint: "Locked in Settings",
       publish: "Publish", preview: "Preview", backToEdit: "Back to Edit", addText: "Add text",
       upload: "Upload", change: "Change", uploadMedia: "Upload Media", pasteLink: "Paste link...",
       hideSection: "Hide", showSection: "Show", hiddenSection: "Hidden",
