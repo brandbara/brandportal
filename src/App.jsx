@@ -676,7 +676,9 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
         </div>
       )}      
       <div className="relative z-10 max-w-5xl w-full">
+       {!showTitle && !isPreview && <HiddenSectionNote label={t?.ui?.partHeroTitle || 'Título del encabezado'} onShow={() => updateContent({ showTitle: true })} t={t} isDarkMode={isDarkMode} className="mb-6 max-w-xl mx-auto" />}
        {showTitle && <EditableText text={content?.title || t.modules.hero.title} className={`${content?.textWeight === 'regular' ? 'font-normal' : content?.textWeight === 'semibold' ? 'font-semibold' : 'font-black'} mb-7 transition-all duration-300 ${content?.textColor ? '' : titleColorClass} ${content?.textSize === 'medium' ? 'text-4xl md:text-5xl lg:text-7xl' : 'text-5xl md:text-7xl lg:text-9xl'} ${content?.textSpacing === 'tight' ? 'tracking-tighter' : content?.textSpacing === 'wide' ? 'tracking-widest' : 'tracking-normal'}`} tag="h1" isPreview={isPreview} onChange={(v) => update({...content, title: v})} style={customTextColor} />}
+       {!showSubtitle && !isPreview && <HiddenSectionNote label={t?.ui?.partHeroSubtitle || 'Subtítulo del encabezado'} onShow={() => updateContent({ showSubtitle: true })} t={t} isDarkMode={isDarkMode} className="max-w-xl mx-auto" />}
        {showSubtitle && <EditableText text={content?.subtitle || t.modules.hero.subtitle} className={`text-lg md:text-3xl font-medium max-w-4xl mx-auto leading-relaxed ${content?.textColor ? '' : subtitleColorClass}`} tag="p" isPreview={isPreview} onChange={(v) => update({...content, subtitle: v})} style={content?.textColor ? { color: content.textColor, opacity: 0.9 } : {}} />}
       </div>
     </div>
@@ -1105,6 +1107,22 @@ const RestoreSectionPill = ({ label, onClick, t, isDarkMode }) => (
   </button>
 );
 
+// Aviso en el MISMO sitio donde estaba la sección oculta (solo se ve al editar): dice qué está oculto y permite mostrarlo
+const HiddenSectionNote = ({ label, onShow, t, isDarkMode, className = '' }) => (
+  <div role="group" aria-label={`${label}: ${t?.ui?.hiddenSection || 'Oculto'}`} className={`flex flex-wrap items-center justify-between gap-3 px-5 py-4 rounded-2xl border-2 border-dashed ${isDarkMode ? 'border-white/20 bg-white/5 text-slate-300' : 'border-slate-300 bg-slate-50/90 text-slate-600'} ${className}`}>
+    <div className="flex items-center gap-3 min-w-0">
+      <EyeOff size={18} className="flex-shrink-0 opacity-60" aria-hidden="true" />
+      <div className="min-w-0 text-left">
+        <p className="text-sm font-bold">{label}</p>
+        <p className="text-xs opacity-70">{t?.ui?.hiddenNote || 'Oculto: no se verá en el portal de tu cliente'}</p>
+      </div>
+    </div>
+    <button type="button" onClick={onShow} aria-label={`${t?.ui?.showSection || 'Mostrar'}: ${label}`} className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex-shrink-0">
+      <Eye size={14} aria-hidden="true" /> {t?.ui?.showSection || 'Mostrar'}
+    </button>
+  </div>
+);
+
 const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => { 
   const removeRule = (type, i) => { const current = content[type] || []; update({ ...content, [type]: current.filter((_, idx) => idx !== i) }); };
   const updateRuleText = (type, i, val) => { const current = [...(content[type] || [])]; current[i].text = val; update({ ...content, [type]: current }); };
@@ -1298,9 +1316,12 @@ const handleLogoDownload = (e, src, label) => {
              </div>
           </div>
       )}
+      {!showSafeArea && !isPreview && (
+          <HiddenSectionNote label={t.modules.logo.safeArea} onShow={() => update({...content, showSafeArea: true})} t={t} isDarkMode={isDarkMode} className="mt-16" />
+      )}
 
-      {(showDos || showDonts) && (
-          <div className={`flex flex-col md:grid ${showDos && showDonts ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-8 mt-16`}>
+      {(showDos || showDonts || !isPreview) && (
+          <div className={`flex flex-col md:grid ${showDos === showDonts ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-8 mt-16`}>
             
             {showDos && (
                 <div className={`p-6 md:p-8 ${design.radius} border animate-in fade-in duration-300`} style={{ backgroundColor: isDarkMode ? `${dosColor}15` : `${dosColor}10`, borderColor: isDarkMode ? `${dosColor}30` : `${dosColor}40` }}>
@@ -1335,6 +1356,10 @@ const handleLogoDownload = (e, src, label) => {
                 </div>
             )}
 
+            {!showDos && !isPreview && (
+                <HiddenSectionNote label={t.modules.logo.correct} onShow={() => update({...content, showDos: true})} t={t} isDarkMode={isDarkMode} />
+            )}
+
             {showDonts && (
                 <div className={`p-6 md:p-8 ${design.radius} border animate-in fade-in duration-300`} style={{ backgroundColor: isDarkMode ? `${dontsColor}15` : `${dontsColor}10`, borderColor: isDarkMode ? `${dontsColor}30` : `${dontsColor}40` }}>
                   <div className="flex items-center justify-between mb-8">
@@ -1366,18 +1391,14 @@ const handleLogoDownload = (e, src, label) => {
                   </div>
                 </div>
             )}
+            {!showDonts && !isPreview && (
+                <HiddenSectionNote label={t.modules.logo.incorrect} onShow={() => update({...content, showDonts: true})} t={t} isDarkMode={isDarkMode} />
+            )}
             
           </div>
       )}
 
       <DynamicBlocks blocks={content.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
-      {!isPreview && (!showSafeArea || !showDos || !showDonts) && (
-        <div className="mt-10 flex flex-wrap gap-3">
-          {!showSafeArea && <RestoreSectionPill label={t.modules.logo.safeArea} onClick={() => update({...content, showSafeArea: true})} t={t} isDarkMode={isDarkMode} />}
-          {!showDos && <RestoreSectionPill label={t.modules.logo.correct} onClick={() => update({...content, showDos: true})} t={t} isDarkMode={isDarkMode} />}
-          {!showDonts && <RestoreSectionPill label={t.modules.logo.incorrect} onClick={() => update({...content, showDonts: true})} t={t} isDarkMode={isDarkMode} />}
-        </div>
-      )}
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
   );
@@ -1787,7 +1808,8 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
   const layout = content.layout || 0; // 0: Centered, 1: Split, 2: Stack
   const [activeSocialEdit, setActiveSocialEdit] = useState(null);
   
-  const toggleField = (field) => update({ ...content, [field]: !content[field] });
+  // Un campo sin definir cuenta como "visible": si está en false se muestra; si no, se oculta
+  const toggleField = (field) => update({ ...content, [field]: content[field] === false });
   const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) update({ ...content, logo: createSafeBlobUrl(file) }); };
   const cycleLayout = () => { const next = (layout + 1) % 3; update({ ...content, layout: next }); };
   
@@ -1848,6 +1870,16 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
            {(content.bgColor || content.textColor) && (
               <button onClick={() => update({...content, bgColor: null, textColor: null})} className="p-1 rounded text-rose-500 hover:bg-rose-50 ml-1 transition-colors" title={t.ui.resetColors}><X size={14}/></button>
            )}
+        </div>
+      )}
+
+      {/* LO QUE ESTÁ OCULTO (solo al editar): se ve qué falta y se puede volver a mostrar */}
+      {!isPreview && (content.showLogo === false || content.showWebsite === false || content.showSocials === false || content.showCopyright === false) && (
+        <div className="w-full max-w-5xl mx-auto mb-8 flex flex-wrap gap-3">
+          {content.showLogo === false && <RestoreSectionPill label={t?.ui?.partLogo || 'Logo'} onClick={() => toggleField('showLogo')} t={t} isDarkMode={isDarkMode} />}
+          {content.showWebsite === false && <RestoreSectionPill label={t?.ui?.partWeb || 'Web'} onClick={() => toggleField('showWebsite')} t={t} isDarkMode={isDarkMode} />}
+          {content.showSocials === false && <RestoreSectionPill label={t?.ui?.partSocials || 'Redes sociales'} onClick={() => toggleField('showSocials')} t={t} isDarkMode={isDarkMode} />}
+          {content.showCopyright === false && <RestoreSectionPill label={t?.ui?.partCopyright || 'Copyright'} onClick={() => toggleField('showCopyright')} t={t} isDarkMode={isDarkMode} />}
         </div>
       )}
 
