@@ -2574,7 +2574,12 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                       <div><h3 className="text-2xl font-bold mb-2">{safeT.profileTabs.preferences}</h3><p className="opacity-60 text-sm">{safeT.profileTabs.prefDesc}</p></div>
                  
                       <div className="space-y-6">
-                          
+
+                          <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Wand2 size={20} className="text-indigo-500"/></div><div><h4 id="remix-lock-title" className="font-bold text-sm">{safeT.ui.remixLockTitle}</h4><p className="text-[10px] opacity-60">{safeT.ui.remixLockDesc}</p></div></div>
+                              <button type="button" role="switch" aria-checked={Boolean(content.remixLocked)} aria-labelledby="remix-lock-title" onClick={() => updateData('remixLocked', !content.remixLocked)} className={`shrink-0 w-12 h-6 rounded-full p-1 transition-colors ${content.remixLocked ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.remixLocked ? 'translate-x-6' : 'translate-x-0'}`} /></button>
+                          </div>
+
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Fingerprint size={20} className="text-indigo-500"/></div><div><h4 className="font-bold text-sm">{safeT.ui.watermarkTitle}</h4><p className="text-[10px] opacity-60">{userPlan === 'PRO' ? safeT.ui.watermarkToggleDesc : safeT.ui.watermarkOnlyPro}</p></div></div>
                               <button disabled={userPlan !== 'PRO'} onClick={() => setShowWatermark(!showWatermark)} className={`w-12 h-6 rounded-full p-1 transition-colors ${showWatermark ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${showWatermark ? 'translate-x-6' : 'translate-x-0'}`} /></button>
@@ -3212,7 +3217,6 @@ const Editor = () => {
   const [loadError, setLoadError] = useState(false); // fallo de conexión o de servidor (distinto de "no existe")
   const [reloadKey, setReloadKey] = useState(0);     // al cambiar, se reintenta la carga del portal
   const [authReady, setAuthReady] = useState(!supabase); // true cuando ya se sabe si hay sesión (evita decidir "¿eres el dueño?" antes de tiempo)
-  const [isRemixLocked, setIsRemixLocked] = useState(false);
   const [portalOwnerId, setPortalOwnerId] = useState(null);
 
   // 2. Función INTELIGENTE que cambia el diseño de los módulos
@@ -3920,7 +3924,16 @@ const isInitialMount = useRef(true);
     setSlugCheckTimeout(timeoutId);
   };
 
+  // Remix Mágico bloqueable desde Ajustes: se guarda con el portal para que no cambie el diseño por un clic accidental
+  const remixLocked = Boolean(profileContent.remixLocked);
+
+  const handleRemixClick = () => {
+    if (remixLocked) { showToast(t.ui.remixLockedToast); return; }
+    generateRandomStyle();
+  };
+
   const generateRandomStyle = () => {
+    if (remixLocked) return;
     const styleKeys = Object.keys(DESIGN_STYLES);
     const randomStyleKey = styleKeys[Math.floor(Math.random() * styleKeys.length)];
     const randomStyle = DESIGN_STYLES[randomStyleKey];
@@ -4414,8 +4427,13 @@ onResetCanvas={() => {
           <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
             {/* ZONA SUPERIOR FIJA */}
             <div className="shrink-0 space-y-4">
-              <button onClick={generateRandomStyle} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black rounded-2xl flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all">
-                <Wand2 size={18} /><span>{t.ui.generate}</span>
+              <button
+                onClick={handleRemixClick}
+                aria-disabled={remixLocked}
+                title={remixLocked ? t.ui.remixLockedHint : undefined}
+                className={`w-full py-4 font-black rounded-2xl flex items-center justify-center gap-3 transition-all ${remixLocked ? (isDarkMode ? 'bg-white/10 text-slate-400' : 'bg-slate-200 text-slate-500') : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg active:scale-95'}`}
+              >
+                {remixLocked ? <Lock size={18} aria-hidden="true" /> : <Wand2 size={18} />}<span>{t.ui.generate}</span>
               </button>
 
               <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
