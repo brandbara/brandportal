@@ -25,7 +25,7 @@
 --   20261026114343 eliminar_cuenta_real          -> supabase/migrations/
 --   20261026125630 limite_espacio_en_servidor    -> supabase/migrations/
 --   20261026132627 lectura_de_propios_archivos   -> supabase/migrations/
---   (pendiente de aplicar) beta_plazas_y_cola    -> supabase/migrations/
+--   20261026150713 beta_plazas_y_cola            -> supabase/migrations/
 --
 -- Si cambias la base de datos, añade una migración en supabase/migrations/
 -- Y actualiza este archivo para que siga reflejando el estado real.
