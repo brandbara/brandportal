@@ -1,0 +1,145 @@
+name: Copia de seguridad de la base de datos
+
+# Cada día vuelca los datos de Supabase (cuentas, perfiles y portales), los CIFRA y los guarda
+# 30 días como "artefacto" de este workflow. El repositorio es público: por eso NUNCA se sube nada sin cifrar.
+#
+# Necesita 2 secretos (Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL     cadena de conexión "Session pooler" de Supabase (con la contraseña de la base de datos)
+#   BACKUP_PASSPHRASE   contraseña larga y aleatoria para cifrar (guárdala también en tu gestor de contraseñas:
+#                       sin ella las copias NO se pueden abrir)
+# Instrucciones completas: supabase/backup/LEEME.md
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/backup/**'
+      - 'supabase/schema/**'
+      - '.github/workflows/copia-seguridad-bd.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # Solo en Pull Requests: ensaya el procedimiento completo (copiar, cifrar, descifrar, restaurar)
+  # con una base de datos desechable y datos inventados. No usa secretos.
+  ensayo:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      BACKUP_PASSPHRASE: contrasena-de-ensayo-no-es-un-secreto
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar cliente de Postgres 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+      - name: Montar la base de origen con datos inventados
+        run: |
+          createdb origen
+          for f in supabase/schema/verificacion/supabase_simulado.sql supabase/schema/esquema_referencia.sql; do
+            psql -d origen -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+          psql -d origen -v ON_ERROR_STOP=1 -q <<'SQL'
+          insert into auth.users (id) values ('aaaaaaaa-0000-0000-0000-000000000001'), ('aaaaaaaa-0000-0000-0000-000000000002');
+          insert into auth.identities (id, user_id) values ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001');
+          insert into public.profiles (id, email, plan) values
+            ('aaaaaaaa-0000-0000-0000-000000000001', 'uno@ejemplo.invalid', 'beta_founder'),
+            ('aaaaaaaa-0000-0000-0000-000000000002', 'dos@ejemplo.invalid', 'beta_founder');
+          insert into public.portals (user_id, slug, brand_name, canvas_data) values
+            ('aaaaaaaa-0000-0000-0000-000000000001', 'marca-uno', 'Marca Uno', '{"items":[{"type":"hero","content":{"title":"SECRETO-DE-ENSAYO-123 ñandú ✓"}}]}'),
+            ('aaaaaaaa-0000-0000-0000-000000000002', 'marca-dos', 'Marca Dos', '{"items":[]}');
+          SQL
+      - name: Hacer la copia (cifrada)
+        run: DB_URL="postgresql://postgres:postgres@localhost:5432/origen" supabase/backup/hacer_copia.sh copias
+      - name: Comprobar que está cifrada de verdad
+        run: |
+          f=$(ls copias/copia-bd-*.enc)
+          if grep -qa "SECRETO-DE-ENSAYO-123" "$f" || grep -qa "ejemplo.invalid" "$f" || grep -qa "COPY public" "$f"; then
+            echo "ERROR: el archivo contiene datos en claro"; exit 1
+          fi
+          if gzip -t "$f" 2>/dev/null; then echo "ERROR: el archivo parece un gzip sin cifrar"; exit 1; fi
+          echo "OK: sin datos legibles en el archivo cifrado"
+      - name: Comprobar que una contraseña equivocada NO abre la copia
+        run: |
+          f=$(ls copias/copia-bd-*.enc)
+          if openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -pass pass:otra-contrasena -d -in "$f" 2>/dev/null | gunzip 2>/dev/null | grep -q "COPY public"; then
+            echo "ERROR: se abrió con una contraseña equivocada"; exit 1
+          fi
+          echo "OK: con otra contraseña no se puede abrir"
+      - name: Restaurar en una base vacía y comparar
+        run: |
+          createdb destino
+          for f in supabase/schema/verificacion/supabase_simulado.sql supabase/schema/esquema_referencia.sql; do
+            psql -d destino -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+          TARGET_URL="postgresql://postgres:postgres@localhost:5432/destino" supabase/backup/restaurar_copia.sh copias/copia-bd-*.enc
+          huella() { psql -d "$1" -Atq -c "select (select count(*) from auth.users) || '/' || (select count(*) from auth.identities) || '/' || (select count(*) from public.profiles) || '/' || (select count(*) from public.portals) || '/' || md5((select string_agg(slug || brand_name || canvas_data::text || user_id::text, '|' order by slug) from public.portals)) || '/' || md5((select string_agg(id::text || coalesce(email,'') || plan, '|' order by id) from public.profiles))"; }
+          a=$(huella origen); b=$(huella destino)
+          echo "origen:  $a"; echo "destino: $b"
+          [ "$a" = "$b" ] || { echo "ERROR: lo restaurado no coincide con el original"; exit 1; }
+          echo "OK: restauración idéntica al original"
+      - name: Restaurar dos veces seguidas debe cancelarse sin cambiar nada
+        run: |
+          if TARGET_URL="postgresql://postgres:postgres@localhost:5432/destino" supabase/backup/restaurar_copia.sh copias/copia-bd-*.enc 2>/dev/null; then
+            echo "ERROR: restaurar sobre datos existentes debería fallar"; exit 1
+          fi
+          n=$(psql -d destino -Atq -c "select count(*) from public.portals")
+          [ "$n" = "2" ] || { echo "ERROR: la restauración fallida cambió los datos ($n portales)"; exit 1; }
+          echo "OK: la restauración repetida se cancela y no cambia nada"
+
+  # La copia real (diaria, o a mano desde la pestaña Actions > Run workflow)
+  copia:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Comprobar que están los secretos
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          faltan=""
+          [ -n "$SUPABASE_DB_URL" ] || faltan="$faltan SUPABASE_DB_URL"
+          [ -n "$BACKUP_PASSPHRASE" ] || faltan="$faltan BACKUP_PASSPHRASE"
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan los secretos:$faltan. Sigue supabase/backup/LEEME.md (apartado «Puesta en marcha»)."
+            exit 1
+          fi
+      - name: Instalar cliente de Postgres 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Hacer la copia cifrada
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: supabase/backup/hacer_copia.sh copias
+      - name: Guardar la copia (30 días)
+        uses: actions/upload-artifact@v4
+        with:
+          name: copia-bd-${{ github.run_id }}
+          path: copias/
+          retention-days: 30
+          if-no-files-found: error
