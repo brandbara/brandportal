@@ -27,7 +27,8 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 
 | Función | Datos | Terceros | Dónde se declara | Estado |
 |---|---|---|---|---|
-| Cuentas (email y contraseña) | Email, nombre, contraseña cifrada | Supabase | Privacidad §2, §4 | En producción |
+| Cuentas: Google o enlace por correo, sin contraseñas | Email, nombre; con Google, también foto de perfil e identificador de Google | Supabase (incluye el envío del correo), Google (responsable independiente, solo si se elige) | Privacidad §2, §4, §8; Términos §3; Cookies §3 | En el PR de acceso sin contraseñas (al fusionarlo pasa a producción) |
+| Aceptación de Términos en el servidor | Versión aceptada y fecha (hora del servidor), por usuario | Supabase | Privacidad §2; Términos §1, §3 | Migración `aceptacion_terminos` ya aplicada; la web la usa al fusionar el PR |
 | Beta con plazas y cola | Estado de cuenta, fechas de cola | Supabase | Privacidad §2, §10; Términos §4 | En producción |
 | Portales públicos | Contenido del usuario, IP técnica del servidor | Supabase, Vercel | Privacidad §2, §3; Términos §5–§8 | En producción |
 | Contraseña de portal | Huella (hash) de la contraseña | Supabase | Privacidad §2, §3; Términos §7 | En producción (comparación en el navegador: mejorar, ver seguridad) |
@@ -43,8 +44,7 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 
 | Función | Qué cambiar en los textos | Otras tareas |
 |---|---|---|
-| **Inicio con Google y enlace mágico** | Privacidad §2 (nombre, email y foto que envía Google), §4 (Google como proveedor de acceso), §8 (EE. UU.); Cookies §1 (la sesión sigue igual); retirar la contraseña de los datos | Registro de aceptación de Términos en el servidor; correo de envío (ver emails) |
-| **Emails** (enlace mágico, aviso de cola) | Privacidad §4 (proveedor de envío) y §10; Términos §4 | DPA del proveedor; avisos = comunicaciones de servicio, nunca comerciales sin consentimiento (LSSI art. 21) |
+| **Emails** (enlace de acceso con servidor propio, aviso de cola) | Privacidad §4 (proveedor de envío, p. ej. Resend, y su región) y §8 si es de EE. UU.; §10 para el aviso de cola; Términos §4 | **El mismo día que se configure el SMTP propio** hay que añadir al proveedor aquí y en `legalTerceros.js`. DPA del proveedor; avisos = comunicaciones de servicio, nunca comerciales sin consentimiento (LSSI art. 21) |
 | **«Invítame a un café»** (Wise) | Términos: aportación voluntaria, sin contraprestación, no reembolsable salvo error; Privacidad §4 (Wise) | Gestoría: IRPF e IVA de las aportaciones; botón solo en el editor, nunca en portales |
 | **Plan PRO y cobros** | Términos: precio, impuestos, renovación, cancelación, **desistimiento de 14 días** (verificar TRLGDCU arts. 102–103); Privacidad §2 (datos de facturación) y §4 (procesador de pagos o «merchant of record») | Gestoría: alta, IVA internacional, facturación; revisar la cláusula de responsabilidad |
 | **Analítica o medición** (si algún día) | Cookies: consentimiento previo y banner real con «Rechazar»; Privacidad | No activar nada sin consentimiento |
@@ -56,6 +56,7 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 | Versión | Qué cambió |
 |---|---|
 | 2026-10-26 | Textos nuevos (PR #22): Aviso legal, Privacidad, Términos con Anexo A, Cookies y Denunciar contenido; se retiran Stripe, Google Cloud, analítica, SAML, API, «BrandBara Site Inc.» y California/Nevada. Edad mínima 14 años. Datos del titular: nombre, NIF y correo; domicilio «a petición». |
+| 2026-10-26.3 | Acceso con Google y con enlace por correo, sin contraseñas (Privacidad §2, §4, §8; Términos §3; Cookies §3); registro en el servidor de la versión y la fecha de aceptación de los Términos (Privacidad §2). Las cuentas anteriores y las nuevas ven la pantalla de aceptación al entrar. |
 | 2026-10-26.2 | Política de cookies sin «almacenamiento» en el título y banner más cercano; nombre y logotipo en lugar de «marca» (la marca no está registrada); encuesta PRO (Tally) en Privacidad; ventajas de la beta en Términos §4; proceso y registro legal. |
 
 ## Decisiones del titular (para no volver a preguntarlas)
@@ -66,6 +67,8 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 - **No se publica el domicilio** (es su vivienda): se publican nombre, NIF y correo, y el domicilio «a petición». Es provisional y no cumple a rajatabla el art. 10 LSSI; arreglo: oficina virtual o dirección de la gestoría, y rellenar `address` en `legalEntity.js`.
 - El dominio está comprado, la **marca no está registrada**: se usa «™» (nunca «®») y los textos hablan de «nombre y logotipo». Antes de invertir en la marca, búsqueda de anterioridades y registro en OEPM/EUIPO.
 - La gestoría se consulta más adelante.
+- Acceso **sin contraseñas**: Google (aprobado el 26-oct) y enlace por correo. Las cuentas existentes se enlazan por el mismo correo verificado.
+- Aceptación de Términos: pantalla tras entrar, con casilla; si no acepta, se cierra la sesión. Se guarda por versión en el servidor.
 
 ## Pendiente de acción humana
 - Aceptar los acuerdos de encargado de tratamiento (DPA) de Supabase, Vercel y GitHub desde sus paneles.
@@ -82,3 +85,6 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 - Anexo A (encargado de tratamiento) frente a prohibir datos personales de terceros.
 - Ventajas de la beta (meses gratis de PRO por la encuesta): redacción de la cláusula.
 - Marca: anterioridades y registro.
+- Aceptación de Términos tras el alta (no antes): ¿basta con informar de la Privacidad antes de pulsar «Continuar con Google» o del enlace?
+- Google como responsable independiente (no encargado) y la transferencia a EE. UU.: ¿redacción correcta?
+- Enlace automático de cuentas por correo verificado (una cuenta con contraseña antigua y la misma dirección en Google acaban siendo la misma): ¿riesgo asumible?

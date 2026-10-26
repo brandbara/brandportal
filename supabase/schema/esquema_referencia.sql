@@ -26,6 +26,7 @@
 --   20261026125630 limite_espacio_en_servidor    -> supabase/migrations/
 --   20261026132627 lectura_de_propios_archivos   -> supabase/migrations/
 --   20261026150713 beta_plazas_y_cola            -> supabase/migrations/
+--   20261026155048 aceptacion_terminos           -> supabase/migrations/
 --
 -- Si cambias la base de datos, añade una migración en supabase/migrations/
 -- Y actualiza este archivo para que siga reflejando el estado real.
@@ -74,6 +75,17 @@ create table public.portals (
   created_at    timestamptz default now(),
   updated_at    timestamptz default now(),
   constraint unique_user_portal unique (user_id)   -- un portal por usuario
+);
+
+-- Registro (en el servidor) de qué versión de los Términos y la Privacidad aceptó cada usuario y cuándo.
+-- Solo se escribe con accept_terms(); cada usuario solo lee lo suyo; se borra con la cuenta.
+create table public.terms_acceptances (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  version     text not null,
+  accepted_at timestamptz not null default now(),
+  constraint terms_acceptances_version_check check (length(version) <= 20 and version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\.[0-9]+)?$'),
+  constraint terms_acceptances_user_version_key unique (user_id, version)
 );
 
 
@@ -367,6 +379,35 @@ end
 $$;
 
 
+-- La web la llama cuando el usuario acepta una versión de los Términos y la Privacidad. Guarda la hora del servidor.
+CREATE OR REPLACE FUNCTION public.accept_terms(p_version text)
+ returns json
+ language plpgsql
+ security definer
+ set search_path to ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_at  timestamptz;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+  if p_version is null or length(p_version) > 20 or p_version !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\.[0-9]+)?$' then
+    raise exception 'invalid_version' using errcode = '22023';
+  end if;
+
+  -- si ya la había aceptado se conserva la fecha original
+  insert into public.terms_acceptances (user_id, version)
+    values (v_uid, p_version)
+    on conflict (user_id, version) do nothing;
+
+  select accepted_at into v_at from public.terms_acceptances where user_id = v_uid and version = p_version;
+  return json_build_object('version', p_version, 'accepted_at', v_at);
+end
+$$;
+
+
 -- ---------------------------------------------------------------------
 -- 3. Disparadores
 -- ---------------------------------------------------------------------
@@ -393,6 +434,7 @@ create trigger app_settings_promote_after_change
 alter table public.profiles     enable row level security;
 alter table public.portals      enable row level security;
 alter table public.app_settings enable row level security;   -- sin políticas: solo las funciones la leen
+alter table public.terms_acceptances enable row level security;
 
 -- Portales: el dueño los gestiona, y solo crea/modifica si tiene plaza (status 'active').
 create policy "Owners manage portals" on public.portals
@@ -407,6 +449,11 @@ create policy "Owners manage profile" on public.profiles
   for all to authenticated
   using ((select auth.uid()) = id)
   with check ((select auth.uid()) = id);
+
+-- Aceptación de Términos: cada usuario solo lee las suyas (escribir: solo con accept_terms()).
+create policy "Owners read own acceptances" on public.terms_acceptances
+  for select to authenticated
+  using ((select auth.uid()) = user_id);
 
 
 -- ---------------------------------------------------------------------
@@ -424,6 +471,10 @@ grant insert (id, updated_at), update (id, updated_at) on public.profiles to aut
 -- app_settings: cerrada del todo para la web.
 revoke all on public.app_settings from anon, authenticated;
 
+-- terms_acceptances: la web solo puede LEER lo propio (RLS); escribir, solo con accept_terms().
+revoke all on public.terms_acceptances from anon, authenticated;
+grant select on public.terms_acceptances to authenticated;
+
 -- portals: se mantienen los permisos por defecto; la protección real es RLS
 -- (solo existe política para 'authenticated' y solo sobre la fila propia).
 
@@ -439,6 +490,7 @@ revoke execute on function public.promote_waitlist()           from public, anon
 revoke execute on function public.on_slots_may_have_changed()  from public, anon, authenticated;
 revoke execute on function public.claim_beta_slot()            from public, anon;
 revoke execute on function public.beta_status()                from public;
+revoke execute on function public.accept_terms(text)           from public, anon;
 -- asset_limit_bytes(text) conserva los permisos por defecto (inofensiva: solo devuelve un número).
 
 grant execute on function public.can_upload_asset()       to authenticated, service_role;
@@ -449,6 +501,7 @@ grant execute on function public.is_slug_available(text)  to authenticated, serv
 grant execute on function public.my_asset_paths()         to authenticated, service_role;
 grant execute on function public.claim_beta_slot()        to authenticated, service_role;   -- la web la llama al iniciar sesión
 grant execute on function public.beta_status()            to anon, authenticated, service_role;  -- «quedan N plazas»
+grant execute on function public.accept_terms(text)       to authenticated, service_role;        -- la web la llama al aceptar los Términos
 
 
 -- ---------------------------------------------------------------------

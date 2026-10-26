@@ -12,17 +12,20 @@ import {
   Link2, SunMoon, Grid3X3, Columns, Video, Play,
   Sliders, CreditCard, LogOut, Lock, Cookie,
  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
-  FileArchive, DownloadCloud, Loader2, Save, Hourglass
+  FileArchive, DownloadCloud, Loader2, Save, Hourglass, LogIn
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
-import { LEGAL_VERSION } from './data/legalEntity';
+import { LEGAL_VERSION, LEGAL_ENTITY, LEGAL_DATE } from './data/legalEntity';
 import { deleteMyAccount } from './utils/account';
 import { fetchBetaStatus, claimBetaSlot, isBetaBlocked } from './utils/beta';
 import { downloadFile } from './utils/download';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { hasAcceptedTerms, acceptTerms, needsTermsAcceptance } from './utils/terms.js';
+import { fetchAuthProviders, shouldShowGoogle } from './utils/authProviders.js';
+import { isValidEmail, authErrorKind, readAuthRedirectError, redirectErrorKind, stripAuthRedirectError } from './utils/authFlow.js';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
@@ -2549,24 +2552,8 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                           </div>
     
                           <div className="pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
-                            <h4 className="font-bold mb-4 flex items-center gap-2"><Lock size={16}/> {safeT.auth.password}</h4>
-                            <button 
-                              onClick={async () => {
-                                if (!content.email) return;
-                                try {
-                                  const { error } = await supabase.auth.resetPasswordForEmail(content.email, {
-                                    redirectTo: window.location.origin,
-                                  });
-                                  if (error) throw error;
-                                  alert("¡Enlace enviado! Revisa la bandeja de entrada de " + content.email);
-                                } catch (err) {
-                                  alert("Error enviando email: " + err.message);
-                                }
-                              }} 
-                              className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDarkMode ? 'border-white/10 hover:bg-white/5' : 'border-slate-200 hover:bg-slate-50'}`}
-                            >
-                              {safeT.profileTabs.changePass}
-                            </button>
+                            <h4 className="font-bold mb-2 flex items-center gap-2"><Lock size={16}/> {safeT.ui.accessTitle}</h4>
+                            <p className="text-sm leading-relaxed opacity-70">{safeT.ui.accessDesc}</p>
                           </div>
 
                           <div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/10">
@@ -2703,7 +2690,7 @@ const CookieBanner = ({ isDarkMode, onClose, onMore, t }) => {
             <h3 className={`font-black text-base mb-1 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{safeT.cookie.title}</h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               {safeT.cookie.desc}{' '}
-              <button type="button" onClick={onMore} className="text-indigo-500 hover:underline font-bold">{safeT.cookie.more}</button>
+              <button type="button" onClick={onMore} className={`${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'} hover:underline font-bold`}>{safeT.cookie.more}</button>
             </p>
           </div>
         </div>
@@ -2714,167 +2701,275 @@ const CookieBanner = ({ isDarkMode, onClose, onMore, t }) => {
     </div>
   );
 };
-const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta, onOpenLegal }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+// Acceso sin contraseñas: Google o un enlace que se envía al correo. Si la cuenta no existe se crea sola.
+// Quien entra ve después la pantalla de aceptación de Términos (TermsAcceptanceModal), que registra la aceptación en el servidor.
+const AuthModal = ({ isOpen, onClose, isDarkMode, t, beta, onOpenLegal }) => {
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [step, setStep] = useState('form');  // 'form' | 'sent'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [providers, setProviders] = useState(null); // qué formas de entrar están activas en Supabase (null = no se sabe)
   const safeT = t || TRANSLATIONS.ES;
+  const isLogin = mode === 'login';
+
+  // Cuenta atrás para poder reenviar el enlace (el servidor también limita los envíos seguidos)
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  // «Continuar con Google» solo se ofrece si Google está activado en Supabase
+  useEffect(() => {
+    if (!isOpen || providers) return undefined;
+    let cancelled = false;
+    fetchAuthProviders({ url: import.meta.env.VITE_SUPABASE_URL, anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY })
+      .then((p) => { if (!cancelled && p) setProviders(p); });
+    return () => { cancelled = true; };
+  }, [isOpen, providers]);
+
+  // Al cerrar el modal se vuelve a empezar (si no, al reabrirlo seguiría en «revisa tu correo»)
+  useEffect(() => {
+    if (!isOpen) {
+      setStep('form'); setErrorMsg(''); setIsLoading(false); setIsGoogleLoading(false); setCooldown(0);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-    if (!isLogin && !acceptedTerms) return;
-
-    if (!supabase) {
-      setErrorMsg("Error: Supabase no está conectado.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      if (isLogin) {
-        // LOGIN REAL
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        onAuthenticate(data.user);
-      } else {
-        // REGISTRO REAL
-        const { data, error } = await supabase.auth.signUp({
-          email, password, options: { data: { full_name: name, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() }, emailRedirectTo: window.location.origin }
-        });
-        if (error) throw error;
-        if (!data.session) {
-          setSuccessMsg('Te hemos enviado un email para confirmar tu cuenta. Confírmalo y luego inicia sesión para publicar tu portal.');
-          return;
-        }
-        onAuthenticate(data.user);
-      }
-    } catch (error) {
-      setErrorMsg(error.message === "Invalid login credentials" ? "Credenciales incorrectas." : error.message);
-    } finally {
-      setIsLoading(false);
-    }
+  const errorText = (err) => {
+    const kind = authErrorKind(err);
+    const map = { rate: safeT.auth.errRate, email: safeT.auth.errEmail, notAuthorized: safeT.auth.errNotAuthorized, network: safeT.auth.errNetwork };
+    return map[kind] || safeT.auth.errGeneric;
   };
 
-  const handleResetPassword = async () => {
+  const switchMode = (next) => { setMode(next); setErrorMsg(''); };
+
+  const handleGoogle = async () => {
     setErrorMsg('');
-    setSuccessMsg('');
-    if (!email) {
-      setErrorMsg('Por favor, introduce tu email arriba para recuperar la contraseña.');
-      return;
-    }
-    
-    setIsLoading(true);
+    if (!supabase) { setErrorMsg(safeT.auth.errGeneric); return; }
+    setIsGoogleLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin, queryParams: { prompt: 'select_account' } },
       });
       if (error) throw error;
-      setSuccessMsg('Email de recuperación enviado. Por favor, revisa tu bandeja de entrada.');
-    } catch (error) {
-      setErrorMsg(error.message);
+      // El navegador se va a la página de Google; al volver, la sesión se detecta sola.
+    } catch (err) {
+      console.error('Acceso con Google:', err?.message || err);
+      setErrorMsg(errorText(err));
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const sendLink = async (e) => {
+    e?.preventDefault();
+    setErrorMsg('');
+    if (!isValidEmail(email)) { setErrorMsg(safeT.auth.errEmail); return; }
+    if (!supabase) { setErrorMsg(safeT.auth.errGeneric); return; }
+    setIsLoading(true);
+    try {
+      const options = { emailRedirectTo: window.location.origin, shouldCreateUser: true };
+      if (!isLogin && name.trim()) options.data = { full_name: name.trim() };
+      const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options });
+      if (error) throw error;
+      setStep('sent');
+      setCooldown(60);
+    } catch (err) {
+      console.error('Enlace de acceso:', err?.message || err);
+      setErrorMsg(errorText(err));
     } finally {
       setIsLoading(false);
     }
   };
+
+  const fieldBox = `flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`;
+  const inputCls = `w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`;
+  const muted = isDarkMode ? 'text-slate-400' : 'text-slate-600';
+  const linkCls = `${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'} hover:underline font-bold`;
+  const busy = isLoading || isGoogleLoading;
+  const showGoogle = shouldShowGoogle(providers);
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
+      <div role="dialog" aria-modal="true" aria-labelledby="auth-title" className={`relative w-full max-w-md max-h-[92vh] overflow-y-auto p-8 rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
         <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
           <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
         </button>
 
-        <div className="text-center mb-8">
-          <h2 className={`text-2xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            {isLogin ? safeT.auth.loginTitle : safeT.auth.registerTitle}
-          </h2>
-          <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {isLogin ? safeT.auth.loginDesc : safeT.auth.registerDesc}
-          </p>
-        </div>
-
-        <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl mb-6">
-          <button type="button" onClick={() => {setIsLogin(true); setErrorMsg(''); setSuccessMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-            {safeT.auth.loginBtn}
-          </button>
-          <button type="button" onClick={() => {setIsLogin(false); setErrorMsg(''); setSuccessMsg('');}} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'}`}>
-            {safeT.auth.registerBtn}
-          </button>
-        </div>
-
-        {!isLogin && beta && (
-          <p role="status" className={`mb-4 text-xs leading-relaxed font-bold px-4 py-3 rounded-xl ${beta.remaining > 0 ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700') : (isDarkMode ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-800')}`}>
-            {(beta.remaining > 0 ? safeT.ui.authBetaOpen : safeT.ui.authBetaFull).replace('{n}', beta.remaining).replace('{cap}', beta.capacity)}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.name}</label>
-              <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                <User size={18} className="opacity-50 mr-3" />
-                <input aria-label={safeT.auth.namePlaceholder} autoComplete="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required={!isLogin} />
-              </div>
+        {step === 'sent' ? (
+          <div className="text-center py-2" role="status">
+            <div className={`mx-auto mb-5 w-14 h-14 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+              <Mail size={26} aria-hidden="true" />
             </div>
-          )}
-          
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.email}</label>
-            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-              <Mail size={18} className="opacity-50 mr-3" />
-              <input aria-label={safeT.auth.emailPlaceholder} autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={safeT.auth.emailPlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+            <h2 id="auth-title" className={`text-2xl font-black tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{safeT.auth.sentTitle}</h2>
+            <p className={`text-sm leading-relaxed mb-6 ${muted}`}>{safeT.auth.sentBody.replace('{email}', email.trim())}</p>
+            {errorMsg && <p role="alert" className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg mb-4">{errorMsg}</p>}
+            <div className="flex flex-col gap-2">
+              <button type="button" onClick={sendLink} disabled={isLoading || cooldown > 0} className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${(isLoading || cooldown > 0) ? 'opacity-50 cursor-not-allowed bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}>
+                {cooldown > 0 ? safeT.auth.resendIn.replace('{s}', cooldown) : safeT.auth.resend}
+              </button>
+              <button type="button" onClick={() => { setStep('form'); setErrorMsg(''); setCooldown(0); }} className="w-full py-3 rounded-xl font-bold text-sm text-indigo-500 hover:underline">
+                {safeT.auth.otherEmail}
+              </button>
             </div>
           </div>
+        ) : (
+          <>
+            <div className="text-center mb-6">
+              <h2 id="auth-title" className={`text-2xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                {isLogin ? safeT.auth.loginTitle : safeT.auth.registerTitle}
+              </h2>
+              <p className={`text-sm ${muted}`}>
+                {isLogin ? safeT.auth.loginDesc : safeT.auth.registerDesc}
+              </p>
+            </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.password}</label>
-              {isLogin && (
-                <button type="button" onClick={handleResetPassword} className="text-[10px] font-bold text-indigo-500 hover:underline">
-                  {t.ui.forgotPassword}
-                </button>
+            <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl mb-5">
+              <button type="button" aria-pressed={isLogin} onClick={() => switchMode('login')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300'}`}>
+                {safeT.auth.loginBtn}
+              </button>
+              <button type="button" aria-pressed={!isLogin} onClick={() => switchMode('register')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-white dark:bg-[#1e2330] shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300'}`}>
+                {safeT.auth.registerBtn}
+              </button>
+            </div>
+
+            {!isLogin && beta && (
+              <p role="status" className={`mb-4 text-xs leading-relaxed font-bold px-4 py-3 rounded-xl ${beta.remaining > 0 ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700') : (isDarkMode ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-800')}`}>
+                {(beta.remaining > 0 ? safeT.ui.authBetaOpen : safeT.ui.authBetaFull).replace('{n}', beta.remaining).replace('{cap}', beta.capacity)}
+              </p>
+            )}
+
+            {showGoogle && (
+              <>
+              <button type="button" onClick={handleGoogle} disabled={busy} className={`w-full py-3.5 rounded-xl font-bold text-sm border transition-all flex items-center justify-center gap-2.5 ${busy ? 'opacity-60 cursor-not-allowed' : 'active:scale-95'} ${isDarkMode ? 'bg-white/5 border-white/15 text-white hover:bg-white/10' : 'bg-white border-slate-300 text-slate-800 hover:bg-slate-50 shadow-sm'}`}>
+                {isGoogleLoading ? <Loader2 size={18} className="animate-spin" aria-hidden="true" /> : <LogIn size={18} aria-hidden="true" />}
+                {safeT.auth.google}
+              </button>
+
+              <div className="flex items-center gap-3 my-5" aria-hidden="true">
+                <span className={`flex-1 h-px ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${muted}`}>{safeT.auth.or}</span>
+                <span className={`flex-1 h-px ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
+              </div>
+              </>
+            )}
+
+            <form onSubmit={sendLink} className="space-y-4" noValidate>
+              {!isLogin && (
+                <div className="space-y-1.5">
+                  <label htmlFor="auth-name" className="text-xs font-bold uppercase tracking-wider opacity-70">{safeT.auth.name}</label>
+                  <div className={fieldBox}>
+                    <User size={18} className="opacity-50 mr-3" aria-hidden="true" />
+                    <input id="auth-name" autoComplete="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={inputCls} />
+                  </div>
+                </div>
               )}
-            </div>
-            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-              <Lock size={18} className="opacity-50 mr-3" />
-              <input aria-label={safeT.auth.password} autoComplete={isLogin ? 'current-password' : 'new-password'} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
-            </div>
-          </div>
 
-          {errorMsg && <p className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg animate-in fade-in">{errorMsg}</p>}
-          {successMsg && <p className="text-xs text-emerald-500 font-bold bg-emerald-500/10 p-3 rounded-lg animate-in fade-in">{successMsg}</p>}
-
-          {!isLogin && (
-            <label className="flex items-start gap-3 mt-4 cursor-pointer group">
-              <div className="relative flex items-center justify-center mt-0.5">
-                <input type="checkbox" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="peer sr-only" />
-                <div className={`w-5 h-5 rounded border-2 transition-all ${acceptedTerms ? 'bg-indigo-600 border-indigo-600' : (isDarkMode ? 'border-white/30 group-hover:border-white/50' : 'border-slate-300 group-hover:border-slate-400')}`}></div>
-                <Check size={14} className={`absolute text-white transition-transform scale-0 peer-checked:scale-100`} strokeWidth={3} />
+              <div className="space-y-1.5">
+                <label htmlFor="auth-email" className="text-xs font-bold uppercase tracking-wider opacity-70">{safeT.auth.email}</label>
+                <div className={fieldBox}>
+                  <Mail size={18} className="opacity-50 mr-3" aria-hidden="true" />
+                  <input id="auth-email" autoComplete="email" inputMode="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={safeT.auth.emailPlaceholder} className={inputCls} required />
+                </div>
               </div>
-              <span className={`text-xs leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                {safeT.auth.termsPre} <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('terms'); }} className="text-indigo-500 hover:underline font-bold">{safeT.auth.termsLink}</button> {safeT.auth.privacyAnd} <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('privacy'); }} className="text-indigo-500 hover:underline font-bold">{safeT.auth.privacyLink}</button>.
-              </span>
-            </label>
-          )}
 
-          <button 
-            type="submit" 
-            disabled={isLoading || (!isLogin && !acceptedTerms)}
-            className={`w-full mt-6 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(isLoading || (!isLogin && !acceptedTerms)) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
-          >
-            {isLoading ? "Cargando..." : (isLogin ? safeT.auth.loginBtn : safeT.auth.registerBtn)}
-          </button>
-        </form>
+              {errorMsg && <p role="alert" className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg animate-in fade-in">{errorMsg}</p>}
+
+              <button type="submit" disabled={busy} className={`w-full py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${busy ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}>
+                {isLoading ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Mail size={16} aria-hidden="true" />}
+                {isLoading ? safeT.auth.sending : safeT.auth.sendLink}
+              </button>
+              <p className={`text-xs text-center ${muted}`}>{safeT.auth.noPassword}</p>
+            </form>
+
+            <p className={`mt-5 text-xs leading-relaxed ${muted}`}>
+              {safeT.auth.legalPre}{' '}
+              <button type="button" onClick={() => onOpenLegal?.('privacy')} className={linkCls}>{safeT.auth.privacyLink}</button>
+              {safeT.auth.legalMid}{' '}
+              <button type="button" onClick={() => onOpenLegal?.('terms')} className={linkCls}>{safeT.auth.termsLink}</button>.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Pantalla que pide aceptar los Términos y la Privacidad (primera vez, o cuando cambian de versión).
+// La aceptación se guarda en el servidor con su hora (accept_terms). Si no acepta, se cierra la sesión.
+const TermsAcceptanceModal = ({ onAccepted, onDecline, onOpenLegal, isDarkMode, t, date }) => {
+  const safeT = t || TRANSLATIONS.ES;
+  const [checked, setChecked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const dialogRef = useRef(null);
+  const muted = isDarkMode ? 'text-slate-400' : 'text-slate-600';
+  const linkCls = `${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'} hover:underline font-bold`;
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (el) el.focus();
+    const onKey = (e) => {
+      if (e.key !== 'Tab' || !el) return;
+      const items = el.querySelectorAll('button:not([disabled]), input');
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === el)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const handleAccept = async () => {
+    if (!checked || saving) return;
+    setFailed(false);
+    setSaving(true);
+    const ok = supabase ? await acceptTerms(supabase, LEGAL_VERSION) : false;
+    setSaving(false);
+    if (ok) onAccepted(); else setFailed(true);
+  };
+
+  return (
+    <div className={`fixed inset-0 z-[300] overflow-y-auto flex items-center justify-center p-4 backdrop-blur-md ${isDarkMode ? 'bg-[#0b0e14]/95' : 'bg-slate-100/95'}`}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="terms-title" className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl outline-none ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
+        <div className={`mx-auto mb-5 w-14 h-14 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+          <Shield size={26} aria-hidden="true" />
+        </div>
+        <h2 id="terms-title" className={`text-2xl font-black tracking-tight text-center mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{safeT.ui.termsTitle}</h2>
+        <p className={`text-sm leading-relaxed text-center mb-6 ${muted}`}>{safeT.ui.termsBody.replace('{date}', date)}</p>
+
+        <label className="flex items-start gap-3 cursor-pointer group mb-6">
+          <span className="relative flex items-center justify-center mt-0.5 shrink-0">
+            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="peer absolute inset-0 w-5 h-5 opacity-0 cursor-pointer" />
+            <span className={`w-5 h-5 rounded border-2 transition-all peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 ${checked ? 'bg-indigo-600 border-indigo-600' : (isDarkMode ? 'border-white/40 group-hover:border-white/60' : 'border-slate-400 group-hover:border-slate-500')}`} />
+            {checked && <Check size={14} className="absolute text-white pointer-events-none" strokeWidth={3} aria-hidden="true" />}
+          </span>
+          <span className={`text-sm leading-relaxed ${muted}`}>
+            {safeT.ui.termsCheck}{' '}
+            <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('terms'); }} className={linkCls}>{safeT.auth.termsLink}</button>{' '}
+            {safeT.auth.privacyAnd}{' '}
+            <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('privacy'); }} className={linkCls}>{safeT.auth.privacyLink}</button>.
+          </span>
+        </label>
+
+        {failed && <p role="alert" className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg mb-4">{safeT.ui.termsError}</p>}
+
+        <button type="button" onClick={handleAccept} disabled={!checked || saving} className={`w-full py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(!checked || saving) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-300' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}>
+          {saving && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+          {saving ? safeT.ui.termsSaving : safeT.ui.termsAccept}
+        </button>
+        <button type="button" onClick={onDecline} disabled={saving} className={`w-full mt-3 py-2.5 text-xs font-bold rounded-xl transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900'}`}>
+          {safeT.ui.termsDecline}
+        </button>
+        <p className={`mt-3 text-xs leading-relaxed text-center ${muted}`}>{safeT.ui.termsDeclineNote.replace('{email}', LEGAL_ENTITY.email)}</p>
       </div>
     </div>
   );
@@ -3119,116 +3214,6 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
   );
 };
 
-// ==============================================================================
-// MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY UX 2026)
-// ==============================================================================
-const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode, t }) => {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (password !== confirmPassword) {
-      setErrorMsg('Las contraseñas no coinciden. Revisa los campos.');
-      return;
-    }
-    if (password.length < 6) {
-      setErrorMsg('Por seguridad, la contraseña debe tener al menos 6 caracteres.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: password });
-      if (error) throw error;
-      
-      setSuccessMsg('¡Contraseña blindada con éxito! Redirigiendo...');
-      setTimeout(() => {
-        onClose();
-      }, 2500);
-    } catch (error) {
-      setErrorMsg(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className={`w-full max-w-md p-8 rounded-[2rem] shadow-2xl border flex flex-col ${isDarkMode ? 'bg-[#0f111a] border-white/10 shadow-black/80' : 'bg-white border-slate-200/80 shadow-slate-200/40'}`}>
-        
-        <div className="text-center mb-8">
-          <div className="mx-auto w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mb-4">
-            <Key size={24} />
-          </div>
-          <h2 className={`text-2xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            {t?.ui?.newPassword || 'Nueva Contraseña'}
-          </h2>
-          <p className={`text-sm opacity-70 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {t?.ui?.identityVerified || 'Hemos verificado tu identidad. Introduce tu nueva clave de acceso para asegurar tu cuenta.'}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{t?.ui?.newPassword || 'Nueva Contraseña'}</label>
-            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-              <Lock size={18} className="opacity-50 mr-3" />
-              <input aria-label={t?.ui?.newPassword || 'Nueva contraseña'} autoComplete="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t?.ui?.minChars || 'Mínimo 6 caracteres'} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{t?.ui?.repeatPassword || 'Repite la Contraseña'}</label>
-            <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-              <Lock size={18} className="opacity-50 mr-3" />
-              <input aria-label={t?.ui?.confirmNewPassword || 'Confirma tu nueva clave'} autoComplete="new-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t?.ui?.confirmNewPassword || 'Confirma tu nueva clave'} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
-            </div>
-          </div>
-
-          {errorMsg && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 animate-in fade-in">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <p className="text-xs font-bold">{errorMsg}</p>
-            </div>
-          )}
-          
-          {successMsg && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 animate-in fade-in">
-              <Check size={16} className="shrink-0 mt-0.5" />
-              <p className="text-xs font-bold">{successMsg}</p>
-            </div>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={isLoading || successMsg}
-            className={`w-full mt-4 py-3.5 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${(isLoading || successMsg) ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 active:scale-95'}`}
-          >
-            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {isLoading ? "Actualizando..." : "Confirmar Cambio"}
-          </button>
-        </form>
-        
-        {/* Botón para forzar salida si el usuario se arrepiente */}
-        {!successMsg && (
-          <button onClick={onClose} className="mt-6 text-xs font-bold opacity-40 hover:opacity-100 transition-opacity uppercase tracking-widest text-center w-full">
-            Cancelar y entrar al lienzo
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const Editor = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -3345,6 +3330,8 @@ const Editor = () => {
   const [publicBeta, setPublicBeta] = useState(null);
   const betaClaimedFor = useRef(null);
   const betaBlocked = isBetaBlocked(betaState);
+  // Cuenta que aún no ha aceptado la versión vigente de los Términos: no se sube nada al servidor hasta que acepte
+  const [termsPending, setTermsPending] = useState(false);
 
   const handleSignOut = async (message) => {
     try {
@@ -3652,8 +3639,8 @@ const savePortalData = async (isManual = false) => {
         setIsAuthModalOpen(true);
         return;
     }
-    // Sin plaza en la beta no se sube nada al servidor (el borrador sigue guardado en este navegador)
-    if (betaBlocked) return;
+    // Sin plaza en la beta, o sin haber aceptado los Términos, no se sube nada al servidor (el borrador sigue guardado en este navegador)
+    if (betaBlocked || termsPending) return;
 
     setSaveStatus('saving');
 
@@ -3758,17 +3745,39 @@ const [canvasItems, setCanvasItems] = useState(() => getInitialCanvas(t));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSlug, pathParts[1], profileContent?.name, notFound, loadError, isLoadingPortal, safeLanguage]);
 
-  const [showUpdatePassword, setShowUpdatePassword] = useState(false);
-
-  // DETECCIÓN INTELIGENTE DE RECUPERACIÓN DE CONTRASEÑA
+  // Aceptación de los Términos y la Privacidad: tras iniciar sesión se pregunta al servidor si esta cuenta ya aceptó la versión
+  // vigente. Si se sabe seguro que no, se pide (también a las cuentas anteriores y cuando cambian los textos).
+  // Si no se puede saber (sin red, tabla aún inexistente) no se bloquea a nadie.
   useEffect(() => {
-    if (!supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setShowUpdatePassword(true);
-      }
-    });
-    return () => subscription?.unsubscribe();
+    if (!supabase || !currentUser?.id) { setTermsPending(false); return undefined; }
+    let cancelled = false;
+    hasAcceptedTerms(supabase, LEGAL_VERSION).then((accepted) => { if (!cancelled) setTermsPending(needsTermsAcceptance(accepted)); });
+    return () => { cancelled = true; };
+  }, [currentUser?.id]);
+
+  // El acceso (Google o enlace del correo) se completa fuera del formulario, también desde otra pestaña:
+  // cuando la sesión aparece, el modal de acceso se cierra solo.
+  useEffect(() => {
+    if (!isAuthenticated || !isAuthModalOpen) return;
+    setIsAuthModalOpen(false);
+    if (pendingUpgrade) {
+      setShowBetaModal(true);
+      setPendingUpgrade(false);
+    } else {
+      showToast(t.ui.signedIn);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isAuthModalOpen]);
+
+  // Si se vuelve de Google o del enlace del correo con un error (enlace caducado, acceso cancelado…), se avisa y se limpia la dirección.
+  useEffect(() => {
+    const info = readAuthRedirectError(window.location);
+    if (!info) return;
+    const kind = redirectErrorKind(info);
+    const msgs = { expired: t.ui.authLinkExpired, cancelled: t.ui.authCancelled, generic: t.ui.authSignedOutByLink };
+    showToast(msgs[kind] || msgs.generic);
+    window.history.replaceState(null, '', stripAuthRedirectError(window.location));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 useEffect(() => {
@@ -3827,8 +3836,8 @@ const isInitialMount = useRef(true);
     // 2. BLOQUEO MAESTRO: Si no hay usuario autenticado, jamás autoguardar.
     if (!isAuthenticated || !currentUser) return;
 
-    // Sin plaza en la beta (cola o cuenta en pausa) no se autoguarda en el servidor.
-    if (betaBlocked) return;
+    // Sin plaza en la beta (cola o cuenta en pausa), o sin haber aceptado los Términos, no se autoguarda en el servidor.
+    if (betaBlocked || termsPending) return;
 
     // 3. BLOQUEO DE DUEÑO: Validar la propiedad antes de permitir el guardado.
     const isBrandRouteCheck = activeSlug && activeSlug !== 'info';
@@ -3845,7 +3854,7 @@ const isInitialMount = useRef(true);
 
     return () => clearTimeout(debounceTimer);
     
-  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId, activeSlug, betaBlocked]);
+  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId, activeSlug, betaBlocked, termsPending]);
 
   const usedStorage = React.useMemo(() => {
     let size = 0;
@@ -4298,17 +4307,6 @@ onResetCanvas={() => {
           setIsAuthModalOpen(false);
           setPendingUpgrade(false);
         }} 
-        onAuthenticate={(user) => {
-          setCurrentUser(user);
-          setIsAuthenticated(true);
-          setIsAuthModalOpen(false);
-          if (pendingUpgrade) {
-            setShowBetaModal(true);
-            setPendingUpgrade(false);
-          } else {
-            showToast(t.ui.signedIn);
-          }
-        }}
         isDarkMode={isDarkMode}
         t={t}
         beta={publicBeta}
@@ -4326,13 +4324,17 @@ onResetCanvas={() => {
         />
       )}
 
-      {/* MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY) */}
-      <UpdatePasswordModal
-        isOpen={showUpdatePassword}
-        onClose={() => setShowUpdatePassword(false)}
-        isDarkMode={isDarkMode}
-        t={t}
-      />
+      {/* ACEPTACIÓN DE TÉRMINOS Y PRIVACIDAD (no se muestra sobre portales públicos de otras personas) */}
+      {termsPending && isAuthenticated && !(activeSlug && activeSlug !== 'info' && pathParts[1] !== 'edit') && (
+        <TermsAcceptanceModal
+          onAccepted={() => { setTermsPending(false); showToast(t.ui.signedIn); }}
+          onDecline={() => handleSignOut()}
+          onOpenLegal={setActiveLegalPage}
+          isDarkMode={isDarkMode}
+          t={t}
+          date={LEGAL_DATE[safeLanguage] || LEGAL_DATE.ES}
+        />
+      )}
 
       {/* NOTIFICACIONES BONITAS (TOAST) */}
       {toastMessage && (
@@ -5104,6 +5106,58 @@ const NotFoundPage = () => {
 // ==========================================
 // ENRUTADOR PRINCIPAL (EL CEREBRO DE LA WEB)
 // ==========================================
+// Textos legales con dirección propia (brandbara.com/legal/privacidad…): sirven para enlazarlos desde Google, correos y otras webs.
+const LEGAL_PAGE_SLUGS = { 'aviso-legal': 'notice', privacidad: 'privacy', terminos: 'terms', cookies: 'cookies', denunciar: 'report' };
+const LEGAL_PAGE_LABELS = {
+  ES: { notice: 'Aviso legal', privacy: 'Privacidad', terms: 'Términos', cookies: 'Cookies', report: 'Denunciar contenido', home: 'Ir a BrandBara' },
+  EN: { notice: 'Legal notice', privacy: 'Privacy', terms: 'Terms', cookies: 'Cookies', report: 'Report content', home: 'Go to BrandBara' },
+};
+
+const LegalDocPage = () => {
+  const { page: pageSlug } = useParams();
+  const key = LEGAL_PAGE_SLUGS[pageSlug];
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('brandPortalData') || '{}'); } catch { return {}; } })();
+  const [lang, setLang] = useState(() => (String(saved.language || navigator.language || 'es').toLowerCase().startsWith('en') ? 'EN' : 'ES'));
+  const dark = saved.isDarkMode === true;
+  const labels = LEGAL_PAGE_LABELS[lang];
+
+  useEffect(() => {
+    document.documentElement.lang = lang.toLowerCase();
+    document.title = key ? `${labels[key]} · BrandBara` : 'BrandBara';
+  }, [lang, key, labels]);
+
+  if (!key) return <NotFoundPage />;
+  const html = DOMPurify.sanitize(LEGAL_CONTENT[key][lang]);
+  const linkBase = 'px-3 py-2 rounded-lg text-sm font-bold transition-colors';
+
+  return (
+    <div className={`min-h-screen ${dark ? 'bg-[#0b0e14] text-slate-300' : 'bg-slate-50 text-slate-800'}`}>
+      <header className={`border-b ${dark ? 'border-white/10 bg-[#0f111a]' : 'border-slate-200 bg-white'}`}>
+        <div className="max-w-3xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+          <a href="/" className="flex items-center" aria-label={labels.home}>
+            <img src="/brandbara-logo.svg" alt="BrandBara" className="h-7 w-auto" />
+          </a>
+          <div className="flex bg-slate-100 dark:bg-black/30 p-1 rounded-xl" role="group" aria-label="Idioma / Language">
+            {['ES', 'EN'].map((l) => (
+              <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${lang === l ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-600 hover:text-slate-800'}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <nav aria-label="Legal" className="max-w-3xl mx-auto px-4 pb-3 flex flex-wrap gap-1">
+          {Object.entries(LEGAL_PAGE_SLUGS).map(([slug, k]) => (
+            <a key={slug} href={`/legal/${slug}`} aria-current={k === key ? 'page' : undefined} className={`${linkBase} ${k === key ? (dark ? 'bg-white/10 text-white' : 'bg-indigo-50 text-indigo-700') : (dark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-100')}`}>{labels[k]}</a>
+          ))}
+        </nav>
+      </header>
+      <main className="max-w-3xl mx-auto px-4 py-10">
+        <div className={`rounded-3xl border p-6 md:p-10 select-text ${dark ? 'bg-[#151924] border-white/10' : 'bg-white border-slate-200'}`}>
+          <div className="text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: html }} />
+        </div>
+      </main>
+    </div>
+  );
+};
+
 const App = () => {
   return (
     <BrowserRouter>
@@ -5114,6 +5168,9 @@ const App = () => {
         {/* PRIORIDAD 2: La Landing Page solo como apoyo SEO */}
         <Route path="/info" element={<LandingPage />} />
         
+        {/* Textos legales con dirección propia (brandbara.com/legal/privacidad) */}
+        <Route path="/legal/:page" element={<LegalDocPage />} />
+
         {/* PRIORIDAD 3: Los portales de clientes (brandbara.com/nike) */}
         <Route path="/:slug" element={<Editor />} />
 

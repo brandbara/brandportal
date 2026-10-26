@@ -7,12 +7,14 @@
 // tipo: 'encargado'      → trata datos de usuarios por encargo nuestro (necesita acuerdo de encargado, DPA)
 //       'incrustado'     → se carga dentro de un portal, solo si el visitante lo pide (clic)
 //       'enlace-externo' → solo un enlace que abre otra web (no se carga nada hasta que el usuario lo pulsa)
+//       'inicio-sesion'  → proveedor de acceso opcional: el usuario sale a su web y vuelve; actúa como responsable independiente
 //       'enlace-sin-carga' → ejemplos o enlaces que el propio usuario pega; BrandBara no los contacta por su cuenta
 //       'propio'         → nuestro dominio
 export const TERCEROS = [
   { id: 'supabase', tipo: 'encargado', hosts: ['supabase.co'], para: 'Autenticación, base de datos y archivos (UE, Irlanda)', legal: ['privacidad §4', 'privacidad §8', 'términos Anexo A'], dpa: 'pendiente de aceptar en el panel' },
   { id: 'vercel', tipo: 'encargado', hosts: [], para: 'Alojamiento de la web (EE. UU.)', legal: ['privacidad §4', 'privacidad §8'], dpa: 'pendiente de aceptar en el panel' },
   { id: 'github', tipo: 'encargado', hosts: [], para: 'Código y copias de seguridad cifradas de la base de datos (EE. UU.)', legal: ['privacidad §4', 'privacidad §8', 'términos §11'], dpa: 'pendiente de aceptar en el panel' },
+  { id: 'google-acceso', tipo: 'inicio-sesion', hosts: ['accounts.google.com'], para: 'Acceso opcional «Continuar con Google» (redirección; nos envía nombre, correo, foto e identificador)', legal: ['privacidad §2', 'privacidad §4', 'privacidad §8', 'términos §3', 'cookies §3'] },
   { id: 'youtube', tipo: 'incrustado', hosts: ['youtube.com', 'youtube-nocookie.com', 'youtu.be'], para: 'Vídeos en portales, solo tras pulsar «Reproducir»', legal: ['privacidad §3', 'cookies §2'] },
   { id: 'vimeo', tipo: 'incrustado', hosts: ['vimeo.com'], para: 'Vídeos en portales, solo tras pulsar «Reproducir» (con dnt=1)', legal: ['privacidad §3', 'cookies §2'] },
   { id: 'tally', tipo: 'enlace-externo', hosts: ['tally.so'], para: 'Encuesta opcional de las funciones PRO (se abre solo si el usuario la pulsa)', legal: ['privacidad §2', 'privacidad §4', 'términos §4'] },
