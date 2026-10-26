@@ -203,6 +203,41 @@ const createExtraBlock = (type, param) => (
     : { id: Date.now() + Math.random(), type: 'image', src: null }
 );
 
+// ==========================================
+// DESCARGA DE ARCHIVOS CON NOMBRE Y EXTENSIÓN CORRECTOS
+// El atributo "download" de un enlace se ignora cuando el archivo está en otro dominio (Supabase Storage),
+// y el navegador guardaba el archivo con el nombre aleatorio de la nube (p. ej. "phsxv4m1nn7.svg+xml").
+// Por eso se descarga primero el archivo y se guarda con un nombre limpio según su tipo real.
+// ==========================================
+const MIME_EXTENSIONS = {
+  'image/svg+xml': 'svg', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+  'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'video/mp4': 'mp4', 'video/webm': 'webm',
+};
+
+const safeFileName = (name) =>
+  String(name || 'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'archivo';
+
+const downloadFile = async (src, baseName) => {
+  try {
+    const response = await fetch(src);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const blob = await response.blob();
+    const extension = MIME_EXTENSIONS[(blob.type || '').split(';')[0]] || 'png';
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `${safeFileName(baseName)}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (err) {
+    console.error('No se pudo descargar el archivo, se abre en una pestaña nueva:', err);
+    window.open(src, '_blank', 'noopener,noreferrer');
+  }
+};
+
 // Crea el manejador para añadir un bloque extra al final de un módulo (compartido por todos los módulos)
 const makeAddExtra = (content, update) => (type, param) =>
   update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
@@ -453,12 +488,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
   const handleDownload = (e) => {
     e.stopPropagation();
     if (!src) return;
-    const link = document.createElement('a');
-    link.href = src;
-    link.download = `${type}_mockup.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadFile(src, `${type}_mockup`);
   };
 
   const renderFrame = () => {
@@ -1107,12 +1137,7 @@ const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(fi
 const handleLogoDownload = (e, src, label) => {
     e.stopPropagation();
     if (!src) return;
-    const link = document.createElement('a');
-    link.href = src;
-    link.download = `${label.replace(/\s+/g, '_')}_logo.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadFile(src, `${label}_logo`);
   };
 
   const handleAddExtra = makeAddExtra(content, update);
