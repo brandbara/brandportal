@@ -24,12 +24,38 @@ aplicó este archivo. **Las dos huellas coinciden (45 elementos).**
 
 El robot de GitHub «Esquema de Supabase» (`.github/workflows/esquema-supabase.yml`) corre cuando se
 toca `supabase/`: monta un Postgres vacío, aplica el archivo y ejecuta
-`verificacion/pruebas_seguridad.sql` (23 comprobaciones: nadie puede cambiarse el plan, un usuario no
-ve datos de otro, el servidor rechaza subidas sin espacio, eliminar cuenta borra solo lo propio…).
+`verificacion/pruebas_seguridad.sql` (39 comprobaciones: nadie puede cambiarse el plan, un usuario no
+ve datos de otro, el servidor rechaza subidas sin espacio, eliminar cuenta borra solo lo propio, la cola de la
+beta respeta el orden de llegada y nadie puede activarse a sí mismo…).
 Se probó además que las pruebas **fallan** si se rompe el esquema a propósito.
 
 Esto garantiza que el archivo es aplicable y que las reglas de seguridad que describe funcionan. No
 detecta, por sí solo, que producción se haya cambiado a mano sin actualizar el archivo.
+
+## Beta con plazas y cola de espera (cómo se gestiona)
+
+Las plazas son cuentas con `status = 'active'`. Quien se registra con la beta llena queda en la cola
+(`status = 'waitlist'`): puede iniciar sesión pero el servidor no le deja crear portal ni subir archivos.
+Cuando se borra una cuenta o se sube el tope, entra solo el primero de la cola (por orden de llegada).
+
+Se gestiona desde el panel de Supabase → SQL Editor:
+
+```sql
+-- Ver el estado (plazas, ocupadas, libres, gente en cola)
+select public.beta_status();
+
+-- Subir (o bajar) las plazas: al subirlas entra solo la gente de la cola que quepa
+update public.app_settings set value = '50' where key = 'beta_capacity';
+
+-- Quién espera, por orden
+select email, waitlist_since from public.profiles where status = 'waitlist' order by waitlist_since;
+
+-- Pausar a una cuenta (libera su plaza) y repartir la plaza libre
+update public.profiles set status = 'suspended' where email = 'alguien@ejemplo.com';
+select public.promote_waitlist();
+```
+
+Bajar el tope **no** echa a nadie que ya tenga plaza: solo frena nuevas entradas.
 
 ## Regla de trabajo
 

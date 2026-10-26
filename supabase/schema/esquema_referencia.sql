@@ -25,6 +25,7 @@
 --   20261026114343 eliminar_cuenta_real          -> supabase/migrations/
 --   20261026125630 limite_espacio_en_servidor    -> supabase/migrations/
 --   20261026132627 lectura_de_propios_archivos   -> supabase/migrations/
+--   (pendiente de aplicar) beta_plazas_y_cola    -> supabase/migrations/
 --
 -- Si cambias la base de datos, añade una migración en supabase/migrations/
 -- Y actualiza este archivo para que siga reflejando el estado real.
@@ -40,10 +41,26 @@ create table public.profiles (
   email        text unique,
   plan         text        default 'beta_founder',
   storage_used bigint      default 0,
-  status       text        default 'active',
+  status       text        not null default 'waitlist',  -- 'active' | 'waitlist' | 'suspended'
   strikes      integer     default 0,
-  updated_at   timestamptz default now()
+  updated_at   timestamptz default now(),
+  waitlist_since timestamptz default now(),   -- hora de llegada a la cola
+  activated_at   timestamptz,                  -- cuándo obtuvo plaza
+  notified_at    timestamptz,                  -- aviso de plaza enviado (fase 2: email)
+  constraint profiles_status_check check (status in ('active', 'waitlist', 'suspended'))
 );
+
+-- Ajustes de la aplicación. Nadie los lee ni escribe desde la web (sin permisos para
+-- anon/authenticated); solo las funciones de la beta. Se cambian desde el panel de Supabase:
+--   update public.app_settings set value = '50' where key = 'beta_capacity';
+create table public.app_settings (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz not null default now()
+);
+insert into public.app_settings (key, value) values
+  ('beta_capacity',   '25'::jsonb),    -- plazas de la beta
+  ('notify_by_email', 'false'::jsonb); -- true cuando el aviso por email esté en marcha
 
 create table public.portals (
   id            uuid primary key default gen_random_uuid(),
@@ -77,22 +94,27 @@ AS $function$
               else 20971520::bigint end
 $function$;
 
--- ¿Puede la cuenta actual subir otro archivo? (la usa la política de subida)
+-- ¿Puede la cuenta actual subir otro archivo? Solo con plaza (status 'active') y
+-- mientras no supere el tope de su plan. (La usa la política de subida.)
 CREATE OR REPLACE FUNCTION public.can_upload_asset()
- RETURNS boolean
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+ returns boolean
+ language plpgsql
+ stable security definer
+ set search_path to ''
+as $$
 declare
-  v_uid  uuid := auth.uid();
-  v_plan text;
-  v_used bigint;
+  v_uid    uuid := auth.uid();
+  v_plan   text;
+  v_status text;
+  v_used   bigint;
 begin
   if v_uid is null then
     return false;
   end if;
-  select plan into v_plan from public.profiles where id = v_uid;
+  select plan, status into v_plan, v_status from public.profiles where id = v_uid;
+  if v_status is distinct from 'active' then
+    return false;
+  end if;
   select coalesce(sum((o.metadata->>'size')::bigint), 0)
     into v_used
     from storage.objects o
@@ -100,7 +122,7 @@ begin
      and (storage.foldername(o.name))[1] = v_uid::text;
   return v_used < public.asset_limit_bytes(v_plan);
 end
-$function$;
+$$;
 
 -- Elimina la cuenta de quien la llama (solo si ya no le quedan archivos).
 CREATE OR REPLACE FUNCTION public.delete_my_account()
@@ -215,31 +237,176 @@ AS $function$
 $function$;
 
 
+-- Beta con plazas y cola de espera
+-- (reglas completas en supabase/migrations/…_beta_plazas_y_cola.sql)
+
+CREATE OR REPLACE FUNCTION public.beta_capacity()
+ returns integer
+ language sql
+ stable security definer
+ set search_path to ''
+as $$
+  select coalesce((select (value #>> '{}')::int from public.app_settings where key = 'beta_capacity'), 0)
+$$;
+
+-- Estado público de la beta (para mostrar «quedan N plazas» al registrarse)
+CREATE OR REPLACE FUNCTION public.beta_status()
+ returns json
+ language sql
+ stable security definer
+ set search_path to ''
+as $$
+  select json_build_object(
+    'capacity',        public.beta_capacity(),
+    'active',          (select count(*) from public.profiles where status = 'active'),
+    'remaining',       greatest(public.beta_capacity() - (select count(*) from public.profiles where status = 'active'), 0),
+    'waiting',         (select count(*) from public.profiles where status = 'waitlist'),
+    'notify_by_email', coalesce((select (value #>> '{}')::boolean from public.app_settings where key = 'notify_by_email'), false)
+  )
+$$;
+
+-- Reparte las plazas libres entre los primeros de la cola. Devuelve cuántos pasan a 'active'.
+CREATE OR REPLACE FUNCTION public.promote_waitlist()
+ returns integer
+ language plpgsql
+ security definer
+ set search_path to ''
+as $$
+declare
+  v_free integer;
+  n      integer;
+begin
+  perform pg_advisory_xact_lock(hashtext('brandbara_beta_slots'));
+  v_free := greatest(public.beta_capacity() - (select count(*) from public.profiles where status = 'active'), 0);
+  if v_free = 0 then
+    return 0;
+  end if;
+  with siguientes as (
+    select id from public.profiles
+     where status = 'waitlist'
+     order by waitlist_since nulls last, id
+     limit v_free
+     for update skip locked
+  )
+  update public.profiles p
+     set status = 'active', activated_at = now(), updated_at = now()
+    from siguientes
+   where p.id = siguientes.id;
+  get diagnostics n = row_count;
+  return n;
+end
+$$;
+
+-- La web la llama al iniciar sesión: crea el perfil si falta (con plaza o en cola) y devuelve el estado.
+CREATE OR REPLACE FUNCTION public.claim_beta_slot()
+ returns json
+ language plpgsql
+ security definer
+ set search_path to ''
+as $$
+declare
+  v_uid    uuid := auth.uid();
+  v_row    public.profiles%rowtype;
+  v_active integer;
+  v_pos    integer := 0;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext('brandbara_beta_slots'));
+
+  select * into v_row from public.profiles where id = v_uid;
+
+  if v_row.id is null then
+    select count(*) into v_active from public.profiles where status = 'active';
+    -- con cola pendiente nadie se cuela: primero los que esperan
+    if v_active < public.beta_capacity() and not exists (select 1 from public.profiles where status = 'waitlist') then
+      insert into public.profiles (id, email, status, activated_at, updated_at)
+        select v_uid, u.email, 'active', now(), now() from auth.users u where u.id = v_uid;
+    else
+      insert into public.profiles (id, email, status, waitlist_since, updated_at)
+        select v_uid, u.email, 'waitlist', now(), now() from auth.users u where u.id = v_uid;
+    end if;
+  else
+    if v_row.status = 'waitlist' and v_row.waitlist_since is null then
+      update public.profiles set waitlist_since = now() where id = v_uid;
+    end if;
+    -- el email se rellena si el perfil se creó sin él (la web no puede escribirlo)
+    update public.profiles p set email = u.email
+      from auth.users u
+     where p.id = v_uid and u.id = v_uid and p.email is null
+       and not exists (select 1 from public.profiles q where q.email = u.email);
+  end if;
+
+  -- si hay plazas libres y gente esperando (p. ej. se subió el tope), se reparten antes de responder
+  perform public.promote_waitlist();
+
+  select * into v_row from public.profiles where id = v_uid;
+  if v_row.status = 'waitlist' then
+    select count(*) into v_pos from public.profiles p
+     where p.status = 'waitlist'
+       and (coalesce(p.waitlist_since, 'infinity'::timestamptz), p.id) <= (coalesce(v_row.waitlist_since, 'infinity'::timestamptz), v_row.id);
+  end if;
+
+  return (public.beta_status()::jsonb || jsonb_build_object('state', v_row.status, 'position', v_pos, 'activated_at', v_row.activated_at))::json;
+end
+$$;
+
+-- Al borrarse una cuenta (o cambiar los ajustes) se reparten las plazas que queden libres
+CREATE OR REPLACE FUNCTION public.on_slots_may_have_changed()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $$
+begin
+  perform public.promote_waitlist();
+  return null;
+end
+$$;
+
+
 -- ---------------------------------------------------------------------
--- 3. Disparador: direcciones reservadas
+-- 3. Disparadores
 -- ---------------------------------------------------------------------
 
 CREATE TRIGGER portals_guard_slug
   BEFORE INSERT OR UPDATE OF slug ON public.portals
   FOR EACH ROW EXECUTE FUNCTION guard_portal_slug();
 
+-- Beta: al borrarse una cuenta, o al cambiar los ajustes (p. ej. subir el tope de
+-- plazas), pasan a 'active' los primeros de la cola hasta llenar las plazas libres.
+create trigger profiles_promote_after_delete
+  after delete on public.profiles
+  for each row execute function public.on_slots_may_have_changed();
+
+create trigger app_settings_promote_after_change
+  after insert or update on public.app_settings
+  for each statement execute function public.on_slots_may_have_changed();
+
 
 -- ---------------------------------------------------------------------
 -- 4. Seguridad por filas (RLS) y políticas
 -- ---------------------------------------------------------------------
 
-alter table public.profiles enable row level security;
-alter table public.portals  enable row level security;
+alter table public.profiles     enable row level security;
+alter table public.portals      enable row level security;
+alter table public.app_settings enable row level security;   -- sin políticas: solo las funciones la leen
 
+-- Portales: el dueño los gestiona, y solo crea/modifica si tiene plaza (status 'active').
 create policy "Owners manage portals" on public.portals
   for all to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check (
+    (select auth.uid()) = user_id
+    and exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.status = 'active')
+  );
 
 create policy "Owners manage profile" on public.profiles
   for all to authenticated
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+  using ((select auth.uid()) = id)
+  with check ((select auth.uid()) = id);
 
 
 -- ---------------------------------------------------------------------
@@ -254,6 +421,9 @@ create policy "Owners manage profile" on public.profiles
 revoke insert, update on public.profiles from anon, authenticated;
 grant insert (id, updated_at), update (id, updated_at) on public.profiles to authenticated;
 
+-- app_settings: cerrada del todo para la web.
+revoke all on public.app_settings from anon, authenticated;
+
 -- portals: se mantienen los permisos por defecto; la protección real es RLS
 -- (solo existe política para 'authenticated' y solo sobre la fila propia).
 
@@ -264,6 +434,11 @@ revoke execute on function public.get_portal_secure(text, text) from public;
 revoke execute on function public.guard_portal_slug()     from public, anon, authenticated;
 revoke execute on function public.is_slug_available(text) from public, anon;
 revoke execute on function public.my_asset_paths()        from public, anon;
+revoke execute on function public.beta_capacity()              from public, anon, authenticated;
+revoke execute on function public.promote_waitlist()           from public, anon, authenticated;
+revoke execute on function public.on_slots_may_have_changed()  from public, anon, authenticated;
+revoke execute on function public.claim_beta_slot()            from public, anon;
+revoke execute on function public.beta_status()                from public;
 -- asset_limit_bytes(text) conserva los permisos por defecto (inofensiva: solo devuelve un número).
 
 grant execute on function public.can_upload_asset()       to authenticated, service_role;
@@ -272,6 +447,8 @@ grant execute on function public.get_portal_secure(text, text) to anon, authenti
 grant execute on function public.guard_portal_slug()      to service_role;
 grant execute on function public.is_slug_available(text)  to authenticated, service_role;
 grant execute on function public.my_asset_paths()         to authenticated, service_role;
+grant execute on function public.claim_beta_slot()        to authenticated, service_role;   -- la web la llama al iniciar sesión
+grant execute on function public.beta_status()            to anon, authenticated, service_role;  -- «quedan N plazas»
 
 
 -- ---------------------------------------------------------------------
