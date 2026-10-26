@@ -534,6 +534,17 @@ const isVideoUrl = (url) => {
 };
 
 // --- FUNCIÓN DE HASHING (SEGURIDAD DE CONTRASEÑAS DEL PORTAL) ---
+// Enlaces que no se pueden registrar: rutas del sistema y palabras ofensivas (primera barrera; la definitiva debe estar también en el servidor)
+const RESERVED_SLUGS = new Set(['info','admin','api','app','blog','hello','login','logout','signin','signup','register','edit','dashboard','billing','pricing','support','help','about','terms','privacy','legal','cookies','settings','account','profile','www','mail','email','static','assets','public','docs','status','brandbara','null','undefined','es','en','pro','free','home','index','new','404']);
+const BLOCKED_SLUG_WORDS = new Set(['porn','porno','pornografia','xxx','sex','sexo','sexy','nude','nudes','fuck','fucker','shit','bitch','pussy','dick','cock','cum','rape','nazi','hitler','nigger','nigga','faggot','puta','puto','putas','putos','mierda','joder','cabron','gilipollas','pendejo','verga','polla','pene','culo','follar','mamada','zorra','maricon','pedofilia']);
+const getSlugProblem = (slug) => {
+  if (!slug) return null;
+  if (RESERVED_SLUGS.has(slug)) return 'reserved';
+  if (BLOCKED_SLUG_WORDS.has(slug.replace(/-/g, ''))) return 'blocked';
+  if (slug.split('-').some((token) => BLOCKED_SLUG_WORDS.has(token))) return 'blocked';
+  return null;
+};
+
 const hashPassword = async (password) => {
   if (!password) return null;
   const msgBuffer = new TextEncoder().encode(password);
@@ -1475,7 +1486,7 @@ const handleLogoDownload = (e, src, label) => {
     <div className="p-6 md:p-10 relative group/logo-module">
       {/* BARRA DE HERRAMIENTAS EXCLUSIVA DEL LOGO (MODO EDICIÓN) */}
       {!isPreview && (
-          <div className="absolute top-4 right-4 flex gap-1 z-30 opacity-0 group-hover/logo-module:opacity-100 transition-opacity p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
+          <div className="absolute top-16 right-4 flex gap-1 z-30 opacity-0 group-hover/logo-module:opacity-100 transition-opacity p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
               <button onClick={() => update({...content, showSafeArea: !showSafeArea})} className={`p-1.5 rounded transition-colors ${showSafeArea ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Área Seguridad">
                   <Grid size={14}/>
               </button>
@@ -2735,7 +2746,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               {/* Mensajes de ayuda o error */}
                               {slugStatus === 'taken' ? (
                                 <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-1">
-                                  <AlertCircle size={10} /> Este enlace ya está ocupado.
+                                  <AlertCircle size={10} /> Este enlace no está disponible.
                                 </p>
                               ) : (
                                 <p className="text-[10px] opacity-60 mt-1">Este será el enlace público que compartirás con tus clientes.</p>
@@ -3575,10 +3586,12 @@ setProfileContent({
     let failed = 0;
     let lost = 0;
     let stage = 'fetch';
+    const urlMap = {};
     const traverse = async (node) => {
       if (!node) return node;
       if (typeof node === 'string' && node.startsWith('blob:')) {
         hasChanges = true;
+        if (Object.prototype.hasOwnProperty.call(urlMap, node)) return urlMap[node];
         try {
           stage = 'fetch';
           const response = await fetch(node);
@@ -3608,10 +3621,11 @@ const { error } = await supabase.storage.from('portals_assets').upload(filePath,
           URL.revokeObjectURL(node);
           idbDelete(node).catch(e => console.error("Error borrando de IDB:", e));
           
+          urlMap[node] = data.publicUrl;
           return data.publicUrl;
                 } catch (e) {
           console.error("Error procesando imagen (" + stage + "):", e);
-          if (stage === 'fetch') { lost += 1; return null; }
+          if (stage === 'fetch') { lost += 1; urlMap[node] = null; return null; }
           failed += 1;
           return node;
         }
@@ -3629,8 +3643,16 @@ const { error } = await supabase.storage.from('portals_assets').upload(filePath,
       return node;
     };
     const result = await traverse(obj);
-    return { result, hasChanges, failed, lost };
+    return { result, hasChanges, failed, lost, urlMap };
   };
+
+  // Sustituye en el estado más reciente las URLs temporales (blob:) por las definitivas, sin pisar lo que el usuario haya editado mientras se subía
+const replaceUrls = (node, map) => {
+  if (typeof node === 'string') return Object.prototype.hasOwnProperty.call(map, node) ? map[node] : node;
+  if (Array.isArray(node)) return node.map((n) => replaceUrls(n, map));
+  if (node && typeof node === 'object') return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, replaceUrls(v, map)]));
+  return node;
+};
 
   // Limpiador de URLs efímeras antes de guardar en caché local
 const stripBlobUrls = (obj) => {
@@ -3674,6 +3696,10 @@ const processedProfile = currentUser?.id ? await processBlobsInObject(profileCon
         if (failedUploads > 0) {
           throw new Error("No se pudieron subir " + failedUploads + " imagen(es). No se ha publicado nada para evitar imágenes rotas; revisa tu conexión e inténtalo de nuevo.");
         }
+        const slugProblem = getSlugProblem(processedProfile.result?.slug || '');
+        if (slugProblem) {
+          throw new Error("El enlace elegido no está permitido. Elige otro nombre para tu portal.");
+        }
         const { error: profileError } = await supabase.from('profiles').upsert({ id: currentUser.id, updated_at: new Date().toISOString() });
         if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
 // Hashear la contraseña antes de enviar a Supabase
@@ -3707,12 +3733,13 @@ const processedProfile = currentUser?.id ? await processBlobsInObject(profileCon
         
 // Sincronizamos el estado de React y actualizamos LocalStorage con los enlaces permanentes de Supabase
 if (processedCanvas.hasChanges) {
-  setCanvasItems(processedCanvas.result);
-  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems: processedCanvas.result, design, profileContent, isDarkMode, language, currentFont }));
+  setCanvasItems(prev => replaceUrls(prev, processedCanvas.urlMap));
 }
 if (processedProfile.hasChanges) {
-  setProfileContent(processedProfile.result);
-  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems, design, profileContent: processedProfile.result, isDarkMode, language, currentFont }));
+  setProfileContent(prev => replaceUrls(prev, processedProfile.urlMap));
+}
+if (processedCanvas.hasChanges || processedProfile.hasChanges) {
+  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems: stripBlobUrls(replaceUrls(canvasItems, processedCanvas.urlMap)), design, profileContent: stripBlobUrls(replaceUrls(profileContent, processedProfile.urlMap)), isDarkMode, language, currentFont }));
 }
 
 setSaveStatus('saved');
@@ -3900,8 +3927,14 @@ const isInitialMount = useRef(true);
   }, [language, t]);
 
   const handleSlugChange = (newSlug) => {
-    const sanitizedSlug = newSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const sanitizedSlug = newSlug.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     setProfileContent({ ...profileContent, slug: sanitizedSlug });
+
+    if (getSlugProblem(sanitizedSlug)) {
+      if (slugCheckTimeout) clearTimeout(slugCheckTimeout);
+      setSlugStatus('taken');
+      return;
+    }
 
     if (!sanitizedSlug) {
       setSlugStatus(null);
@@ -4029,8 +4062,8 @@ const isInitialMount = useRef(true);
     }
   };
 
-  const removeComponent = (id) => setCanvasItems(canvasItems.filter(i => i.id !== id));
-  const updateComponent = (id, c) => setCanvasItems(canvasItems.map(i => i.id === id ? { ...i, content: c } : i));
+  const removeComponent = (id) => setCanvasItems(prev => prev.filter(i => i.id !== id));
+  const updateComponent = (id, c) => setCanvasItems(prev => prev.map(i => i.id === id ? { ...i, content: c } : i));
 
   const renderCanvasItem = (item, index) => {
     const style = design.style || DESIGN_STYLES.crystal;
