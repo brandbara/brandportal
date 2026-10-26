@@ -18,9 +18,12 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
+import { deleteMyAccount } from './utils/account';
+import { downloadFile } from './utils/download';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
+import { toSafeHref, blockEmptyLink, toSafeMediaUrl, isSafeMediaSrc, getVideoEmbedUrl } from './utils/safeUrl.js';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -148,24 +151,6 @@ const getInitialCanvas = (t) => {
 
 const triggerFileInput = (id) => { const element = document.getElementById(id); if (element) element.click(); };
 
-const getEmbedUrl = (url) => {
-  if (!url) return null;
-  const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
-  const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/;
-  
-  const ytMatch = url.match(youtubeRegex);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  
-  const vimeoMatch = url.match(vimeoRegex);
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  
-  return url; 
-};
-
-const isVideoUrl = (url) => {
-  return url && (url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo'));
-};
-
 // --- FUNCIÓN DE HASHING (SEGURIDAD DE CONTRASEÑAS DEL PORTAL) ---
 // Enlaces que no se pueden registrar: rutas del sistema y palabras ofensivas (primera barrera; la definitiva debe estar también en el servidor)
 const RESERVED_SLUGS = new Set(['info','admin','api','app','blog','hello','login','logout','signin','signup','register','edit','dashboard','billing','pricing','support','help','about','terms','privacy','legal','cookies','settings','account','profile','www','mail','email','static','assets','public','docs','status','null','undefined','es','en','pro','free','home','index','new','404']);
@@ -205,41 +190,6 @@ const createExtraBlock = (type, param) => (
     ? { id: Date.now() + Math.random(), type: 'text', cols: param, content: Array(param).fill('') }
     : { id: Date.now() + Math.random(), type: 'image', src: null }
 );
-
-// ==========================================
-// DESCARGA DE ARCHIVOS CON NOMBRE Y EXTENSIÓN CORRECTOS
-// El atributo "download" de un enlace se ignora cuando el archivo está en otro dominio (Supabase Storage),
-// y el navegador guardaba el archivo con el nombre aleatorio de la nube (p. ej. "phsxv4m1nn7.svg+xml").
-// Por eso se descarga primero el archivo y se guarda con un nombre limpio según su tipo real.
-// ==========================================
-const MIME_EXTENSIONS = {
-  'image/svg+xml': 'svg', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
-  'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'video/mp4': 'mp4', 'video/webm': 'webm',
-};
-
-const safeFileName = (name) =>
-  String(name || 'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'archivo';
-
-const downloadFile = async (src, baseName) => {
-  try {
-    const response = await fetch(src);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const blob = await response.blob();
-    const extension = MIME_EXTENSIONS[(blob.type || '').split(';')[0]] || 'png';
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = `${safeFileName(baseName)}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  } catch (err) {
-    console.error('No se pudo descargar el archivo, se abre en una pestaña nueva:', err);
-    window.open(src, '_blank', 'noopener,noreferrer');
-  }
-};
 
 // Crea el manejador para añadir un bloque extra al final de un módulo (compartido por todos los módulos)
 const makeAddExtra = (content, update) => (type, param) =>
@@ -407,6 +357,30 @@ const FileUploadPlaceholder = ({ id, label, design, onUpload, isDarkMode, previe
   );
 };
 
+// Contenido de una celda Bento: solo se incrusta YouTube/Vimeo (en un marco aislado); los vídeos subidos van en <video>
+const BentoMedia = ({ item, isPreview }) => {
+  const embedUrl = getVideoEmbedUrl(item.src);
+  if (embedUrl) {
+    return (
+      <iframe
+        src={embedUrl}
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+        referrerPolicy="strict-origin-when-cross-origin"
+        loading="lazy"
+        allowFullScreen
+        className={`w-full h-full ${isPreview ? '' : 'pointer-events-none'}`}
+        title={`Video ${item.id}`}
+        allow="encrypted-media; picture-in-picture; fullscreen"
+      />
+    );
+  }
+  if (!isSafeMediaSrc(item.src)) return null;
+  if (item.type === 'video') {
+    return <video src={item.src} className="w-full h-full object-cover" controls={isPreview} muted loop playsInline preload="metadata" />;
+  }
+  return <img src={item.src} alt="Bento Item" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />;
+};
+
 // ==============================================================================
 // === FILE: BentoEmptyCell.tsx ===
 // ==============================================================================
@@ -414,6 +388,7 @@ const FileUploadPlaceholder = ({ id, label, design, onUpload, isDarkMode, previe
 const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkVal, setLinkVal] = useState('');
+  const [linkError, setLinkError] = useState(false);
 
   if (showLinkInput) {
      return (
@@ -423,15 +398,20 @@ const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
               placeholder={t.ui.pasteLink} 
               className="w-full text-xs p-3 rounded-lg border mb-3 outline-none dark:bg-slate-700 dark:text-white"
               value={linkVal}
-              onChange={(e) => setLinkVal(e.target.value)}
+              onChange={(e) => { setLinkVal(e.target.value); setLinkError(false); }}
               autoFocus
+              aria-label={t.ui.pasteLink}
+              aria-invalid={linkError}
            />
+           {linkError && <p role="alert" className="text-[11px] text-rose-500 font-bold mb-3 text-center">{t.ui.invalidLink}</p>}
            <div className="flex gap-2">
               <button 
                  onClick={() => {
-                     const embed = getEmbedUrl(linkVal);
-                     const type = isVideoUrl(linkVal) ? 'video' : 'image';
-                     onUpdate(id, type, embed);
+                     const embed = getVideoEmbedUrl(linkVal);
+                     if (embed) return onUpdate(id, 'video', embed);
+                     const imageUrl = toSafeMediaUrl(linkVal);
+                     if (imageUrl) return onUpdate(id, 'image', imageUrl);
+                     setLinkError(true);
                  }}
                  className="px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg font-bold touch-manipulation"
               >
@@ -491,7 +471,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
   const handleDownload = (e) => {
     e.stopPropagation();
     if (!src) return;
-    downloadFile(src, `${type}_mockup`);
+    downloadFile(src, `${type}_mockup`, { errorMessage: t?.ui?.downloadError });
   };
 
   const renderFrame = () => {
@@ -505,7 +485,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
          
          {!isPreview && (
             <>
-                {src && <button onClick={handleDownload} className="absolute bottom-2 left-2 p-2 bg-indigo-600 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110" title="Descargar"><Download size={14}/></button>}
+                {src && <button type="button" onClick={handleDownload} className="absolute bottom-2 left-2 p-2.5 bg-indigo-600 text-white rounded-full transition-opacity shadow-lg z-20 hover:scale-110 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/dev:opacity-100 focus-visible:opacity-100" title={t?.ui?.downloadImage || "Descargar imagen"} aria-label={t?.ui?.downloadImage || "Descargar imagen"}><Download size={14}/></button>}
                 <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110"><Trash2 size={14}/></button>
             </>
          )}
@@ -1045,7 +1025,7 @@ const handleExampleUpload = (e, id) => {
                         />
                     )}
                     <a 
-                        href={example.templateUrl || '#'}
+                        href={toSafeHref(example.templateUrl)} onClick={blockEmptyLink(example.templateUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
@@ -1086,7 +1066,7 @@ const handleExampleUpload = (e, id) => {
                   />
               )}
               <a 
-                  href={content.downloadUrl || '#'} 
+                  href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
@@ -1140,7 +1120,7 @@ const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(fi
 const handleLogoDownload = (e, src, label) => {
     e.stopPropagation();
     if (!src) return;
-    downloadFile(src, `${label}_logo`);
+    downloadFile(src, `${label}_logo`, { errorMessage: t?.ui?.downloadError });
   };
 
   const handleAddExtra = makeAddExtra(content, update);
@@ -1203,11 +1183,13 @@ const handleLogoDownload = (e, src, label) => {
                     {variant.src ? <img src={variant.src} className="w-2/3 h-2/3 object-contain" alt={variant.label} /> : <div className={`text-center p-4 opacity-30 font-bold ${variant.bg === 'dark' ? 'text-white' : 'text-slate-900'}`}>LOGO</div>}
                     
                     {variant.src && (
-                        <div className="absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-3 right-3 z-20 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
                             <button 
+                                type="button"
                                 onClick={(e) => handleLogoDownload(e, variant.src, variant.label)}
-                                className="p-2.5 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-110"
+                                className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-110"
                                 title={t?.ui?.downloadLogo || "Descargar Logotipo"}
+                                aria-label={`${t?.ui?.downloadLogo || "Descargar Logotipo"}: ${variant.label}`}
                             >
                                 <Download size={16} />
                             </button>
@@ -1576,7 +1558,7 @@ const handleAddExtra = makeAddExtra(content, update);
                 )}
                 {(content.customFontUrl || !isPreview) && (
                     <a 
-                        href={content.customFontUrl || '#'} 
+                        href={toSafeHref(content.customFontUrl)} onClick={blockEmptyLink(content.customFontUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className={`flex items-center justify-center gap-2 text-xs font-bold px-6 py-3 rounded-full border transition-all shadow-sm ${!content.customFontUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'border-white/20 text-white hover:bg-white/10' : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'}`}
@@ -1776,7 +1758,7 @@ const handleAddExtra = makeAddExtra(content, update);
              />
           )}
           <a
-            href={content.downloadUrl || '#'}
+            href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all w-full md:w-auto justify-center ${!content.downloadUrl && isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} ${isDarkMode ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
@@ -1914,7 +1896,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                             <div key={platform.id} className="relative group/social">
                                 {isPreview ? (
                                     <a 
-                                        href={link} 
+                                        href={toSafeHref(link)} onClick={blockEmptyLink(link)} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="block p-3 rounded-full transition-transform hover:scale-110"
@@ -2007,7 +1989,7 @@ const handleAddExtra = makeAddExtra(content, update);
                <EditableText text={partner.caption} placeholder={t.ui.placeholders.caption} className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`} isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updatePartner(partner.id, 'caption', v)} />
                <div className="mt-auto pt-2">
                    {!isPreview && (<input type="text" placeholder={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
-                   <a href={partner.templateUrl || '#'} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
+                   <a href={toSafeHref(partner.templateUrl)} onClick={blockEmptyLink(partner.templateUrl)} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
                </div>
              </div>
              {!isPreview && <button onClick={() => removePartner(partner.id)} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>}
@@ -2092,7 +2074,7 @@ const handleAddExtra = makeAddExtra(content, update);
 
             <div className="w-full md:w-auto shrink-0 flex items-center justify-end mt-4 md:mt-0">
               <a 
-                href={asset.url || '#'} 
+                href={toSafeHref(asset.url)} onClick={blockEmptyLink(asset.url)} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className={`w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${(!asset.url && !isPreview) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? `bg-${colorBase}-600 hover:bg-${colorBase}-500 text-white shadow-lg shadow-${colorBase}-500/20` : `bg-${colorBase}-600 hover:bg-${colorBase}-700 text-white shadow-lg shadow-${colorBase}-500/30`}`}
@@ -2163,7 +2145,7 @@ return (
       <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
         {items.map((item, index) => (
           <div key={item.id || `bento-item-${index}`} className={`${activeLayoutClasses[index] || 'col-span-1 row-span-1'} ${design.radius} border relative group overflow-hidden flex flex-col items-center justify-center p-0 transition-all duration-500 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            {item.src ? (<div className="absolute inset-0 w-full h-full">{item.type === 'video' || isVideoUrl(item.src) ? (<iframe src={getEmbedUrl(item.src) || item.src} className="w-full h-full object-cover pointer-events-none" title={`Video ${item.id}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>) : (<img src={item.src} alt="Bento Item" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />)}{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
+            {item.src ? (<div className="absolute inset-0 w-full h-full"><BentoMedia item={item} isPreview={isPreview} />{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
             {!isPreview && <input id={`bento-up-${item.id}`} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleItemUpload(e, item.id)} />}
             {!isPreview && (<div className={`absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20 ${!item.src ? 'pointer-events-none' : ''}`}>{item.src && (<button onClick={() => { handleItemUpdate(item.id, item.type, null); }} className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg text-xs font-bold text-slate-900 hover:bg-white hover:scale-105 transition-all">{t.ui.change}</button>)}</div>)}
           </div>
@@ -2209,7 +2191,7 @@ const handleAddExtra = makeAddExtra(content, update);
          </div>
       </ModuleHeader>
       {selectedLib === 'custom' ? renderCustomIcons() : renderGoogleIcons()}
-      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={content.downloadUrl || '#'} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
+      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
       <DynamicBlocks blocks={content?.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -2327,7 +2309,28 @@ const ModuleSlot = React.memo(({ item, onUpdate, design, isDarkMode, t, isPrevie
 const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange, checkLimit }) => {  
   const [activeTab, setActiveTab] = useState('profile');
   const [showDangerZone, setShowDangerZone] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
+  const deleteWord = safeT.ui.deleteAccountWord;
+
+  const handleDeleteAccount = async () => {
+    setDeleteError(false);
+    setIsDeletingAccount(true);
+    try {
+      if (supabase) await deleteMyAccount(supabase);
+      idbClear().catch(console.error); // Vaciar copia local de imágenes
+      onClose();
+      if (onLogout) await onLogout(safeT.ui.deleteAccountDone);
+    } catch (err) {
+      console.error('No se pudo eliminar la cuenta:', err);
+      setDeleteError(true);
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteConfirm('');
+    }
+  };
   
   useEffect(() => {
     // Solo rellenamos datos de relleno si el perfil está completamente vacío (usuario nuevo sin registro)
@@ -2513,7 +2516,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 <ChevronDown size={16} className={`transition-transform duration-300 opacity-50 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} ${showDangerZone ? 'rotate-180' : ''}`} />
                             </button>
 
-                            <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-80 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-[40rem] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className={`p-5 rounded-2xl border space-y-5 shadow-inner ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                                     {/* BOTÓN NARANJA AÑADIDO AQUÍ */}
                                     <div>
@@ -2527,23 +2530,25 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                     </div>
                                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
                                         <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                       
-                                         <button onClick={async () => {
-                                          if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
-                                            try {
-                                              if (supabase) {
-                                                // Borrar portal de la base de datos
-                                                await supabase.from('portals').delete().eq('user_id', content.id);
-                                              }
-                                              idbClear().catch(console.error); // Vaciar búnker
-                                              if(onLogout) onLogout();
-                                              onClose();
-                                            } catch (err) {
-                                              alert("Error al eliminar datos: " + err.message);
-                                            }
-                                          }
-                                        }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
-                                          Eliminar mi cuenta definitivamente
-                                        </button>                                    </div>
+                                        <p className={`text-xs mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{safeT.ui.deleteAccountWarn}</p>
+                                        <label htmlFor="delete-account-confirm" className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{safeT.ui.deleteAccountType.replace('{word}', deleteWord)}</label>
+                                        <input
+                                          id="delete-account-confirm"
+                                          type="text"
+                                          autoComplete="off"
+                                          value={deleteConfirm}
+                                          onChange={(e) => setDeleteConfirm(e.target.value)}
+                                          className={`w-full mb-3 px-3 py-2 rounded-lg border text-sm outline-none focus:border-rose-500 ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isDeletingAccount || deleteConfirm.trim().toUpperCase() !== deleteWord}
+                                          onClick={handleDeleteAccount}
+                                          className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                          {isDeletingAccount ? safeT.ui.deleteAccountBusy : safeT.ui.deleteAccount}
+                                        </button>
+                                        {deleteError && <p role="alert" className="mt-3 text-xs font-bold text-rose-500">{safeT.ui.deleteAccountError}</p>}                                    </div>
                                  </div>
                             </div>
                           </div>
@@ -3133,15 +3138,22 @@ const Editor = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   
-  const showToast = (msg) => {
+  const showToast = React.useCallback((msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
-  };
+  }, []);
+
+  // Avisos lanzados desde fuera de React (p. ej. el ayudante de descargas)
+  useEffect(() => {
+    const onToast = (e) => { if (e.detail) showToast(e.detail); };
+    window.addEventListener('brandbara:toast', onToast);
+    return () => window.removeEventListener('brandbara:toast', onToast);
+  }, [showToast]);
 
   const [currentUser, setCurrentUser] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (message) => {
     try {
       if (supabase) await supabase.auth.signOut();
     } catch (error) {
@@ -3155,7 +3167,7 @@ const Editor = () => {
 setCurrentFont('Inter');
       
       setCanvasItems(getInitialCanvas(t));
-      showToast("Sesión cerrada correctamente.");
+      showToast(typeof message === 'string' ? message : "Sesión cerrada correctamente.");
         }
   };
 
