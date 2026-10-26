@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { 
   Wand2, Coffee, Type, Image as ImageIcon,
-  LayoutGrid, Globe, Sun, Moon, Eye, ChevronDown, 
+  LayoutGrid, Globe, Sun, Moon, Eye, EyeOff, ChevronDown, 
   Plus, Trash2, X, Upload, Check, AlertCircle, Grid, Smartphone,
   Layers, Palette, Hash, FileText, ImagePlus, 
   PaintBucket, Copy, ExternalLink,
@@ -168,7 +168,7 @@ const isVideoUrl = (url) => {
 
 // --- FUNCIÓN DE HASHING (SEGURIDAD DE CONTRASEÑAS DEL PORTAL) ---
 // Enlaces que no se pueden registrar: rutas del sistema y palabras ofensivas (primera barrera; la definitiva debe estar también en el servidor)
-const RESERVED_SLUGS = new Set(['info','admin','api','app','blog','hello','login','logout','signin','signup','register','edit','dashboard','billing','pricing','support','help','about','terms','privacy','legal','cookies','settings','account','profile','www','mail','email','static','assets','public','docs','status','brandbara','null','undefined','es','en','pro','free','home','index','new','404']);
+const RESERVED_SLUGS = new Set(['info','admin','api','app','blog','hello','login','logout','signin','signup','register','edit','dashboard','billing','pricing','support','help','about','terms','privacy','legal','cookies','settings','account','profile','www','mail','email','static','assets','public','docs','status','null','undefined','es','en','pro','free','home','index','new','404']);
 const BLOCKED_SLUG_WORDS = new Set(['porn','porno','pornografia','xxx','sex','sexo','sexy','nude','nudes','fuck','fucker','shit','bitch','pussy','dick','cock','cum','rape','nazi','hitler','nigger','nigga','faggot','puta','puto','putas','putos','mierda','joder','cabron','gilipollas','pendejo','verga','polla','pene','culo','follar','mamada','zorra','maricon','pedofilia']);
 const getSlugProblem = (slug) => {
   if (!slug) return null;
@@ -564,7 +564,7 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
 
   return (
     <div className="w-full min-h-[50vh] flex flex-col items-center justify-center p-12 text-center relative group overflow-hidden" style={bgStyle}>
-      {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/10' : 'bg-gradient-to-b from-slate-50'}`} />}
+      {!content?.bgType && <div className={`absolute inset-0 z-0 ${isDarkMode ? 'bg-gradient-to-b from-indigo-900/10' : 'bg-[#e2e8f0]'}`} />}
       {content?.bgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0" />}
       
       {!isPreview && (
@@ -1070,6 +1070,20 @@ const handleExampleUpload = (e, id) => {
   );
 });
 
+// Botón para ocultar una sección dentro de un módulo (solo se ve al editar)
+const HideSectionButton = ({ onClick, t }) => (
+  <button type="button" onClick={onClick} title={t?.ui?.hideSection || 'Ocultar'} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 bg-slate-100/80 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 hover:text-slate-800 dark:hover:text-white transition-colors">
+    <EyeOff size={12} /> {t?.ui?.hideSection || 'Ocultar'}
+  </button>
+);
+
+// Etiqueta para volver a mostrar una sección oculta (solo se ve al editar)
+const RestoreSectionPill = ({ label, onClick, t, isDarkMode }) => (
+  <button type="button" onClick={onClick} className={`flex items-center gap-2 px-4 py-2 rounded-full border border-dashed text-xs font-bold transition-colors ${isDarkMode ? 'border-white/20 text-slate-400 hover:text-white hover:border-white/40' : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:border-slate-400'}`}>
+    <Eye size={14} /> {label} · {t?.ui?.hiddenSection || 'Oculto'} — {t?.ui?.showSection || 'Mostrar'}
+  </button>
+);
+
 const LogoModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => { 
   const removeRule = (type, i) => { const current = content[type] || []; update({ ...content, [type]: current.filter((_, idx) => idx !== i) }); };
   const updateRuleText = (type, i, val) => { const current = [...(content[type] || [])]; current[i].text = val; update({ ...content, [type]: current }); };
@@ -1200,7 +1214,10 @@ const handleLogoDownload = (e, src, label) => {
       
       {showSafeArea && (
           <div className="mt-16 animate-in fade-in duration-300">
-            <h4 className={`text-xs font-bold uppercase tracking-widest mb-6 opacity-50 px-1 ${isCenterLayout ? 'text-center' : ''}`}>{t.modules.logo.safeArea}</h4>
+            <div className={`flex items-center gap-3 mb-6 ${isCenterLayout ? 'justify-center' : 'justify-between'}`}>
+              <h4 className="text-xs font-bold uppercase tracking-widest opacity-50 px-1">{t.modules.logo.safeArea}</h4>
+              {!isPreview && <HideSectionButton onClick={() => update({...content, showSafeArea: false})} t={t} />}
+            </div>
             <div className={`w-full aspect-[2/1] md:aspect-[3/1] ${design.radius} border flex flex-col items-center justify-center relative ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} p-12`}>
                 {/* Safe Area Container */}
                 <div className="relative group/safe">
@@ -1273,6 +1290,7 @@ const handleLogoDownload = (e, src, label) => {
                     <h4 className="text-lg font-bold flex items-center gap-3" style={{ color: dosColor }}><Check size={20} /> {t.modules.logo.correct}</h4>
                     {!isPreview && (
                         <div className="flex items-center gap-2">
+                            <HideSectionButton onClick={() => update({...content, showDos: false})} t={t} />
                             <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Correctos"/>
                             <button onClick={() => update({...content, dos: [...dos, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dosColor, backgroundColor: `${dosColor}20` }}><Plus size={20}/></button>
                         </div>
@@ -1305,6 +1323,7 @@ const handleLogoDownload = (e, src, label) => {
                     <h4 className="text-lg font-bold flex items-center gap-3" style={{ color: dontsColor }}><AlertCircle size={20} /> {t.modules.logo.incorrect}</h4>
                     {!isPreview && (
                         <div className="flex items-center gap-2">
+                             <HideSectionButton onClick={() => update({...content, showDonts: false})} t={t} />
                              <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Incorrectos"/>
                              <button onClick={() => update({...content, donts: [...donts, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dontsColor, backgroundColor: `${dontsColor}20` }}><Plus size={20}/></button>
                         </div>
@@ -1334,6 +1353,13 @@ const handleLogoDownload = (e, src, label) => {
       )}
 
       <DynamicBlocks blocks={content.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
+      {!isPreview && (!showSafeArea || !showDos || !showDonts) && (
+        <div className="mt-10 flex flex-wrap gap-3">
+          {!showSafeArea && <RestoreSectionPill label={t.modules.logo.safeArea} onClick={() => update({...content, showSafeArea: true})} t={t} isDarkMode={isDarkMode} />}
+          {!showDos && <RestoreSectionPill label={t.modules.logo.correct} onClick={() => update({...content, showDos: true})} t={t} isDarkMode={isDarkMode} />}
+          {!showDonts && <RestoreSectionPill label={t.modules.logo.incorrect} onClick={() => update({...content, showDonts: true})} t={t} isDarkMode={isDarkMode} />}
+        </div>
+      )}
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
   );
@@ -3601,14 +3627,10 @@ const isInitialMount = useRef(true);
 
     const timeoutId = setTimeout(async () => {
       try {
-        const { data, error } = await supabase.from('portals').select('slug, user_id').eq('slug', sanitizedSlug).single();
-        if (error && error.code !== 'PGRST116') throw error; 
+        const { data: isAvailable, error } = await supabase.rpc('is_slug_available', { p_slug: sanitizedSlug });
+        if (error) throw error;
 
-        if (data && data.user_id !== currentUser?.id) {
-          setSlugStatus('taken'); 
-        } else {
-          setSlugStatus('available'); 
-        }
+        setSlugStatus(isAvailable ? 'available' : 'taken');
       } catch (err) {
         console.error("Error verificando el slug:", err);
         setSlugStatus(null);
