@@ -150,7 +150,7 @@ const triggerFileInput = (id) => { const element = document.getElementById(id); 
 
 const getEmbedUrl = (url) => {
   if (!url) return null;
-  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
   const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/;
   
   const ytMatch = url.match(youtubeRegex);
@@ -3078,7 +3078,7 @@ const Editor = () => {
         const parsed = JSON.parse(savedData);
         if (parsed.language) return parsed.language;
       }
-    } catch (e) {}
+    } catch (e) { /* sin datos guardados válidos: se usa el idioma del navegador */ }
     const browserLang = (navigator.language || navigator.userLanguage || 'ES').toLowerCase();
     return browserLang.startsWith('es') ? 'ES' : 'EN';
   });
