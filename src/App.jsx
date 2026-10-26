@@ -593,8 +593,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
           
           {/* Toggles de Texto (NUEVO) */}
           <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1.5 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5 flex gap-1 items-center">
-             <button onClick={() => updateContent({showTitle: !showTitle})} className={`p-1.5 rounded transition-colors ${showTitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Título"><Type size={14}/></button>
-             <button onClick={() => updateContent({showSubtitle: !showSubtitle})} className={`p-1.5 rounded transition-colors ${showSubtitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Subtítulo"><FileText size={14}/></button>
+             <button onClick={() => updateContent({showTitle: !showTitle})} className={`p-1.5 rounded transition-colors ${showTitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.heroToggleTitle}><Type size={14}/></button>
+             <button onClick={() => updateContent({showSubtitle: !showSubtitle})} className={`p-1.5 rounded transition-colors ${showSubtitle ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.heroToggleSubtitle}><FileText size={14}/></button>
           </div>
 
           <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
@@ -603,11 +603,11 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             <div className="w-px h-6 bg-slate-300 dark:bg-white/20 mx-1 my-auto"></div>
             <div className="relative">
-              <button onClick={() => { setShowTextMenu(!showTextMenu); setShowColorPicker(false); }} className={`p-2.5 rounded-lg transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`} title="Opciones de tipografía"><Type size={16} /></button>
+              <button onClick={() => { setShowTextMenu(!showTextMenu); setShowColorPicker(false); }} className={`p-2.5 rounded-lg transition-colors flex items-center justify-center ${showTextMenu ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`} title={t.ui.typographyOptions}><Type size={16} /></button>
               {showTextMenu && (
                 <div className="absolute top-full right-0 mt-3 p-4 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-4 animate-in fade-in slide-in-from-top-3 duration-200">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Tamaño</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">{t.ui.fontSize}</span>
                     <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
                       <button onClick={() => updateContent({ textSize: 'medium' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textSize === 'medium' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Mediano</button>
                       <button onClick={() => updateContent({ textSize: 'large' })} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${content?.textSize !== 'medium' ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>Grande</button>
@@ -622,7 +622,7 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Separación (Kerning)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">{t.ui.kerning}</span>
                     <div className="flex flex-col gap-1">
                       <button onClick={() => updateContent({ textSpacing: 'tight' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${content?.textSpacing === 'tight' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Apretado</button>
                       <button onClick={() => updateContent({ textSpacing: 'normal' })} className={`px-3 py-2 text-xs text-left rounded-lg transition-colors ${!content?.textSpacing || content?.textSpacing === 'normal' ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}>Normal</button>
@@ -635,8 +635,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
             {showColorPicker && (
               <div className="absolute top-full right-0 mt-3 p-5 bg-white dark:bg-slate-950 rounded-3xl shadow-2xl border border-slate-200/60 dark:border-white/5 w-64 z-50 flex flex-col gap-5 animate-in fade-in slide-in-from-top-3 duration-200">
                 <div className="bg-slate-100 dark:bg-white/5 p-1 rounded-full flex gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    <button onClick={() => setActiveTab('bg')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'bg' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.background || 'Fondo'}</button>
-                    <button onClick={() => setActiveTab('text')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'text' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.modules.hero.text || 'Texto'}</button>
+                    <button onClick={() => setActiveTab('bg')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'bg' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.ui.heroBackground}</button>
+                    <button onClick={() => setActiveTab('text')} className={`flex-1 px-4 py-2 rounded-full transition-all ${activeTab === 'text' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow' : 'hover:text-slate-700 dark:hover:text-slate-300'}`}>{t.ui.heroText}</button>
                 </div>
                 {activeTab === 'bg' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
@@ -660,12 +660,12 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                         </div>
                        {content?.textColor && (
                             <button onClick={() => updateContent({ textColor: null })} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 rounded-xl text-xs font-bold transition-colors">
-                                <X size={14}/> {t.ui.reset || 'Restaurar automático'}
+                                <X size={14}/> {t.ui.resetAuto}
                             </button>
                         )}
                         {!content?.textColor && (
                             <div className="text-center py-6 px-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                              <p className="text-xs text-slate-500 dark:text-slate-400">El color del texto se ajusta automáticamente según el fondo.</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{t.ui.autoTextColorNote}</p>
                             </div>
                         )}
                     </div>
@@ -1155,14 +1155,14 @@ const handleLogoDownload = (e, src, label) => {
       {/* BARRA DE HERRAMIENTAS EXCLUSIVA DEL LOGO (MODO EDICIÓN) */}
       {!isPreview && (
           <div className="absolute top-16 right-4 flex gap-1 z-30 opacity-0 group-hover/logo-module:opacity-100 transition-opacity p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
-              <button onClick={() => update({...content, showSafeArea: !showSafeArea})} className={`p-1.5 rounded transition-colors ${showSafeArea ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Área Seguridad">
+              <button onClick={() => update({...content, showSafeArea: !showSafeArea})} className={`p-1.5 rounded transition-colors ${showSafeArea ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.toggleSafeArea}>
                   <Grid size={14}/>
               </button>
               <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
-              <button onClick={() => update({...content, showDos: !showDos})} className={`p-1.5 rounded transition-colors ${showDos ? 'text-emerald-500' : 'text-slate-400 hover:text-emerald-500'}`} title="Mostrar/Ocultar Usos Correctos">
+              <button onClick={() => update({...content, showDos: !showDos})} className={`p-1.5 rounded transition-colors ${showDos ? 'text-emerald-500' : 'text-slate-400 hover:text-emerald-500'}`} title={t.ui.toggleDos}>
                   <Check size={14}/>
               </button>
-              <button onClick={() => update({...content, showDonts: !showDonts})} className={`p-1.5 rounded transition-colors ${showDonts ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`} title="Mostrar/Ocultar Usos Incorrectos">
+              <button onClick={() => update({...content, showDonts: !showDonts})} className={`p-1.5 rounded transition-colors ${showDonts ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`} title={t.ui.toggleDonts}>
                   <X size={14}/>
               </button>
           </div>
@@ -1287,7 +1287,7 @@ const handleLogoDownload = (e, src, label) => {
                 {/* Description Text */}
                 <div className={`mt-12 ${isCenterLayout ? 'text-center' : 'text-left'}`}>
                     <EditableText 
-                        text={content.safeAreaDescription || "El área de seguridad es el espacio vital que debe rodear al logotipo para asegurar su legibilidad y prominencia."} 
+                        text={content.safeAreaDescription || t.ui.safeAreaDefault} 
                         className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} max-w-lg mx-auto`}
                         tag="p"
                         isDarkMode={isDarkMode} 
@@ -1309,7 +1309,7 @@ const handleLogoDownload = (e, src, label) => {
                     {!isPreview && (
                         <div className="flex items-center gap-2">
                             <HideSectionButton onClick={() => update({...content, showDos: false})} t={t} />
-                            <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Correctos" aria-label="Color Usos Correctos"/>
+                            <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title={t.ui.dosColor} aria-label={t.ui.dosColor}/>
                             <button type="button" aria-label={t?.ui?.add || 'Añadir'} onClick={() => update({...content, dos: [...dos, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dosColor, backgroundColor: `${dosColor}20` }}><Plus size={20}/></button>
                         </div>
                     )}
@@ -1342,7 +1342,7 @@ const handleLogoDownload = (e, src, label) => {
                     {!isPreview && (
                         <div className="flex items-center gap-2">
                              <HideSectionButton onClick={() => update({...content, showDonts: false})} t={t} />
-                             <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Incorrectos" aria-label="Color Usos Incorrectos"/>
+                             <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title={t.ui.dontsColor} aria-label={t.ui.dontsColor}/>
                              <button type="button" aria-label={t?.ui?.add || 'Añadir'} onClick={() => update({...content, donts: [...donts, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dontsColor, backgroundColor: `${dontsColor}20` }}><Plus size={20}/></button>
                         </div>
                     )}
@@ -1443,15 +1443,15 @@ const handleAddExtra = makeAddExtra(content, update);
                       <div className={`flex flex-col p-2.5 rounded-xl ${isDarkMode ? 'bg-black/30' : 'bg-white'} border border-transparent hover:border-indigo-200 transition-colors gap-1.5`}>
                           <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">HEX</span><span className="font-mono text-sm uppercase opacity-70">{color.hex}</span></div>
-                              <button onClick={() => navigator.clipboard.writeText(color.hex)} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar HEX"><Copy size={12} /></button>
+                              <button onClick={() => navigator.clipboard.writeText(color.hex)} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title={t.ui.copyHex}><Copy size={12} /></button>
                           </div>
                           <div className="flex items-center justify-between border-t border-dashed border-slate-200 dark:border-white/10 pt-1.5">
                               <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">CMYK</span><EditableText text={color.cmyk || '0, 0, 0, 0'} className="font-mono text-xs uppercase opacity-70" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'cmyk', val)} isPreview={isPreview} /></div>
-                              <button onClick={() => navigator.clipboard.writeText(color.cmyk || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar CMYK"><Copy size={12} /></button>
+                              <button onClick={() => navigator.clipboard.writeText(color.cmyk || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title={t.ui.copyCmyk}><Copy size={12} /></button>
                           </div>
                           <div className="flex items-center justify-between border-t border-dashed border-slate-200 dark:border-white/10 pt-1.5">
                               <div className="flex items-center gap-2"><span className="text-[10px] font-bold opacity-40 w-8">PMS</span><EditableText text={color.pantone || '-'} className="font-mono text-xs uppercase opacity-70" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'pantone', val)} isPreview={isPreview} /></div>
-                              <button onClick={() => navigator.clipboard.writeText(color.pantone || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title="Copiar Pantone"><Copy size={12} /></button>
+                              <button onClick={() => navigator.clipboard.writeText(color.pantone || '')} className="p-1 hover:text-indigo-500 transition-colors text-slate-400" title={t.ui.copyPantone}><Copy size={12} /></button>
                           </div>
                       </div>
 
@@ -1523,7 +1523,7 @@ const handleAddExtra = makeAddExtra(content, update);
           <div className="flex-1 text-center md:text-left w-full">
               {isCustom ? (
                   <EditableText 
-                    text={content.customFontName || "Nombre de la Tipografía"} 
+                    text={content.customFontName || t.ui.customFontNameDefault} 
                     className={`text-3xl md:text-5xl font-black tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} 
                     isDarkMode={isDarkMode}
                     isPreview={isPreview}
@@ -1535,7 +1535,7 @@ const handleAddExtra = makeAddExtra(content, update);
               )}
               
               <EditableText 
-                text={isCustom ? (content.customFontDesc || "Descripción de la tipografía personalizada.") : FONT_DESCRIPTIONS[currentFontName]} 
+                text={isCustom ? (content.customFontDesc || t.ui.customFontDescDefault) : (t.ui.fontDescriptions?.[currentFontName] || FONT_DESCRIPTIONS[currentFontName])} 
                 className={`text-base leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`} 
                 isDarkMode={isDarkMode}
                 isPreview={isPreview}
@@ -1607,7 +1607,7 @@ const handleAddExtra = makeAddExtra(content, update);
                             {!isPreview && (
                                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 opacity-0 group-hover/upload:opacity-100 transition-opacity">
                                     <label className="cursor-pointer bg-white text-slate-900 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2">
-                                        <Upload size={14} /> Cambiar
+                                        <Upload size={14} /> {t.ui.change}
                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSampleUpload(e, i)} />
                                     </label>
                                 </div>
@@ -1739,15 +1739,15 @@ const handleAddExtra = makeAddExtra(content, update);
         <div className="mt-8 flex flex-col items-center justify-center gap-4 opacity-0 group-hover/edit:opacity-100 transition-opacity">
           <div className={`flex items-center gap-2 p-2 rounded-2xl shadow-xl border ${isDarkMode ? 'bg-black/80 border-white/10' : 'bg-white border-slate-200'}`}>
             <button onClick={() => addBlock('text')} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-              <Type size={16}/> Texto
+              <Type size={16}/> {t.ui.textLabel}
             </button>
             <div className={`w-px h-6 ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}></div>
             <button onClick={() => addBlock('image')} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-              <ImageIcon size={16}/> Imagen
+              <ImageIcon size={16}/> {t.ui.image}
             </button>
             <div className={`w-px h-6 ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}></div>
             <button onClick={toggleDownload} className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors ${content.showDownload ? 'bg-indigo-500/20 text-indigo-500' : (isDarkMode ? 'hover:bg-white/10' : 'hover:bg-slate-100')}`}>
-              <DownloadCloud size={16}/> Link Externo
+              <DownloadCloud size={16}/> {t.ui.externalLink}
             </button>
           </div>
         </div>
@@ -1772,7 +1772,7 @@ const handleAddExtra = makeAddExtra(content, update);
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all w-full md:w-auto justify-center ${!content.downloadUrl && isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} ${isDarkMode ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
           >
             <DownloadCloud size={18} />
-            Descargar Material
+            {t.ui.downloadMaterial}
           </a>
         </div>
       )}
@@ -1821,16 +1821,16 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
         <div className="absolute top-4 right-4 flex gap-1 z-30 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 bg-white/90 dark:bg-black/80 backdrop-blur rounded-lg shadow-sm border border-slate-200 dark:border-white/10">
            
            {/* Botón de Layout Estándar */}
-           <button onClick={cycleLayout} className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors" title="Cambiar estructura">
+           <button onClick={cycleLayout} className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors" title={t.ui.changeStructure}>
              <LayoutTemplate size={14}/>
            </button>
 
            <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
 
            {/* Toggles de Contenido */}
-           <button onClick={() => toggleField('showLogo')} className={`p-1 rounded transition-colors ${content.showLogo !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Logo"><ImageIcon size={14}/></button>
-           <button onClick={() => toggleField('showWebsite')} className={`p-1 rounded transition-colors ${content.showWebsite !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Web"><Globe size={14}/></button>
-           <button onClick={() => toggleField('showSocials')} className={`p-1 rounded transition-colors ${content.showSocials !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title="Mostrar/Ocultar Redes"><Share2 size={14}/></button>
+           <button onClick={() => toggleField('showLogo')} className={`p-1 rounded transition-colors ${content.showLogo !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.toggleLogo}><ImageIcon size={14}/></button>
+           <button onClick={() => toggleField('showWebsite')} className={`p-1 rounded transition-colors ${content.showWebsite !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.toggleWebsite}><Globe size={14}/></button>
+           <button onClick={() => toggleField('showSocials')} className={`p-1 rounded transition-colors ${content.showSocials !== false ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 hover:text-slate-600'}`} title={t.ui.toggleSocials}><Share2 size={14}/></button>
 
            <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
 
@@ -1846,7 +1846,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
            
            {/* Resetear Colores */}
            {(content.bgColor || content.textColor) && (
-              <button onClick={() => update({...content, bgColor: null, textColor: null})} className="p-1 rounded text-rose-500 hover:bg-rose-50 ml-1 transition-colors" title="Restaurar colores"><X size={14}/></button>
+              <button onClick={() => update({...content, bgColor: null, textColor: null})} className="p-1 rounded text-rose-500 hover:bg-rose-50 ml-1 transition-colors" title={t.ui.resetColors}><X size={14}/></button>
            )}
         </div>
       )}
@@ -1918,7 +1918,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                                             onClick={() => setActiveSocialEdit(activeSocialEdit === platform.id ? null : platform.id)}
                                             className={`p-3 rounded-full transition-all border ${link ? 'border-current' : 'border-transparent opacity-50 hover:opacity-100'}`}
                                             style={{ color: footerTextColor, backgroundColor: 'rgba(128,128,128,0.05)' }}
-                                            title={link || "Añadir enlace"}
+                                            title={link || t.ui.addLink}
                                         >
                                             <Icon size={20} />
                                         </button>
@@ -2013,9 +2013,9 @@ const handleAddExtra = makeAddExtra(content, update);
 const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPreview }) => {
   const colorBase = design.palette?.base || 'indigo';
   const assets = content.assets?.length ? content.assets : [
-    { id: 1, title: 'Plantillas de Presentación', desc: 'Plantillas corporativas para Keynote y PowerPoint.', format: 'PPTX / KEY, 25MB', url: '' },
-    { id: 2, title: 'Documentos corporativos', desc: 'Membretes, tarjetas de visita y carpetas.', format: 'ZIP / PDF, 15MB', url: '' },
-    { id: 3, title: 'Brand guidelines', desc: 'Manual de identidad visual corporativa completo.', format: 'PDF, 30MB', url: '' }
+    { id: 1, title: t.ui.assetSample1Title, desc: t.ui.assetSample1Desc, format: 'PPTX / KEY, 25MB', url: '' },
+    { id: 2, title: t.ui.assetSample2Title, desc: t.ui.assetSample2Desc, format: 'ZIP / PDF, 15MB', url: '' },
+    { id: 3, title: t.ui.assetSample3Title, desc: t.ui.assetSample3Desc, format: 'PDF, 30MB', url: '' }
   ];
 
   const addAsset = () => {
@@ -2147,7 +2147,7 @@ return (
         isPreview={isPreview}
       >
          <div className="flex gap-2">
-                      {!isPreview && (<button onClick={toggleLayout} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border transition-all active:scale-95 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-white border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'}`}><Shuffle size={14}/> <span>Cambiar Diseño</span></button>)}
+                      {!isPreview && (<button onClick={toggleLayout} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border transition-all active:scale-95 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700 text-zinc-300' : 'bg-white border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'}`}><Shuffle size={14}/> <span>{t.ui.changeDesign}</span></button>)}
          </div>
 </ModuleHeader>
       <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
@@ -2215,7 +2215,7 @@ const handleAddExtra = makeAddExtra(content, update);
   const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
   
   useEffect(() => { if (!content.items) { update({ ...content, items: [ { id: 1, type: 'laptop', src: null }, { id: 2, type: 'tablet', src: null }, { id: 3, type: 'mobile', src: null } ]}); } }, []);
-  const description = content.description || "Descripción del proyecto web y sus objetivos principales.";
+  const description = content.description || t.ui.webDescDefault;
   
   return (
     <div className="p-6 md:p-10 relative">
@@ -2310,7 +2310,7 @@ const MODULE_COMPONENTS = {
 const ModuleSlot = React.memo(({ item, onUpdate, design, isDarkMode, t, isPreview, checkLimit }) => {
   const update = React.useCallback((c) => onUpdate(item.id, c), [onUpdate, item.id]);
   const ModuleComponent = MODULE_COMPONENTS[item.type];
-  if (!ModuleComponent) return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
+  if (!ModuleComponent) return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">{t?.ui?.moduleLabel || 'Módulo'} {item.type}</div>;
   return (
     <ErrorBoundary resetKey={item.content} isDarkMode={isDarkMode} isPreview={isPreview}>
       <ModuleComponent content={item.content} update={update} design={design} isDarkMode={isDarkMode} t={t} isPreview={isPreview} checkLimit={checkLimit} />
@@ -2403,7 +2403,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                   <p className="text-[10px] opacity-70">{safeT.profileTabs.filesMsg}</p>
               </div>
               <button onClick={() => { 
-                  if(window.confirm("¿Seguro que quieres cerrar sesión? Si tienes cambios sin 'Publicar', podrían perderse.")) {
+                  if(window.confirm(safeT.ui.confirmLogout)) {
                       if(onLogout) onLogout();
                       onClose(); 
                   }
@@ -2469,10 +2469,10 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               {/* Mensajes de ayuda o error */}
                               {slugStatus === 'taken' ? (
                                 <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-1">
-                                  <AlertCircle size={10} /> Este enlace no está disponible.
+                                  <AlertCircle size={10} /> {safeT.ui.linkUnavailable}
                                 </p>
                               ) : (
-                                <p className="text-[10px] opacity-60 mt-1">Este será el enlace público que compartirás con tus clientes.</p>
+                                <p className="text-[10px] opacity-60 mt-1">{safeT.ui.linkPublicHint}</p>
                               )}
                             </div>
 
@@ -2493,7 +2493,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               <Mail size={18} className="opacity-50 mr-3"/>
                               <input aria-label={safeT.auth.emailPlaceholder} type="email" value={content.email || ''} readOnly className={`w-full py-3 bg-transparent outline-none opacity-70 cursor-not-allowed ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
                             </div>
-                            <p className="text-[10px] opacity-60">El email no se puede cambiar por motivos de seguridad.</p>
+                            <p className="text-[10px] opacity-60">{safeT.ui.emailLocked}</p>
                           </div>
     
                           <div className="pt-6 border-t border-dashed border-slate-200 dark:border-white/10">
@@ -2532,7 +2532,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 <div className={`p-5 rounded-2xl border space-y-5 shadow-inner ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                                     {/* BOTÓN NARANJA AÑADIDO AQUÍ */}
                                     <div>
-                                        <p className={`text-[10px] opacity-70 mb-2 font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Reiniciar Diseño</p>
+                                        <p className={`text-[10px] opacity-70 mb-2 font-bold uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{safeT.ui.resetDesign}</p>
                                         <button 
                                             onClick={onResetCanvas}
                                             className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 font-bold text-xs transition-all shadow-sm active:scale-95"
@@ -2541,7 +2541,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                         </button>
                                     </div>
                                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
-                                        <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                       
+                                        <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>{safeT.ui.dangerZone}</p>                                       
                                         <p className={`text-xs mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{safeT.ui.deleteAccountWarn}</p>
                                         <label htmlFor="delete-account-confirm" className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{safeT.ui.deleteAccountType.replace('{word}', deleteWord)}</label>
                                         <input
@@ -2575,7 +2575,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                       <div className="space-y-6">
                           
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'} ${userPlan !== 'PRO' ? 'opacity-50' : ''}`}>
-                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Fingerprint size={20} className="text-indigo-500"/></div><div><h4 className="font-bold text-sm">Marca de agua "BrandBara"</h4><p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Muestra u oculta el crédito en el footer." : "Solo disponible en el Plan PRO."}</p></div></div>
+                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Fingerprint size={20} className="text-indigo-500"/></div><div><h4 className="font-bold text-sm">{safeT.ui.watermarkTitle}</h4><p className="text-[10px] opacity-60">{userPlan === 'PRO' ? safeT.ui.watermarkToggleDesc : safeT.ui.watermarkOnlyPro}</p></div></div>
                               <button disabled={userPlan !== 'PRO'} onClick={() => setShowWatermark(!showWatermark)} className={`w-12 h-6 rounded-full p-1 transition-colors ${showWatermark ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${showWatermark ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
                           
@@ -2587,7 +2587,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 </div>
                                 <div>
                                   <h4 className="font-bold text-sm">Acceso Privado</h4>
-                                  <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? "Protege tu portal con una clave global para visitantes." : "Solo disponible en el Plan PRO."}</p>
+                                  <p className="text-[10px] opacity-60">{userPlan === 'PRO' ? safeT.ui.passwordGlobalDesc : safeT.ui.watermarkOnlyPro}</p>
                                 </div>
                               </div>
                                <button 
@@ -2601,11 +2601,11 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             {content.isPasswordProtected && userPlan === 'PRO' && (
                                <div className="relative group animate-in slide-in-from-top-2 duration-200">
                                 <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
-                                <input aria-label="Define la contraseña de acceso..." 
+                                <input aria-label={safeT.ui.setAccessPassword} 
                                   type="password" 
                                   value={content.portalPassword || ''} 
                                   onChange={(e) => updateData('portalPassword', e.target.value)} 
-                                  placeholder="Define la contraseña de acceso..." 
+                                  placeholder={safeT.ui.setAccessPassword} 
                                   className={`w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border outline-none transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white focus:border-indigo-500' : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'}`}
                                 />
                               </div>
@@ -2789,7 +2789,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
               <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.password}</label>
               {isLogin && (
                 <button type="button" onClick={handleResetPassword} className="text-[10px] font-bold text-indigo-500 hover:underline">
-                  ¿Olvidaste tu contraseña?
+                  {t.ui.forgotPassword}
                 </button>
               )}
             </div>
@@ -2828,8 +2828,11 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   );
 };
 
-const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
-  const [lang, setLang] = useState('ES');
+const LegalModal = ({ isOpen, page, onClose, isDarkMode, t }) => {
+  // El documento se abre en el idioma de la aplicación (puede cambiarse con ES/EN dentro del propio modal).
+  const appLang = t === TRANSLATIONS.EN ? 'EN' : 'ES';
+  const [lang, setLang] = useState(appLang);
+  useEffect(() => { if (isOpen) setLang(appLang); }, [isOpen, appLang]);
   if (!isOpen) return null;
   
   const currentHTML = LEGAL_CONTENT[page]?.[lang] || LEGAL_CONTENT.privacy.ES;
@@ -2848,7 +2851,7 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
       >
         <div className="flex-shrink-0 p-8 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
           <h2 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            Documentación Legal
+            {t?.ui?.legalDocs || 'Documentación Legal'}
           </h2>
           
           <div className="flex items-center gap-6">
@@ -2869,7 +2872,7 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode }) => {
               </button>
             </div>
             
-            <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+            <button onClick={onClose} aria-label={t?.ui?.close || 'Cerrar'} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
               <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
             </button>
           </div>
@@ -2899,37 +2902,37 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
         <div className={`w-full md:w-5/12 p-8 flex flex-col justify-center ${isDarkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
           <div className="flex items-center gap-2 mb-6 text-indigo-600 dark:text-indigo-400">
             <Zap size={20} fill="currentColor" />
-            <span className="text-xs font-black uppercase tracking-[0.2em]">PRO Plan</span>
+            <span className="text-xs font-black uppercase tracking-[0.2em]">{t?.ui?.proPlanTitle || 'Plan PRO'}</span>
           </div>
           <h2 className={`text-3xl font-black mb-4 leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            Desbloquea todo el potencial.
+            {t?.ui?.unlockPotential || 'Desbloquea todo el potencial.'}
           </h2>
         </div>
         <div className="w-full md:w-7/12 p-8 flex flex-col justify-center items-center">
           <table className={`w-full mb-8 text-left text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
             <thead>
               <tr className="border-b border-slate-200 dark:border-white/10">
-                <th className="pb-4 font-bold opacity-40 uppercase text-[10px]">Características</th>
+                <th className="pb-4 font-bold opacity-40 uppercase text-[10px]">{t?.ui?.featuresHeader || 'Características'}</th>
                 <th className="pb-4 font-bold text-center">FREE</th>
                 <th className="pb-4 font-bold text-center text-indigo-600">PRO</th>
               </tr>
             </thead>
 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               <tr>
-                <td className="py-4 font-medium opacity-80">Espacio máximo</td>
+                <td className="py-4 font-medium opacity-80">{t?.ui?.maxStorage || 'Espacio máximo'}</td>
                 <td className="py-4 text-center">20MB</td>
                 <td className="py-4 text-center font-bold text-indigo-600">1GB (1024MB)</td>
               </tr>
               <tr>
-                <td className="py-4 font-medium opacity-80">Marca de agua</td>
-                <td className="py-4 text-center">Sí</td>
+                <td className="py-4 font-medium opacity-80">{t?.ui?.watermarkRow || 'Marca de agua'}</td>
+                <td className="py-4 text-center">{t?.ui?.yes || 'Sí'}</td>
                 <td className="py-4 text-center font-bold text-indigo-600">No</td>
               </tr>
               {/* NUEVA FILA: PROTECCIÓN CON CONTRASEÑA */}
               <tr>
-                <td className="py-4 font-medium opacity-80">Protección con contraseña</td>
+                <td className="py-4 font-medium opacity-80">{t?.ui?.passwordProtection || 'Protección con contraseña'}</td>
                 <td className="py-4 text-center">No</td>
-                <td className="py-4 text-center font-bold text-indigo-600">Sí</td>
+                <td className="py-4 text-center font-bold text-indigo-600">{t?.ui?.yes || 'Sí'}</td>
               </tr>
             </tbody>
                       </table>
@@ -2947,7 +2950,7 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
 // ==============================================================================
 // MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY UX 2026)
 // ==============================================================================
-const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
+const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode, t }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -2995,27 +2998,27 @@ const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
             <Key size={24} />
           </div>
           <h2 className={`text-2xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            Nueva Contraseña
+            {t?.ui?.newPassword || 'Nueva Contraseña'}
           </h2>
           <p className={`text-sm opacity-70 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            Hemos verificado tu identidad. Introduce tu nueva clave de acceso para asegurar tu cuenta.
+            {t?.ui?.identityVerified || 'Hemos verificado tu identidad. Introduce tu nueva clave de acceso para asegurar tu cuenta.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">Nueva Contraseña</label>
+            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{t?.ui?.newPassword || 'Nueva Contraseña'}</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input aria-label="Nueva contraseña" autoComplete="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label={t?.ui?.newPassword || 'Nueva contraseña'} autoComplete="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t?.ui?.minChars || 'Mínimo 6 caracteres'} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider opacity-60">Repite la Contraseña</label>
+            <label className="text-xs font-bold uppercase tracking-wider opacity-60">{t?.ui?.repeatPassword || 'Repite la Contraseña'}</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input aria-label="Confirma tu nueva clave" autoComplete="new-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirma tu nueva clave" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label={t?.ui?.confirmNewPassword || 'Confirma tu nueva clave'} autoComplete="new-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t?.ui?.confirmNewPassword || 'Confirma tu nueva clave'} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
@@ -3437,7 +3440,7 @@ const savePortalData = async (isManual = false) => {
     // 3. Sincronización con Supabase
     if (supabase) {
       try {
-        if (isManual) showToast("Procesando imágenes y publicando portal...");
+        if (isManual) showToast(t.ui.publishingToast);
 // 🛡️ BACKGROUND AUTO-UPLOAD: Subimos los blobs a Supabase también durante el autoguardado si hay sesión
 const processedCanvas = currentUser?.id ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
 const processedProfile = currentUser?.id ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
@@ -3826,9 +3829,9 @@ const isInitialMount = useRef(true);
       case 'layout': return { selectedGrid: 'grid1' };
       case 'cobranding': return {};
       case 'assets': return { assets: [
-        { id: 1, title: 'Plantillas de Presentación', desc: 'Plantillas corporativas para Keynote y PowerPoint.', format: 'PPTX / KEY, 25MB', url: '' },
-        { id: 2, title: 'Documentos corporativos', desc: 'Membretes, tarjetas de visita y carpetas.', format: 'ZIP / PDF, 15MB', url: '' },
-        { id: 3, title: 'Brand guidelines', desc: 'Manual de identidad visual corporativa completo.', format: 'PDF, 30MB', url: '' }
+        { id: 1, title: t.ui.assetSample1Title, desc: t.ui.assetSample1Desc, format: 'PPTX / KEY, 25MB', url: '' },
+        { id: 2, title: t.ui.assetSample2Title, desc: t.ui.assetSample2Desc, format: 'ZIP / PDF, 15MB', url: '' },
+        { id: 3, title: t.ui.assetSample3Title, desc: t.ui.assetSample3Desc, format: 'PDF, 30MB', url: '' }
       ]};
       case 'footer': return {};
       case 'profile': return {};
@@ -3889,7 +3892,7 @@ const isInitialMount = useRef(true);
             <button 
               onClick={(e) => { e.stopPropagation(); cycleModuleLayout(item.id, item.type); }} 
               className="p-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded text-slate-500 hover:text-indigo-500 transition-colors mr-1"
-              title="Cambiar estructura"
+              title={t.ui.changeStructure}
             >              <LayoutTemplate size={14} />
             </button>
             <div className="flex border-r border-slate-200 dark:border-white/10 pr-1 mr-1">
@@ -4041,7 +4044,7 @@ const isInitialMount = useRef(true);
         handleSlugChange={handleSlugChange}
         checkLimit={validateStorageLimit}
 onResetCanvas={() => {
-          if(window.confirm("¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.")) {
+          if(window.confirm(t.ui.confirmReset)) {
             setCanvasItems(getInitialCanvas(t));
                         setDesign({ 
                 style: DESIGN_STYLES.crystal, 
@@ -4052,7 +4055,7 @@ onResetCanvas={() => {
             });
             setCurrentFont('Inter');
             setIsProfileOpen(false);
-            if(showToast) showToast(" Portal restaurado a su estado de fábrica.");
+            if(showToast) showToast(t.ui.resetDone);
           }
         }}
       />
@@ -4072,7 +4075,7 @@ onResetCanvas={() => {
             setShowBetaModal(true);
             setPendingUpgrade(false);
           } else {
-            showToast("Sesion iniciada con exito");
+            showToast(t.ui.signedIn);
           }
         }}
         isDarkMode={isDarkMode} 
@@ -4084,6 +4087,7 @@ onResetCanvas={() => {
         isOpen={showUpdatePassword}
         onClose={() => setShowUpdatePassword(false)}
         isDarkMode={isDarkMode}
+        t={t}
       />
 
       {/* NOTIFICACIONES BONITAS (TOAST) */}
@@ -4104,7 +4108,7 @@ onResetCanvas={() => {
               <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="text-amber-500" size={32} />
               </div>
-              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Límite de espacio</h3>
+              <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t.ui.spaceLimit}</h3>
               <p className={`text-sm mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 {limitMessage}
               </p>
@@ -4117,7 +4121,7 @@ onResetCanvas={() => {
                   }}
                   className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20"
                 >
-                  Gestionar Plan
+                  {t.ui.managePlan}
                 </button>
                 <button 
                   onClick={() => setIsManageModalOpen(false)}
@@ -4141,7 +4145,7 @@ onResetCanvas={() => {
           if (!isAuthenticated) {
             setPendingUpgrade(true);
             setIsAuthModalOpen(true);
-            showToast(" Crea una cuenta para continuar con el Plan PRO.");
+            showToast(t.ui.createAccountForPro);
           } else {
             setShowBetaModal(true);
           }
@@ -4194,6 +4198,7 @@ onResetCanvas={() => {
         page={activeLegalPage} 
         onClose={() => setActiveLegalPage(null)} 
         isDarkMode={isDarkMode} 
+        t={t}
       />
 
       {/* SIDEBAR */}
@@ -4234,7 +4239,7 @@ onResetCanvas={() => {
                   <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${(parseFloat(usedStorage) / (userPlan === 'FREE' ? 12 : 60)) * 100}%` }}></div>
                 </div>
                 <button onClick={() => setIsManageModalOpen(true)} className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase active:scale-95 transition-all">
-                  Gestionar Plan
+                  {t.ui.managePlan}
                 </button>
               </div>
             </div>
@@ -4297,7 +4302,7 @@ onResetCanvas={() => {
               {/* FONDO CANVAS SECTION (Sin acordeón) */}
               <div className="mt-8">
                 <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Fondo Canvas
+                  {t.ui.canvasBg}
                 </h3>
                 
                 <div className="space-y-4">
@@ -4320,7 +4325,7 @@ onResetCanvas={() => {
                           type="text" 
                           value={design.customBgLight || ''} 
                           onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} 
-                          placeholder="POR DEFECTO" 
+                          placeholder={t.ui.defaultUpper} 
                           className={`flex-1 text-[11px] p-2 rounded-lg bg-transparent outline-none uppercase font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`} 
                         />
                     </div>
@@ -4345,7 +4350,7 @@ onResetCanvas={() => {
                           type="text" 
                           value={design.customBgDark || ''} 
                           onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} 
-                          placeholder="POR DEFECTO" 
+                          placeholder={t.ui.defaultUpper} 
                           className={`flex-1 text-[11px] p-2 rounded-lg bg-transparent outline-none uppercase font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`} 
                         />
                     </div>
@@ -4357,7 +4362,7 @@ onResetCanvas={() => {
                         onClick={() => setDesign(prev => ({...prev, customBgLight: null, customBgDark: null}))} 
                         className="w-full py-2.5 mt-2 text-[10px] font-bold uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors border border-rose-500/20"
                       >
-                        Restaurar por defecto
+                        {t.ui.resetDefault}
                       </button>
                   )}
                 </div>
@@ -4494,8 +4499,8 @@ onResetCanvas={() => {
                       <div className="flex items-center">
                         {saveStatus === 'saving' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-amber-500"><Loader2 size={14} className="animate-spin" /> Auto</span>}
                         {saveStatus === 'saved' && <span className="hidden xl:flex items-center gap-2 mx-3 text-[11px] font-bold uppercase tracking-widest text-emerald-500"><Check size={14} /> Listo</span>}
-                        <button onClick={() => savePortalData(true)} className={`h-full px-5 flex items-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title="Guardar manual">
-                           Guardar
+                        <button onClick={() => savePortalData(true)} className={`h-full px-5 flex items-center gap-2.5 rounded-xl transition-colors text-[13px] font-medium ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`} title={t.ui.manualSave}>
+                           {t.ui.save}
                         </button>
                       </div>
                     )}
@@ -4552,12 +4557,12 @@ onResetCanvas={() => {
           {!effectiveIsPublicView && (
               <div className={`max-w-7xl mx-auto mt-20 pt-8 pb-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-xs select-none ${isDarkMode ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-400'}`}>
                  <div className="text-center md:text-left">
-                    &copy; {new Date().getFullYear()} BrandBara. Todos los derechos reservados.
+                    &copy; {new Date().getFullYear()} BrandBara. {t.ui.rightsReserved}
                  </div>
                  <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
-                    <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Privacidad</button>
-                    <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Términos de Uso</button>
-                    <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>Política de Cookies</button>
+                    <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.privacyPolicy}</button>
+                    <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.termsOfUse}</button>
+                    <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.cookiePolicy}</button>
                  </div>
               </div>
           )}
