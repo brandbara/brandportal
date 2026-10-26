@@ -46,5 +46,5 @@ test('español e inglés tienen las mismas secciones y el contacto', () => {
 });
 
 test('la versión legal tiene formato de fecha', () => {
-  assert.match(LEGAL_VERSION, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(LEGAL_VERSION, /^\d{4}-\d{2}-\d{2}(\.\d+)?$/);
 });

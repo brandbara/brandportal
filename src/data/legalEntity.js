@@ -15,5 +15,5 @@ export const LEGAL_ENTITY = {
 
 // Versión de los textos legales. Cambiarla cuando se modifiquen de forma relevante
 // (se guarda junto a la aceptación de cada usuario).
-export const LEGAL_VERSION = '2026-10-26';
+export const LEGAL_VERSION = '2026-10-26.2';
 export const LEGAL_DATE = { ES: '26/10/2026', EN: '26 Oct 2026' };

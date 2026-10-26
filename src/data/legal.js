@@ -7,7 +7,6 @@ import { LEGAL_ENTITY as E, LEGAL_DATE } from './legalEntity.js';
 const PENDING = '⟦PENDIENTE⟧';
 const v = (x) => (x && String(x).trim()) || PENDING;
 const mail = `<a class="text-indigo-500 hover:underline font-bold" href="mailto:${E.email}">${E.email}</a>`;
-const owner = `${v(E.name)}, NIF ${v(E.nif)}`;
 const addressLine = {
   ES: E.address ? E.address : `a disposición de las autoridades competentes y de quien acredite un interés legítimo, previa solicitud a ${mail}`,
   EN: E.address ? E.address : `available to the competent authorities and to anyone with a legitimate interest, on request to ${mail}`,
@@ -34,7 +33,25 @@ const table = (heads, rows) => `
 
 // ──────────────────────────────── AVISO LEGAL ────────────────────────────────
 const noticeES = page('ES', 'Aviso Legal', [
-  sec('1. Titular del sitio',
+  sec('1. Objeto',
+    p('BrandBara es una herramienta en línea para crear portales de marca interactivos y publicarlos en una dirección propia. Actualmente se ofrece en fase beta, con plazas limitadas.')),
+  sec('2. Acceso y uso',
+    p('El acceso a la web es libre. El uso de la herramienta exige crear una cuenta y aceptar los Términos de uso. El titular puede limitar o suspender el acceso, en particular cuando se agoten las plazas de la beta o se incumplan los Términos.')),
+  sec('3. Propiedad intelectual e industrial',
+    p('El código, el diseño, los textos, el nombre y el logotipo «BrandBara» pertenecen al titular o a sus licenciantes. Los contenidos de cada portal (logotipos, imágenes, textos, tipografías, vídeos) pertenecen a quien los publica, que responde de tener derechos sobre ellos. Queda prohibida su reproducción, distribución o transformación sin autorización, salvo lo permitido por la ley.')),
+  sec('4. Contenidos de usuarios y denuncias',
+    p('Los portales públicos los crean y publican los usuarios; BrandBara no los revisa antes de su publicación. Si crees que un contenido es ilícito o infringe tus derechos, puedes notificarlo en el apartado «Denunciar contenido» o escribiendo a ' + mail + '.')),
+  sec('5. Enlaces',
+    p('Los portales pueden contener enlaces a sitios de terceros. BrandBara no controla esos sitios ni responde de su contenido o sus prácticas.')),
+  sec('6. Garantías y responsabilidad',
+    p('El servicio se presta «tal cual» y en fase beta, sin garantía de disponibilidad continua. El titular no responde de interrupciones, errores ni de los contenidos publicados por los usuarios, salvo en lo que la ley no permita excluir.')),
+  sec('7. Protección de datos y cookies',
+    p('El tratamiento de datos personales se describe en la Política de privacidad, y el uso de almacenamiento en tu dispositivo, en la Política de cookies.')),
+  sec('8. Punto de contacto (Reglamento de Servicios Digitales)',
+    p(`Para autoridades y usuarios: ${mail}, en español e inglés.`)),
+  sec('9. Legislación y jurisdicción',
+    p(`Este aviso se rige por la ley española. Si eres consumidor, será competente el tribunal que la ley te reconozca. En los demás casos, los juzgados y tribunales de ${v(E.city)} (España).`)),
+  sec('10. Datos identificativos del titular',
     p(`El sitio web ${E.domain} y la aplicación asociada son titularidad de:`),
     ul([
       `<strong>Titular:</strong> ${v(E.name)} (autónomo)`,
@@ -42,28 +59,28 @@ const noticeES = page('ES', 'Aviso Legal', [
       `<strong>Domicilio:</strong> ${addressLine.ES}`,
       `<strong>Correo electrónico de contacto:</strong> ${mail}`,
     ])),
-  sec('2. Objeto',
-    p('BrandBara es una herramienta en línea para crear portales de marca interactivos y publicarlos en una dirección propia. Actualmente se ofrece en fase beta, con plazas limitadas.')),
-  sec('3. Acceso y uso',
-    p('El acceso a la web es libre. El uso de la herramienta exige crear una cuenta y aceptar los Términos de uso. El titular puede limitar o suspender el acceso, en particular cuando se agoten las plazas de la beta o se incumplan los Términos.')),
-  sec('4. Propiedad intelectual e industrial',
-    p('El código, el diseño, los textos y la marca «BrandBara» pertenecen al titular o a sus licenciantes. Los contenidos de cada portal (logotipos, imágenes, textos, tipografías, vídeos) pertenecen a quien los publica, que responde de tener derechos sobre ellos. Queda prohibida su reproducción, distribución o transformación sin autorización, salvo lo permitido por la ley.')),
-  sec('5. Contenidos de usuarios y denuncias',
-    p('Los portales públicos los crean y publican los usuarios; BrandBara no los revisa antes de su publicación. Si crees que un contenido es ilícito o infringe tus derechos, puedes notificarlo en el apartado «Denunciar contenido» o escribiendo a ' + mail + '.')),
-  sec('6. Enlaces',
-    p('Los portales pueden contener enlaces a sitios de terceros. BrandBara no controla esos sitios ni responde de su contenido o sus prácticas.')),
-  sec('7. Garantías y responsabilidad',
-    p('El servicio se presta «tal cual» y en fase beta, sin garantía de disponibilidad continua. El titular no responde de interrupciones, errores ni de los contenidos publicados por los usuarios, salvo en lo que la ley no permita excluir.')),
-  sec('8. Protección de datos y cookies',
-    p('El tratamiento de datos personales se describe en la Política de privacidad, y el uso de almacenamiento en tu dispositivo, en la Política de cookies.')),
-  sec('9. Punto de contacto (Reglamento de Servicios Digitales)',
-    p(`Para autoridades y usuarios: ${mail}, en español e inglés.`)),
-  sec('10. Legislación y jurisdicción',
-    p(`Este aviso se rige por la ley española. Si eres consumidor, será competente el tribunal que la ley te reconozca. En los demás casos, los juzgados y tribunales de ${v(E.city)} (España).`)),
 ]);
 
 const noticeEN = page('EN', 'Legal Notice', [
-  sec('1. Site owner',
+  sec('1. Purpose',
+    p('BrandBara is an online tool to create interactive brand portals and publish them at your own web address. It is currently offered as a beta, with limited places.')),
+  sec('2. Access and use',
+    p('Access to the website is free. Using the tool requires creating an account and accepting the Terms of Use. The owner may limit or suspend access, in particular when the beta places run out or the Terms are breached.')),
+  sec('3. Intellectual and industrial property',
+    p('The code, design, texts, name and logo of “BrandBara” belong to the owner or its licensors. The content of each portal (logos, images, texts, fonts, videos) belongs to whoever publishes it, who is responsible for holding the rights to it. Reproduction, distribution or transformation without permission is prohibited, except as allowed by law.')),
+  sec('4. User content and reports',
+    p('Public portals are created and published by users; BrandBara does not review them before publication. If you believe content is unlawful or infringes your rights, you can report it through “Report content” or by writing to ' + mail + '.')),
+  sec('5. Links',
+    p('Portals may contain links to third-party sites. BrandBara does not control those sites and is not responsible for their content or practices.')),
+  sec('6. Warranties and liability',
+    p('The service is provided “as is” and in beta, with no guarantee of continuous availability. The owner is not liable for interruptions, errors or content published by users, except where the law does not allow exclusion.')),
+  sec('7. Data protection and cookies',
+    p('Personal data processing is described in the Privacy Policy, and the use of storage on your device in the Cookie Policy.')),
+  sec('8. Point of contact (Digital Services Act)',
+    p(`For authorities and users: ${mail}, in Spanish and English.`)),
+  sec('9. Governing law and jurisdiction',
+    p(`This notice is governed by Spanish law. If you are a consumer, the court that the law grants you will have jurisdiction. In all other cases, the courts of ${v(E.city)} (Spain).`)),
+  sec('10. Owner identification',
     p(`The website ${E.domain} and the associated application are owned by:`),
     ul([
       `<strong>Owner:</strong> ${v(E.name)} (self-employed)`,
@@ -71,30 +88,12 @@ const noticeEN = page('EN', 'Legal Notice', [
       `<strong>Address:</strong> ${addressLine.EN}`,
       `<strong>Contact email:</strong> ${mail}`,
     ])),
-  sec('2. Purpose',
-    p('BrandBara is an online tool to create interactive brand portals and publish them at your own web address. It is currently offered as a beta, with limited places.')),
-  sec('3. Access and use',
-    p('Access to the website is free. Using the tool requires creating an account and accepting the Terms of Use. The owner may limit or suspend access, in particular when the beta places run out or the Terms are breached.')),
-  sec('4. Intellectual and industrial property',
-    p('The code, design, texts and the “BrandBara” brand belong to the owner or its licensors. The content of each portal (logos, images, texts, fonts, videos) belongs to whoever publishes it, who is responsible for holding the rights to it. Reproduction, distribution or transformation without permission is prohibited, except as allowed by law.')),
-  sec('5. User content and reports',
-    p('Public portals are created and published by users; BrandBara does not review them before publication. If you believe content is unlawful or infringes your rights, you can report it through “Report content” or by writing to ' + mail + '.')),
-  sec('6. Links',
-    p('Portals may contain links to third-party sites. BrandBara does not control those sites and is not responsible for their content or practices.')),
-  sec('7. Warranties and liability',
-    p('The service is provided “as is” and in beta, with no guarantee of continuous availability. The owner is not liable for interruptions, errors or content published by users, except where the law does not allow exclusion.')),
-  sec('8. Data protection and cookies',
-    p('Personal data processing is described in the Privacy Policy, and the use of storage on your device in the Cookie Policy.')),
-  sec('9. Point of contact (Digital Services Act)',
-    p(`For authorities and users: ${mail}, in Spanish and English.`)),
-  sec('10. Governing law and jurisdiction',
-    p(`This notice is governed by Spanish law. If you are a consumer, the court that the law grants you will have jurisdiction. In all other cases, the courts of ${v(E.city)} (Spain).`)),
 ]);
 
 // ──────────────────────────────── PRIVACIDAD ────────────────────────────────
 const privacyES = page('ES', 'Política de Privacidad', [
   sec('1. Responsable del tratamiento',
-    p(`${owner}. Correo: ${mail}. No hay delegado de protección de datos designado.`)),
+    p(`${v(E.name)}, titular de BrandBara (identificación completa en el Aviso legal, apartado 10). Correo: ${mail}. No hay delegado de protección de datos designado.`)),
   sec('2. Qué datos tratamos, para qué y con qué base',
     table(['Datos', 'Finalidad', 'Base jurídica (RGPD art. 6.1)', 'Conservación'], [
       ['Email, nombre y contraseña (guardada cifrada por el servicio de autenticación)', 'Crear y gestionar tu cuenta; enviar correos de confirmación y recuperación', 'b) ejecución del contrato', 'Mientras la cuenta esté activa'],
@@ -102,6 +101,7 @@ const privacyES = page('ES', 'Política de Privacidad', [
       ['Contenido de tu portal: dirección, nombre de marca, textos, imágenes, vídeos, enlaces, tipografías; huella (hash) de la contraseña del portal si la activas', 'Alojar y mostrar tu portal', 'b) ejecución del contrato', 'Hasta que lo borres o elimines la cuenta'],
       ['Datos técnicos de conexión (IP, fecha, navegador) en los servidores de alojamiento', 'Seguridad y prevención de abusos', 'f) interés legítimo', 'Según las políticas del proveedor de alojamiento'],
       ['Mensajes que nos envías', 'Atender tu consulta o denuncia', 'b) contrato o f) interés legítimo', 'El tiempo necesario para atenderla'],
+      ['Respuestas a la encuesta de las funciones PRO (opcional, en Tally), incluidos los datos de contacto que decidas escribir', 'Mejorar el producto y, si lo indicas, avisarte del lanzamiento', 'a) consentimiento', 'Hasta que lo retires o dejemos de necesitarlas'],
     ]),
     p('No tomamos decisiones automatizadas con efectos jurídicos sobre ti. La asignación de plazas de la beta se hace por orden de llegada y no implica elaboración de perfiles.')),
   sec('3. Visitantes de portales públicos',
@@ -111,6 +111,7 @@ const privacyES = page('ES', 'Política de Privacidad', [
       '<strong>Supabase</strong> (autenticación, base de datos y archivos): región de la UE (Irlanda).',
       '<strong>Vercel</strong> (alojamiento de la web): Estados Unidos.',
       '<strong>GitHub</strong> (código y copias de seguridad cifradas de la base de datos): Estados Unidos.',
+      '<strong>Tally</strong> (encuesta opcional de las funciones PRO): solo si decides abrir el enlace y responderla; entonces lo que escribas lo recoge Tally por cuenta nuestra. No es necesaria para usar BrandBara.',
     ]),
     p('No vendemos tus datos ni los usamos para publicidad. Podemos comunicar datos a autoridades cuando una norma o una orden lo exija.')),
   sec('5. Conservación y eliminación de la cuenta',
@@ -133,7 +134,7 @@ const privacyES = page('ES', 'Política de Privacidad', [
 
 const privacyEN = page('EN', 'Privacy Policy', [
   sec('1. Data controller',
-    p(`${owner}. Email: ${mail}. No data protection officer has been appointed.`)),
+    p(`${v(E.name)}, owner of BrandBara (full identification in the Legal Notice, section 10). Email: ${mail}. No data protection officer has been appointed.`)),
   sec('2. What data we process, why and on what legal basis',
     table(['Data', 'Purpose', 'Legal basis (GDPR art. 6.1)', 'Retention'], [
       ['Email, name and password (stored encrypted by the authentication service)', 'Create and manage your account; send confirmation and recovery emails', '(b) performance of a contract', 'While the account is active'],
@@ -141,6 +142,7 @@ const privacyEN = page('EN', 'Privacy Policy', [
       ['Your portal content: address, brand name, texts, images, videos, links, fonts; hash of the portal password if you enable it', 'Host and display your portal', '(b) performance of a contract', 'Until you delete it or delete your account'],
       ['Technical connection data (IP, date, browser) on the hosting servers', 'Security and abuse prevention', '(f) legitimate interest', 'According to the hosting provider’s policies'],
       ['Messages you send us', 'Handle your enquiry or report', '(b) contract or (f) legitimate interest', 'As long as needed to handle it'],
+      ['Answers to the optional PRO features survey (on Tally), including any contact details you choose to write', 'Improve the product and, if you ask, tell you about the launch', '(a) consent', 'Until you withdraw it or we no longer need them'],
     ]),
     p('We do not make automated decisions with legal effects about you. Beta places are assigned in order of arrival and involve no profiling.')),
   sec('3. Visitors to public portals',
@@ -150,6 +152,7 @@ const privacyEN = page('EN', 'Privacy Policy', [
       '<strong>Supabase</strong> (authentication, database and files): EU region (Ireland).',
       '<strong>Vercel</strong> (website hosting): United States.',
       '<strong>GitHub</strong> (code and encrypted database backups): United States.',
+      '<strong>Tally</strong> (optional PRO features survey): only if you choose to open the link and answer it; then what you write is collected by Tally on our behalf. It is not needed to use BrandBara.',
     ]),
     p('We do not sell your data or use it for advertising. We may disclose data to authorities when a rule or an order requires it.')),
   sec('5. Retention and account deletion',
@@ -179,7 +182,7 @@ const termsES = page('ES', 'Términos de Uso', [
   sec('3. Tu cuenta',
     p(`Eres responsable de tus credenciales y de lo que ocurra con tu cuenta. Avísanos de cualquier acceso no autorizado en ${mail}. No puedes compartir ni ceder tu cuenta.`)),
   sec('4. Beta y cola de espera',
-    p('BrandBara está en fase beta, con un número limitado de plazas que podemos cambiar. Si no hay plaza libre, puedes registrarte pero no crear portales ni subir archivos hasta que se libere una; las plazas se asignan por orden de llegada, sin garantía de acceso ni de plazo. Por ahora no enviamos avisos por email. En la beta pueden cambiar o retirarse funciones y puede haber errores o pérdida de datos: no uses BrandBara como única copia de tu manual de marca.')),
+    p('BrandBara está en fase beta, con un número limitado de plazas que podemos cambiar. Si no hay plaza libre, puedes registrarte pero no crear portales ni subir archivos hasta que se libere una; las plazas se asignan por orden de llegada, sin garantía de acceso ni de plazo. Por ahora no enviamos avisos por email. En la beta pueden cambiar o retirarse funciones y puede haber errores o pérdida de datos: no uses BrandBara como única copia de tu manual de marca. Las ventajas que anunciemos durante la beta (por ejemplo, meses gratis de PRO por responder una encuesta) se aplicarán cuando se lance PRO, en las condiciones que comuniquemos entonces; no nos obligan a lanzar PRO ni a hacerlo en una fecha concreta.')),
   sec('5. Tu contenido y la licencia que nos das',
     p('Tu contenido (logotipos, imágenes, textos, vídeos, tipografías, enlaces) sigue siendo tuyo. Nos concedes una licencia no exclusiva, gratuita y mundial, mientras mantengas ese contenido en BrandBara, para alojarlo, copiarlo técnicamente (incluidas las copias de seguridad), adaptarlo técnicamente (por ejemplo, comprimir imágenes) y mostrarlo públicamente cuando publiques un portal. Garantizas que tienes los derechos necesarios sobre todo lo que subes y, si publicas la marca de un cliente, que cuentas con su autorización. Te comprometes a mantenernos indemnes frente a reclamaciones de terceros por tu contenido.')),
   sec('6. Uso aceptable',
@@ -206,7 +209,7 @@ const termsES = page('ES', 'Términos de Uso', [
   sec('11. Disponibilidad y copias de seguridad',
     p('No garantizamos que el servicio esté siempre disponible. Hacemos copias diarias cifradas de la base de datos, que conservamos 30 días, para recuperarnos de incidentes; no son un servicio de restauración a petición. Los archivos subidos (imágenes) no se incluyen. Conserva tus propias copias.')),
   sec('12. Propiedad intelectual de BrandBara',
-    p('El código, el diseño, los textos y la marca BrandBara son nuestros o de nuestros licenciantes. Te damos una licencia limitada, personal, revocable y no transferible para usar el servicio. No puedes copiarlo, revenderlo ni intentar obtener su código salvo lo que la ley permita. Podemos usar sin compensación los comentarios y sugerencias que nos envíes.')),
+    p('El código, el diseño, los textos, el nombre y el logotipo de BrandBara son nuestros o de nuestros licenciantes. Te damos una licencia limitada, personal, revocable y no transferible para usar el servicio. No puedes copiarlo, revenderlo ni intentar obtener su código salvo lo que la ley permita. Podemos usar sin compensación los comentarios y sugerencias que nos envíes.')),
   sec('13. Responsabilidad',
     p('El servicio se ofrece «tal cual» y según disponibilidad. En la medida en que la ley lo permita, no respondemos de daños indirectos, lucro cesante, pérdida de datos, contenidos de usuarios ni interrupciones, y nuestra responsabilidad total se limita a lo que hayas pagado a BrandBara en los 12 meses anteriores (0 € mientras el servicio sea gratuito). Nada de esto limita la responsabilidad por dolo, por negligencia grave ni en lo que la ley no permita limitar.')),
   sec('14. Baja y eliminación de la cuenta',
@@ -242,7 +245,7 @@ const termsEN = page('EN', 'Terms of Use', [
   sec('3. Your account',
     p(`You are responsible for your credentials and for what happens with your account. Tell us about any unauthorised access at ${mail}. You may not share or transfer your account.`)),
   sec('4. Beta and waiting list',
-    p('BrandBara is in beta, with a limited number of places that we may change. If no place is free, you can sign up but cannot create portals or upload files until one is released; places are assigned in order of arrival, with no guarantee of access or timing. For now we do not send emails. During the beta, features may change or be withdrawn, and there may be errors or data loss: do not use BrandBara as the only copy of your brand manual.')),
+    p('BrandBara is in beta, with a limited number of places that we may change. If no place is free, you can sign up but cannot create portals or upload files until one is released; places are assigned in order of arrival, with no guarantee of access or timing. For now we do not send emails. During the beta, features may change or be withdrawn, and there may be errors or data loss: do not use BrandBara as the only copy of your brand manual. Any perks we announce during the beta (for example, free months of PRO for answering a survey) will apply when PRO launches, under the conditions we announce then; they do not oblige us to launch PRO or to do so by a specific date.')),
   sec('5. Your content and the licence you give us',
     p('Your content (logos, images, texts, videos, fonts, links) remains yours. You grant us a non-exclusive, free, worldwide licence, for as long as you keep that content on BrandBara, to host it, technically copy it (including backups), technically adapt it (for example, compress images) and display it publicly when you publish a portal. You warrant that you hold the necessary rights to everything you upload and, if you publish a client’s brand, that you have their authorisation. You agree to hold us harmless against third-party claims about your content.')),
   sec('6. Acceptable use',
@@ -269,7 +272,7 @@ const termsEN = page('EN', 'Terms of Use', [
   sec('11. Availability and backups',
     p('We do not guarantee that the service is always available. We make encrypted daily backups of the database, kept for 30 days, to recover from incidents; they are not an on-demand restore service. Uploaded files (images) are not included. Keep your own copies.')),
   sec('12. BrandBara’s intellectual property',
-    p('The code, design, texts and the BrandBara brand are ours or our licensors’. We give you a limited, personal, revocable, non-transferable licence to use the service. You may not copy or resell it or try to obtain its code except as the law permits. We may use any feedback and suggestions you send us without compensation.')),
+    p('The code, design, texts, name and logo of BrandBara are ours or our licensors’. We give you a limited, personal, revocable, non-transferable licence to use the service. You may not copy or resell it or try to obtain its code except as the law permits. We may use any feedback and suggestions you send us without compensation.')),
   sec('13. Liability',
     p('The service is offered “as is” and as available. To the extent the law allows, we are not liable for indirect damages, loss of profit, data loss, user content or interruptions, and our total liability is limited to what you have paid BrandBara in the previous 12 months (€0 while the service is free). None of this limits liability for wilful misconduct, gross negligence or anything the law does not allow to be limited.')),
   sec('14. Leaving and deleting your account',
@@ -298,7 +301,7 @@ const termsEN = page('EN', 'Terms of Use', [
 ]);
 
 // ──────────────────────────────── COOKIES Y ALMACENAMIENTO ────────────────────────────────
-const cookiesES = page('ES', 'Política de Cookies y Almacenamiento', [
+const cookiesES = page('ES', 'Política de Cookies', [
   sec('Qué usamos y qué no',
     p('BrandBara no usa cookies de analítica, de publicidad ni de seguimiento, ni herramientas de terceros que midan tu actividad. Solo guarda en tu dispositivo la información técnica imprescindible para que la herramienta funcione. Según la normativa (LSSI, art. 22.2), ese almacenamiento estrictamente necesario no requiere tu consentimiento; por eso no te pedimos que aceptes cookies. Las tipografías se sirven desde BrandBara, sin peticiones a Google.')),
   sec('1. Qué guardamos en tu dispositivo',
@@ -316,7 +319,7 @@ const cookiesES = page('ES', 'Política de Cookies y Almacenamiento', [
     p(`Si algún día añadimos analítica u otras cookies no necesarias, pediremos tu consentimiento antes de activarlas y actualizaremos esta política. Dudas: ${mail}.`)),
 ]);
 
-const cookiesEN = page('EN', 'Cookie and Storage Policy', [
+const cookiesEN = page('EN', 'Cookie Policy', [
   sec('What we use and what we do not',
     p('BrandBara does not use analytics, advertising or tracking cookies, nor third-party tools that measure your activity. It only stores on your device the technical information that is essential for the tool to work. Under the rules (Spanish LSSI, art. 22.2), such strictly necessary storage does not require your consent; that is why we do not ask you to accept cookies. Fonts are served from BrandBara, with no requests to Google.')),
   sec('1. What we store on your device',
