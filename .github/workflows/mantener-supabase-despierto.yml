@@ -1,0 +1,33 @@
+name: Mantener Supabase despierto
+
+# El plan gratuito de Supabase pausa el proyecto tras 7 días sin actividad.
+# Este robot hace una consulta ligera cada 3 días para que los portales de los clientes no se caigan.
+# Usa solo la clave PÚBLICA (la misma que ya lleva la web en el navegador): no hay secretos aquí.
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/mantener-supabase-despierto.yml'
+
+jobs:
+  consulta:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta ligera a la base de datos
+        env:
+          SUPABASE_URL: https://ioktkbuualxcjsulbefb.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_kbpHuccRQZgAUUvSWOyqcw_tbioKZIQ
+        run: |
+          code=$(curl -sS -m 30 -o respuesta.json -w '%{http_code}' \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/get_portal_secure" \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            -H 'Content-Type: application/json' \
+            -d '{"p_slug":"__keepalive__","p_password":null}')
+          echo "Respuesta HTTP: $code"
+          cat respuesta.json; echo
+          if [ "$code" != "200" ]; then
+            echo "::error::Supabase no ha respondido bien (HTTP $code). Revisa si el proyecto está pausado."
+            exit 1
+          fi
