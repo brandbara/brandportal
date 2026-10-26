@@ -39,14 +39,16 @@ describe('toSafeMediaUrl / isSafeMediaSrc', () => {
 });
 
 describe('getVideoEmbedUrl (solo YouTube y Vimeo)', () => {
-  const youtube = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+  const youtube = 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ';
   it('convierte los formatos habituales', () => {
     assert.equal(getVideoEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), youtube);
     assert.equal(getVideoEmbedUrl('https://youtu.be/dQw4w9WgXcQ'), youtube);
     assert.equal(getVideoEmbedUrl('https://youtube.com/shorts/dQw4w9WgXcQ'), youtube);
     assert.equal(getVideoEmbedUrl(youtube), youtube); // datos ya guardados
-    assert.equal(getVideoEmbedUrl('https://vimeo.com/76979871'), 'https://player.vimeo.com/video/76979871');
-    assert.equal(getVideoEmbedUrl('https://player.vimeo.com/video/76979871'), 'https://player.vimeo.com/video/76979871');
+    assert.equal(getVideoEmbedUrl('https://www.youtube.com/embed/dQw4w9WgXcQ'), youtube); // portales guardados antes del cambio
+    assert.equal(getVideoEmbedUrl('https://vimeo.com/76979871'), 'https://player.vimeo.com/video/76979871?dnt=1');
+    assert.equal(getVideoEmbedUrl('https://player.vimeo.com/video/76979871'), 'https://player.vimeo.com/video/76979871?dnt=1');
+    assert.equal(getVideoEmbedUrl('https://player.vimeo.com/video/76979871?dnt=1'), 'https://player.vimeo.com/video/76979871?dnt=1');
   });
   it('rechaza dominios falsos y esquemas peligrosos', () => {
     assert.equal(getVideoEmbedUrl('javascript:alert(1)//youtube.com/watch?v=dQw4w9WgXcQ'), null);
