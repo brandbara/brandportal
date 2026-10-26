@@ -45,7 +45,7 @@ test('toda librería instalada está revisada desde el punto de vista legal', ()
 
 test('cada tercero que trata datos o se carga declara en qué apartado de los textos legales aparece', () => {
   for (const t of TERCEROS) {
-    if (['encargado', 'incrustado', 'enlace-externo'].includes(t.tipo)) {
+    if (['encargado', 'incrustado', 'enlace-externo', 'inicio-sesion'].includes(t.tipo)) {
       assert.ok(t.legal.length > 0, `«${t.id}» no indica en qué apartado legal se declara`);
     }
     if (t.tipo === 'encargado') assert.ok(t.dpa, `«${t.id}» es encargado y no indica el estado de su acuerdo (DPA)`);
@@ -54,7 +54,7 @@ test('cada tercero que trata datos o se carga declara en qué apartado de los te
 
 test('los textos legales nombran a los terceros que registramos', () => {
   const texto = Object.values(LEGAL_CONTENT).flatMap((p) => Object.values(p)).join(' ').toLowerCase();
-  for (const id of ['supabase', 'vercel', 'github', 'youtube', 'vimeo', 'tally']) {
+  for (const id of ['supabase', 'vercel', 'github', 'youtube', 'vimeo', 'tally', 'google']) {
     assert.ok(texto.includes(id), `Los textos legales no mencionan a ${id}`);
   }
 });

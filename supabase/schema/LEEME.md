@@ -9,22 +9,22 @@ Supabase nuevo y vacío si algún día se pierde el actual.
 
 | Cubre | No cubre |
 |---|---|
-| Tablas `profiles` y `portals`, restricciones e índices | Los **datos** (usuarios, portales) → copias de seguridad |
+| Tablas `profiles`, `portals`, `app_settings` y `terms_acceptances`, restricciones e índices | Los **datos** (usuarios, portales) → copias de seguridad |
 | Seguridad por filas (RLS) y permisos por columna | Los **archivos** del cubo → copias de seguridad |
-| Las 7 funciones, el disparador de direcciones reservadas | La configuración de **Authentication** (proveedores, URLs de redirección, plantillas de correo): está en el panel de Supabase |
+| Las funciones, el disparador de direcciones reservadas | La configuración de **Authentication** (proveedores, URLs de redirección, plantillas de correo): está en el panel de Supabase |
 | Cubo `portals_assets` y sus 3 políticas de almacenamiento | |
 
 ## Cómo se comprobó que es fiel a producción
 
 Se calculó una huella (md5) de cada elemento (columnas, permisos, definiciones de funciones,
 políticas, restricciones, índices, disparador y cubo) en producción y en un Postgres vacío donde se
-aplicó este archivo. **Las dos huellas coinciden** (45 elementos al crear el archivo; tras la migración de la beta, 62: huella `a217fbf5…`, comprobada también en producción el 26-oct).
+aplicó este archivo. **Las dos huellas coinciden** (45 elementos al crear el archivo; tras la migración de la beta, 62; tras el registro de aceptación de Términos, 75: huella `79bf4ec6…`, comprobada también en producción el 26-oct).
 
 ## Comprobación automática
 
 El robot de GitHub «Esquema de Supabase» (`.github/workflows/esquema-supabase.yml`) corre cuando se
 toca `supabase/`: monta un Postgres vacío, aplica el archivo y ejecuta
-`verificacion/pruebas_seguridad.sql` (39 comprobaciones: nadie puede cambiarse el plan, un usuario no
+`verificacion/pruebas_seguridad.sql` (50 comprobaciones: nadie puede cambiarse el plan, un usuario no
 ve datos de otro, el servidor rechaza subidas sin espacio, eliminar cuenta borra solo lo propio, la cola de la
 beta respeta el orden de llegada y nadie puede activarse a sí mismo…).
 Se probó además que las pruebas **fallan** si se rompe el esquema a propósito.

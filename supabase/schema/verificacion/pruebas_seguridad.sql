@@ -126,6 +126,20 @@ begin
     raise notice 'OK · un visitante no puede crear portales';
   end;
 
+  begin
+    perform public.accept_terms('2026-10-26');
+    raise exception 'FALLO: anon pudo llamar a accept_terms';
+  exception when insufficient_privilege then
+    raise notice 'OK · un visitante no puede aceptar términos';
+  end;
+
+  begin
+    perform 1 from public.terms_acceptances;
+    raise exception 'FALLO: anon pudo leer el registro de aceptaciones';
+  exception when insufficient_privilege then
+    raise notice 'OK · un visitante no puede leer el registro de aceptaciones';
+  end;
+
   ------------------------------------------------------------------ Beta: plazas y cola
   -- anon: puede ver el estado público de la beta, pero no reclamar plaza ni tocar los ajustes
   begin
@@ -282,6 +296,63 @@ begin
   if r is distinct from true then raise exception 'FALLO: tras borrar, A debería poder subir de nuevo'; end if;
   raise notice 'OK · al liberar espacio se vuelve a poder subir';
 
+  ------------------------------------------------------------------ Aceptación de Términos (en el servidor)
+  j := public.accept_terms('2026-10-26.3');
+  if j->>'version' <> '2026-10-26.3' or (j->>'accepted_at') is null then raise exception 'FALLO: accept_terms devolvió %', j; end if;
+  select count(*) into n from public.terms_acceptances where user_id = a and version = '2026-10-26.3';
+  if n <> 1 then raise exception 'FALLO: A debería tener 1 aceptación de la versión y tiene %', n; end if;
+  raise notice 'OK · A acepta los Términos y queda registrado en el servidor';
+
+  perform public.accept_terms('2026-10-26.3');
+  select count(*) into n from public.terms_acceptances where user_id = a;
+  if n <> 1 then raise exception 'FALLO: aceptar dos veces la misma versión no debe duplicar (hay %)', n; end if;
+  perform public.accept_terms('2026-11-01');
+  select count(*) into n from public.terms_acceptances where user_id = a;
+  if n <> 2 then raise exception 'FALLO: una versión nueva debe añadirse al historial (hay %)', n; end if;
+  raise notice 'OK · aceptar la misma versión no duplica y una versión nueva se añade al historial';
+
+  begin
+    perform public.accept_terms('hola');
+    raise exception 'FALLO: se aceptó una versión con formato inválido';
+  exception when sqlstate '22023' then
+    raise notice 'OK · versiones con formato inválido rechazadas';
+  end;
+  begin
+    perform public.accept_terms(null);
+    raise exception 'FALLO: se aceptó una versión nula';
+  exception when sqlstate '22023' then
+    raise notice 'OK · versión nula rechazada';
+  end;
+
+  begin
+    insert into public.terms_acceptances (user_id, version) values (a, '2030-01-01');
+    raise exception 'FALLO: A pudo escribir directamente en terms_acceptances';
+  exception when insufficient_privilege then
+    raise notice 'OK · nadie escribe directamente en el registro de aceptaciones';
+  end;
+  begin
+    update public.terms_acceptances set version = '2030-01-01' where user_id = a;
+    raise exception 'FALLO: A pudo modificar su registro de aceptaciones';
+  exception when insufficient_privilege then
+    raise notice 'OK · nadie modifica el registro de aceptaciones';
+  end;
+  begin
+    delete from public.terms_acceptances where user_id = a;
+    raise exception 'FALLO: A pudo borrar su registro de aceptaciones';
+  exception when insufficient_privilege then
+    raise notice 'OK · nadie borra el registro de aceptaciones';
+  end;
+
+  reset role;
+  insert into public.terms_acceptances (user_id, version) values (b, '2026-10-26');   -- B acepta (insertado como administrador)
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  set local role authenticated;
+  select count(*) into n from public.terms_acceptances where user_id = b;
+  if n <> 0 then raise exception 'FALLO: A ve % aceptaciones de B', n; end if;
+  select count(*) into n from public.terms_acceptances;
+  if n <> 2 then raise exception 'FALLO: A debería ver solo sus 2 aceptaciones y ve %', n; end if;
+  raise notice 'OK · cada usuario solo ve sus propias aceptaciones';
+
   ------------------------------------------------------------------ Eliminar cuenta
   perform public.delete_my_account();
   reset role;
@@ -294,6 +365,11 @@ begin
   select count(*) into n from auth.users where id = b;
   if n <> 1 then raise exception 'FALLO: se ha borrado también al usuario B'; end if;
   raise notice 'OK · eliminar cuenta borra usuario, perfil y portal, y solo los de A';
+  select count(*) into n from public.terms_acceptances where user_id = a;
+  if n <> 0 then raise exception 'FALLO: quedan % aceptaciones de A tras eliminar su cuenta', n; end if;
+  select count(*) into n from public.terms_acceptances where user_id = b;
+  if n <> 1 then raise exception 'FALLO: eliminar la cuenta de A ha tocado las aceptaciones de B (hay %)', n; end if;
+  raise notice 'OK · eliminar cuenta borra sus aceptaciones y solo las suyas';
 
   ------------------------------------------------------------------ Beta: se libera una plaza
   select status into txt from public.profiles where id = d;
