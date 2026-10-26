@@ -21,6 +21,7 @@ import { LEGAL_CONTENT } from './data/legal';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
+import { toSafeHref, blockEmptyLink, toSafeMediaUrl, isSafeMediaSrc, getVideoEmbedUrl } from './utils/safeUrl.js';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -147,24 +148,6 @@ const getInitialCanvas = (t) => {
 // --- 2. UTILIDADES ---
 
 const triggerFileInput = (id) => { const element = document.getElementById(id); if (element) element.click(); };
-
-const getEmbedUrl = (url) => {
-  if (!url) return null;
-  const youtubeRegex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
-  const vimeoRegex = /(?:vimeo\.com\/)([0-9]+)/;
-  
-  const ytMatch = url.match(youtubeRegex);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-  
-  const vimeoMatch = url.match(vimeoRegex);
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  
-  return url; 
-};
-
-const isVideoUrl = (url) => {
-  return url && (url.includes('youtube') || url.includes('youtu.be') || url.includes('vimeo'));
-};
 
 // --- FUNCIÓN DE HASHING (SEGURIDAD DE CONTRASEÑAS DEL PORTAL) ---
 // Enlaces que no se pueden registrar: rutas del sistema y palabras ofensivas (primera barrera; la definitiva debe estar también en el servidor)
@@ -404,6 +387,30 @@ const FileUploadPlaceholder = ({ id, label, design, onUpload, isDarkMode, previe
   );
 };
 
+// Contenido de una celda Bento: solo se incrusta YouTube/Vimeo (en un marco aislado); los vídeos subidos van en <video>
+const BentoMedia = ({ item, isPreview }) => {
+  const embedUrl = getVideoEmbedUrl(item.src);
+  if (embedUrl) {
+    return (
+      <iframe
+        src={embedUrl}
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+        referrerPolicy="strict-origin-when-cross-origin"
+        loading="lazy"
+        allowFullScreen
+        className={`w-full h-full ${isPreview ? '' : 'pointer-events-none'}`}
+        title={`Video ${item.id}`}
+        allow="encrypted-media; picture-in-picture; fullscreen"
+      />
+    );
+  }
+  if (!isSafeMediaSrc(item.src)) return null;
+  if (item.type === 'video') {
+    return <video src={item.src} className="w-full h-full object-cover" controls={isPreview} muted loop playsInline preload="metadata" />;
+  }
+  return <img src={item.src} alt="Bento Item" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />;
+};
+
 // ==============================================================================
 // === FILE: BentoEmptyCell.tsx ===
 // ==============================================================================
@@ -411,6 +418,7 @@ const FileUploadPlaceholder = ({ id, label, design, onUpload, isDarkMode, previe
 const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkVal, setLinkVal] = useState('');
+  const [linkError, setLinkError] = useState(false);
 
   if (showLinkInput) {
      return (
@@ -420,15 +428,20 @@ const BentoEmptyCell = ({ id, isDarkMode, t, isPreview, onUpdate }) => {
               placeholder={t.ui.pasteLink} 
               className="w-full text-xs p-3 rounded-lg border mb-3 outline-none dark:bg-slate-700 dark:text-white"
               value={linkVal}
-              onChange={(e) => setLinkVal(e.target.value)}
+              onChange={(e) => { setLinkVal(e.target.value); setLinkError(false); }}
               autoFocus
+              aria-label={t.ui.pasteLink}
+              aria-invalid={linkError}
            />
+           {linkError && <p role="alert" className="text-[11px] text-rose-500 font-bold mb-3 text-center">{t.ui.invalidLink}</p>}
            <div className="flex gap-2">
               <button 
                  onClick={() => {
-                     const embed = getEmbedUrl(linkVal);
-                     const type = isVideoUrl(linkVal) ? 'video' : 'image';
-                     onUpdate(id, type, embed);
+                     const embed = getVideoEmbedUrl(linkVal);
+                     if (embed) return onUpdate(id, 'video', embed);
+                     const imageUrl = toSafeMediaUrl(linkVal);
+                     if (imageUrl) return onUpdate(id, 'image', imageUrl);
+                     setLinkError(true);
                  }}
                  className="px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg font-bold touch-manipulation"
               >
@@ -1042,7 +1055,7 @@ const handleExampleUpload = (e, id) => {
                         />
                     )}
                     <a 
-                        href={example.templateUrl || '#'}
+                        href={toSafeHref(example.templateUrl)} onClick={blockEmptyLink(example.templateUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
@@ -1083,7 +1096,7 @@ const handleExampleUpload = (e, id) => {
                   />
               )}
               <a 
-                  href={content.downloadUrl || '#'} 
+                  href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
@@ -1573,7 +1586,7 @@ const handleAddExtra = makeAddExtra(content, update);
                 )}
                 {(content.customFontUrl || !isPreview) && (
                     <a 
-                        href={content.customFontUrl || '#'} 
+                        href={toSafeHref(content.customFontUrl)} onClick={blockEmptyLink(content.customFontUrl)} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className={`flex items-center justify-center gap-2 text-xs font-bold px-6 py-3 rounded-full border transition-all shadow-sm ${!content.customFontUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'border-white/20 text-white hover:bg-white/10' : 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'}`}
@@ -1773,7 +1786,7 @@ const handleAddExtra = makeAddExtra(content, update);
              />
           )}
           <a
-            href={content.downloadUrl || '#'}
+            href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all w-full md:w-auto justify-center ${!content.downloadUrl && isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} ${isDarkMode ? 'bg-white text-black' : 'bg-slate-900 text-white'}`}
@@ -1911,7 +1924,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                             <div key={platform.id} className="relative group/social">
                                 {isPreview ? (
                                     <a 
-                                        href={link} 
+                                        href={toSafeHref(link)} onClick={blockEmptyLink(link)} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="block p-3 rounded-full transition-transform hover:scale-110"
@@ -2004,7 +2017,7 @@ const handleAddExtra = makeAddExtra(content, update);
                <EditableText text={partner.caption} placeholder={t.ui.placeholders.caption} className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`} isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updatePartner(partner.id, 'caption', v)} />
                <div className="mt-auto pt-2">
                    {!isPreview && (<input type="text" placeholder={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
-                   <a href={partner.templateUrl || '#'} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
+                   <a href={toSafeHref(partner.templateUrl)} onClick={blockEmptyLink(partner.templateUrl)} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
                </div>
              </div>
              {!isPreview && <button onClick={() => removePartner(partner.id)} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>}
@@ -2089,7 +2102,7 @@ const handleAddExtra = makeAddExtra(content, update);
 
             <div className="w-full md:w-auto shrink-0 flex items-center justify-end mt-4 md:mt-0">
               <a 
-                href={asset.url || '#'} 
+                href={toSafeHref(asset.url)} onClick={blockEmptyLink(asset.url)} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className={`w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${(!asset.url && !isPreview) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? `bg-${colorBase}-600 hover:bg-${colorBase}-500 text-white shadow-lg shadow-${colorBase}-500/20` : `bg-${colorBase}-600 hover:bg-${colorBase}-700 text-white shadow-lg shadow-${colorBase}-500/30`}`}
@@ -2160,7 +2173,7 @@ return (
       <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
         {items.map((item, index) => (
           <div key={item.id || `bento-item-${index}`} className={`${activeLayoutClasses[index] || 'col-span-1 row-span-1'} ${design.radius} border relative group overflow-hidden flex flex-col items-center justify-center p-0 transition-all duration-500 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            {item.src ? (<div className="absolute inset-0 w-full h-full">{item.type === 'video' || isVideoUrl(item.src) ? (<iframe src={getEmbedUrl(item.src) || item.src} className="w-full h-full object-cover pointer-events-none" title={`Video ${item.id}`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>) : (<img src={item.src} alt="Bento Item" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />)}{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
+            {item.src ? (<div className="absolute inset-0 w-full h-full"><BentoMedia item={item} isPreview={isPreview} />{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
             {!isPreview && <input id={`bento-up-${item.id}`} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleItemUpload(e, item.id)} />}
             {!isPreview && (<div className={`absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20 ${!item.src ? 'pointer-events-none' : ''}`}>{item.src && (<button onClick={() => { handleItemUpdate(item.id, item.type, null); }} className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg text-xs font-bold text-slate-900 hover:bg-white hover:scale-105 transition-all">{t.ui.change}</button>)}</div>)}
           </div>
@@ -2206,7 +2219,7 @@ const handleAddExtra = makeAddExtra(content, update);
          </div>
       </ModuleHeader>
       {selectedLib === 'custom' ? renderCustomIcons() : renderGoogleIcons()}
-      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={content.downloadUrl || '#'} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
+      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={toSafeHref(content.downloadUrl)} onClick={blockEmptyLink(content.downloadUrl)} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
       <DynamicBlocks blocks={content?.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>

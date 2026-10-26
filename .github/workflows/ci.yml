@@ -1,7 +1,7 @@
 name: Revisión automática
 
 # Se ejecuta en cada Pull Request y en cada cambio de main:
-# comprueba el código (lint) y que la web compile antes de poder fusionarse.
+# comprueba el código (lint), las pruebas automáticas y que la web compile antes de poder fusionarse.
 on:
   pull_request:
   push:
@@ -18,4 +18,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
