@@ -12,13 +12,14 @@ import {
   Link2, SunMoon, Grid3X3, Columns, Video,
   Sliders, CreditCard, LogOut, Lock, Cookie,
  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
-  FileArchive, DownloadCloud, Loader2, Save
+  FileArchive, DownloadCloud, Loader2, Save, Hourglass
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
 import { deleteMyAccount } from './utils/account';
+import { fetchBetaStatus, claimBetaSlot, isBetaBlocked } from './utils/beta';
 import { downloadFile } from './utils/download';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
@@ -2668,7 +2669,7 @@ const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
     </div>
   );
 };
-const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
+const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [name, setName] = useState('');
@@ -2765,6 +2766,12 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
           </button>
         </div>
 
+        {!isLogin && beta && (
+          <p role="status" className={`mb-4 text-xs leading-relaxed font-bold px-4 py-3 rounded-xl ${beta.remaining > 0 ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700') : (isDarkMode ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-800')}`}>
+            {(beta.remaining > 0 ? safeT.ui.authBetaOpen : safeT.ui.authBetaFull).replace('{n}', beta.remaining).replace('{cap}', beta.capacity)}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div className="space-y-1.5">
@@ -2823,6 +2830,126 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
             {isLoading ? "Cargando..." : (isLogin ? safeT.auth.loginBtn : safeT.auth.registerBtn)}
           </button>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Pantalla que ve quien ha iniciado sesión pero no tiene plaza en la beta (está en la cola) o tiene la cuenta en pausa.
+// El bloqueo real lo hace el servidor; esta pantalla solo lo explica y deja salir de la cola.
+const BetaWaitlistScreen = ({ beta, onCheck, onLogout, isDarkMode, t }) => {
+  const safeT = t || TRANSLATIONS.ES;
+  const [isChecking, setIsChecking] = useState(false);
+  const [stillWaiting, setStillWaiting] = useState(false);
+  const [showLeave, setShowLeave] = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState('');
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState(false);
+  const paused = beta?.state === 'suspended';
+  const leaveWord = safeT.ui.deleteAccountWord;
+  const muted = isDarkMode ? 'text-slate-400' : 'text-slate-500';
+  const dialogRef = useRef(null);
+
+  // El foco entra en la pantalla y no se escapa al editor que hay detrás (Tab / Mayús+Tab dan la vuelta)
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (el) el.focus();
+    const onKey = (e) => {
+      if (e.key !== 'Tab' || !el) return;
+      const items = el.querySelectorAll('button:not([disabled]), input');
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === el)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  const handleCheck = async () => {
+    setStillWaiting(false);
+    setIsChecking(true);
+    try {
+      await onCheck();
+      setStillWaiting(true); // si ya hay plaza, esta pantalla desaparece y este aviso no llega a verse
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    setLeaveError(false);
+    setIsLeaving(true);
+    try {
+      if (supabase) await deleteMyAccount(supabase);
+      idbClear().catch(console.error);
+      if (onLogout) await onLogout(safeT.ui.deleteAccountDone);
+    } catch (err) {
+      console.error('No se pudo eliminar la cuenta:', err);
+      setLeaveError(true);
+    } finally {
+      setIsLeaving(false);
+      setLeaveConfirm('');
+    }
+  };
+
+  return (
+    <div className={`fixed inset-0 z-[150] overflow-y-auto flex items-center justify-center p-4 backdrop-blur-md ${isDarkMode ? 'bg-[#0b0e14]/95' : 'bg-slate-100/95'}`}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="beta-wait-title" className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl outline-none ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
+        <div className={`mx-auto mb-5 w-14 h-14 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+          <Hourglass size={26} aria-hidden="true" />
+        </div>
+        <h2 id="beta-wait-title" className={`text-2xl font-black tracking-tight text-center mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+          {paused ? safeT.ui.betaPausedTitle : safeT.ui.betaWaitTitle}
+        </h2>
+
+        {paused ? (
+          <p className={`text-sm leading-relaxed text-center ${muted}`}>{safeT.ui.betaPausedBody}</p>
+        ) : (
+          <>
+            <div className={`my-5 rounded-2xl py-4 text-center ${isDarkMode ? 'bg-black/30' : 'bg-slate-50'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${muted}`}>{safeT.ui.betaWaitPosition}</p>
+              <p className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                #{beta?.position || '—'}
+                {beta?.waiting > 0 && <span className={`ml-2 text-sm font-bold ${muted}`}>{safeT.ui.betaWaitOf.replace('{n}', beta.waiting)}</span>}
+              </p>
+            </div>
+            <p className={`text-sm leading-relaxed text-center mb-3 ${muted}`}>{safeT.ui.betaWaitBody.replace('{cap}', beta?.capacity ?? '')}</p>
+            <p className={`text-xs leading-relaxed text-center font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+              {beta?.notify_by_email ? safeT.ui.betaWaitNotifyOn : safeT.ui.betaWaitNotifyOff}
+            </p>
+          </>
+        )}
+
+        <div className="mt-6 flex flex-col gap-2">
+          {!paused && (
+            <button type="button" onClick={handleCheck} disabled={isChecking} className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
+              {isChecking && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+              {isChecking ? safeT.ui.betaWaitChecking : safeT.ui.betaWaitCheck}
+            </button>
+          )}
+          <button type="button" onClick={() => onLogout && onLogout()} className={`w-full py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+            <LogOut size={16} aria-hidden="true" /> {safeT.ui.betaWaitSignOut}
+          </button>
+        </div>
+        <p role="status" className={`mt-3 text-xs text-center font-bold min-h-[1rem] ${muted}`}>{stillWaiting && !paused ? safeT.ui.betaWaitStill : ''}</p>
+
+        <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          {!showLeave ? (
+            <button type="button" onClick={() => setShowLeave(true)} className="w-full text-xs font-bold text-rose-500 hover:underline">{safeT.ui.betaWaitLeave}</button>
+          ) : (
+            <div>
+              <p className={`text-xs mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{safeT.ui.betaWaitLeaveWarn}</p>
+              <label htmlFor="beta-leave-confirm" className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{safeT.ui.deleteAccountType.replace('{word}', leaveWord)}</label>
+              <input id="beta-leave-confirm" type="text" autoComplete="off" value={leaveConfirm} onChange={(e) => setLeaveConfirm(e.target.value)} className={`w-full mb-3 px-3 py-2 rounded-lg border text-sm outline-none focus:border-rose-500 ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`} />
+              <button type="button" disabled={isLeaving || leaveConfirm.trim().toUpperCase() !== leaveWord} onClick={handleLeave} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {isLeaving ? safeT.ui.deleteAccountBusy : safeT.ui.deleteAccount}
+              </button>
+              {leaveError && <p role="alert" className="mt-3 text-xs font-bold text-rose-500">{safeT.ui.deleteAccountError}</p>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -3168,6 +3295,13 @@ const Editor = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
 
+  // Beta con plazas limitadas: estado de ESTA cuenta (null = sin información, y entonces no se bloquea a nadie)
+  // y estado público (plazas libres) para mostrarlo al registrarse.
+  const [betaState, setBetaState] = useState(null);
+  const [publicBeta, setPublicBeta] = useState(null);
+  const betaClaimedFor = useRef(null);
+  const betaBlocked = isBetaBlocked(betaState);
+
   const handleSignOut = async (message) => {
     try {
       if (supabase) await supabase.auth.signOut();
@@ -3191,9 +3325,15 @@ setCurrentFont('Inter');
     if (!supabase) return;
     
     const handleSession = async (session) => {
-      if (session) { 
-        setCurrentUser(session.user); 
+      if (session) {
+        setCurrentUser(session.user);
         setIsAuthenticated(true);
+        // Plaza de la beta: se reclama una vez por sesión (no en cada renovación del token ni cambio de ruta)
+        if (betaClaimedFor.current !== session.user.id) {
+          const uid = session.user.id;
+          betaClaimedFor.current = uid;
+          claimBetaSlot(supabase).then((res) => { if (betaClaimedFor.current === uid) setBetaState(res); });
+        }
         const fullName = session.user.user_metadata?.full_name || '';
         
         // TELETRANSPORTE AL TALLER DE TRABAJO
@@ -3215,6 +3355,8 @@ setCurrentFont('Inter');
           };
         }); 
       } else {
+        betaClaimedFor.current = null;
+        setBetaState(null);
         setCurrentUser(null);
         setIsAuthenticated(false);
       }
@@ -3228,8 +3370,40 @@ setCurrentFont('Inter');
       handleSession(session);
     });
     return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]); 
- 
+  }, [navigate, location.pathname]);
+
+  // Beta: mientras la cuenta está en la cola se vuelve a preguntar cada minuto y al volver a la pestaña,
+  // para que entre sola en cuanto se libere una plaza.
+  const checkBetaSlot = React.useCallback(async () => {
+    if (!supabase) return;
+    const res = await claimBetaSlot(supabase);
+    if (res) setBetaState(res);
+  }, []);
+
+  useEffect(() => {
+    if (!betaBlocked || !currentUser?.id) return;
+    const timer = setInterval(checkBetaSlot, 60000);
+    const onVisible = () => { if (document.visibilityState === 'visible') checkBetaSlot(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [betaBlocked, currentUser?.id, checkBetaSlot]);
+
+  // Aviso al pasar de la cola a tener plaza
+  const wasBetaBlocked = useRef(false);
+  useEffect(() => {
+    if (wasBetaBlocked.current && betaState?.state === 'active') showToast(t.ui.betaPromoted);
+    wasBetaBlocked.current = betaBlocked;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [betaState?.state]);
+
+  // Plazas libres para mostrar en el registro
+  useEffect(() => {
+    if (!isAuthModalOpen || !supabase) return;
+    let cancelled = false;
+    fetchBetaStatus(supabase).then((s) => { if (!cancelled && s) setPublicBeta(s); });
+    return () => { cancelled = true; };
+  }, [isAuthModalOpen]);
+
 // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
   useEffect(() => {
     const path = location.pathname.replace('/', '').trim();
@@ -3434,6 +3608,8 @@ const savePortalData = async (isManual = false) => {
         setIsAuthModalOpen(true);
         return;
     }
+    // Sin plaza en la beta no se sube nada al servidor (el borrador sigue guardado en este navegador)
+    if (betaBlocked) return;
 
     setSaveStatus('saving');
 
@@ -3607,6 +3783,9 @@ const isInitialMount = useRef(true);
     // 2. BLOQUEO MAESTRO: Si no hay usuario autenticado, jamás autoguardar.
     if (!isAuthenticated || !currentUser) return;
 
+    // Sin plaza en la beta (cola o cuenta en pausa) no se autoguarda en el servidor.
+    if (betaBlocked) return;
+
     // 3. BLOQUEO DE DUEÑO: Validar la propiedad antes de permitir el guardado.
     const isBrandRouteCheck = activeSlug && activeSlug !== 'info';
     
@@ -3622,7 +3801,7 @@ const isInitialMount = useRef(true);
 
     return () => clearTimeout(debounceTimer);
     
-  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId, activeSlug]);
+  }, [canvasItems, design, profileContent, isDarkMode, language, currentFont, isAuthenticated, currentUser, portalOwnerId, activeSlug, betaBlocked]);
 
   const usedStorage = React.useMemo(() => {
     let size = 0;
@@ -4078,9 +4257,21 @@ onResetCanvas={() => {
             showToast(t.ui.signedIn);
           }
         }}
-        isDarkMode={isDarkMode} 
+        isDarkMode={isDarkMode}
         t={t}
+        beta={publicBeta}
       />
+
+      {/* BETA LLENA: quien ha iniciado sesión sin plaza ve la cola (los portales públicos de clientes siguen abiertos para todos) */}
+      {betaBlocked && isAuthenticated && !(activeSlug && activeSlug !== 'info' && pathParts[1] !== 'edit') && (
+        <BetaWaitlistScreen
+          beta={betaState}
+          onCheck={checkBetaSlot}
+          onLogout={handleSignOut}
+          isDarkMode={isDarkMode}
+          t={t}
+        />
+      )}
 
       {/* MODAL DE ACTUALIZACIÓN DE CONTRASEÑA (PASSWORD RECOVERY) */}
       <UpdatePasswordModal
