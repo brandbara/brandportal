@@ -13,8 +13,8 @@ test('existen las 5 páginas legales en español e inglés', () => {
   }
 });
 
-test('los datos del titular están completos (si no, no se puede publicar)', () => {
-  for (const campo of ['name', 'nif', 'address', 'email']) {
+test('los datos del titular están completos (la calle es opcional: si falta, se dice "a petición")', () => {
+  for (const campo of ['name', 'nif', 'city', 'email']) {
     assert.ok(String(LEGAL_ENTITY[campo] || '').trim(), `Falta LEGAL_ENTITY.${campo} en src/data/legalEntity.js`);
   }
   for (const [pagina, idiomas] of Object.entries(LEGAL_CONTENT)) {

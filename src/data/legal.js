@@ -7,7 +7,11 @@ import { LEGAL_ENTITY as E, LEGAL_DATE } from './legalEntity.js';
 const PENDING = '⟦PENDIENTE⟧';
 const v = (x) => (x && String(x).trim()) || PENDING;
 const mail = `<a class="text-indigo-500 hover:underline font-bold" href="mailto:${E.email}">${E.email}</a>`;
-const owner = `${v(E.name)}, NIF ${v(E.nif)}, ${v(E.address)}`;
+const owner = `${v(E.name)}, NIF ${v(E.nif)}`;
+const addressLine = {
+  ES: E.address ? E.address : `a disposición de las autoridades competentes y de quien acredite un interés legítimo, previa solicitud a ${mail}`,
+  EN: E.address ? E.address : `available to the competent authorities and to anyone with a legitimate interest, on request to ${mail}`,
+};
 
 const page = (lang, title, sections) => `
   <div class="space-y-6">
@@ -35,7 +39,7 @@ const noticeES = page('ES', 'Aviso Legal', [
     ul([
       `<strong>Titular:</strong> ${v(E.name)} (autónomo)`,
       `<strong>NIF:</strong> ${v(E.nif)}`,
-      `<strong>Domicilio:</strong> ${v(E.address)}`,
+      `<strong>Domicilio:</strong> ${addressLine.ES}`,
       `<strong>Correo electrónico de contacto:</strong> ${mail}`,
     ])),
   sec('2. Objeto',
@@ -55,7 +59,7 @@ const noticeES = page('ES', 'Aviso Legal', [
   sec('9. Punto de contacto (Reglamento de Servicios Digitales)',
     p(`Para autoridades y usuarios: ${mail}, en español e inglés.`)),
   sec('10. Legislación y jurisdicción',
-    p('Este aviso se rige por la ley española. Si eres consumidor, será competente el tribunal que la ley te reconozca. En los demás casos, los juzgados y tribunales de la ciudad del domicilio del titular indicado arriba.')),
+    p(`Este aviso se rige por la ley española. Si eres consumidor, será competente el tribunal que la ley te reconozca. En los demás casos, los juzgados y tribunales de ${v(E.city)} (España).`)),
 ]);
 
 const noticeEN = page('EN', 'Legal Notice', [
@@ -64,7 +68,7 @@ const noticeEN = page('EN', 'Legal Notice', [
     ul([
       `<strong>Owner:</strong> ${v(E.name)} (self-employed)`,
       `<strong>Tax ID (NIF):</strong> ${v(E.nif)}`,
-      `<strong>Address:</strong> ${v(E.address)}`,
+      `<strong>Address:</strong> ${addressLine.EN}`,
       `<strong>Contact email:</strong> ${mail}`,
     ])),
   sec('2. Purpose',
@@ -84,7 +88,7 @@ const noticeEN = page('EN', 'Legal Notice', [
   sec('9. Point of contact (Digital Services Act)',
     p(`For authorities and users: ${mail}, in Spanish and English.`)),
   sec('10. Governing law and jurisdiction',
-    p('This notice is governed by Spanish law. If you are a consumer, the court that the law grants you will have jurisdiction. In all other cases, the courts of the city of the owner’s address stated above.')),
+    p(`This notice is governed by Spanish law. If you are a consumer, the court that the law grants you will have jurisdiction. In all other cases, the courts of ${v(E.city)} (Spain).`)),
 ]);
 
 // ──────────────────────────────── PRIVACIDAD ────────────────────────────────
@@ -210,7 +214,7 @@ const termsES = page('ES', 'Términos de Uso', [
   sec('15. Cambios en los Términos',
     p('Si los cambios son relevantes, te avisaremos en la aplicación con 15 días de antelación. Si sigues usando el servicio, los aceptas; si no estás de acuerdo, elimina tu cuenta.')),
   sec('16. Ley y jurisdicción',
-    p('Derecho español. Si eres consumidor, serán competentes los tribunales que la ley te reconozca; en los demás casos, los juzgados y tribunales de la ciudad del domicilio del titular indicado en el Aviso legal.')),
+    p(`Derecho español. Si eres consumidor, serán competentes los tribunales que la ley te reconozca; en los demás casos, los juzgados y tribunales de ${v(E.city)} (España).`)),
   sec('17. Contacto', p(mail)),
   sec('Anexo A. Encargado de tratamiento (art. 28 RGPD)',
     p('Se aplica solo cuando el contenido de un portal incluye datos personales de terceros bajo la responsabilidad del usuario.'),
@@ -273,7 +277,7 @@ const termsEN = page('EN', 'Terms of Use', [
   sec('15. Changes to the Terms',
     p('If the changes are relevant, we will notify you in the application 15 days in advance. If you keep using the service you accept them; if you disagree, delete your account.')),
   sec('16. Governing law and jurisdiction',
-    p('Spanish law. If you are a consumer, the courts that the law grants you will have jurisdiction; in all other cases, the courts of the city of the owner’s address stated in the Legal Notice.')),
+    p(`Spanish law. If you are a consumer, the courts that the law grants you will have jurisdiction; in all other cases, the courts of ${v(E.city)} (Spain).`)),
   sec('17. Contact', p(mail)),
   sec('Annex A. Data processor terms (GDPR art. 28)',
     p('Applies only when a portal’s content includes third-party personal data under the user’s responsibility.'),
