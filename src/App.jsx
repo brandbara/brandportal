@@ -9,7 +9,7 @@ import {
   ArrowUpDown, RectangleHorizontal, Edit3, Tablet, Laptop,
   Instagram, Youtube, Users, Share2, Download,
   Home, Search, User, Settings, Bell, Mail, Twitter, Linkedin, Facebook,
-  Link2, SunMoon, Grid3X3, Columns, Video,
+  Link2, SunMoon, Grid3X3, Columns, Video, Play,
   Sliders, CreditCard, LogOut, Lock, Cookie,
  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
   FileArchive, DownloadCloud, Loader2, Save, Hourglass
@@ -18,6 +18,7 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
+import { LEGAL_VERSION } from './data/legalEntity';
 import { deleteMyAccount } from './utils/account';
 import { fetchBetaStatus, claimBetaSlot, isBetaBlocked } from './utils/beta';
 import { downloadFile } from './utils/download';
@@ -366,23 +367,41 @@ const FileUploadPlaceholder = ({ id, label, design, onUpload, isDarkMode, previe
   );
 };
 
-// Contenido de una celda Bento: solo se incrusta YouTube/Vimeo (en un marco aislado); los vídeos subidos van en <video>
-const BentoMedia = ({ item, isPreview }) => {
-  const embedUrl = getVideoEmbedUrl(item.src);
-  if (embedUrl) {
+// Vídeo de YouTube/Vimeo: NO se carga al abrir el portal. Solo tras pulsar «Reproducir», con un aviso de que el
+// proveedor puede guardar cookies (así el visitante no es rastreado sin saberlo).
+const ConsentVideo = ({ embedUrl, itemId, isPreview, t }) => {
+  const [loaded, setLoaded] = useState(false);
+  const provider = embedUrl.includes('vimeo') ? 'Vimeo' : 'YouTube';
+  if (loaded) {
     return (
       <iframe
         src={embedUrl}
         sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
         referrerPolicy="strict-origin-when-cross-origin"
-        loading="lazy"
         allowFullScreen
         className={`w-full h-full ${isPreview ? '' : 'pointer-events-none'}`}
-        title={`Video ${item.id}`}
+        title={`Video ${itemId}`}
         allow="encrypted-media; picture-in-picture; fullscreen"
       />
     );
   }
+  return (
+    <button
+      type="button"
+      onClick={() => setLoaded(true)}
+      className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-slate-900 text-white text-center"
+    >
+      <span className="flex items-center justify-center w-14 h-14 rounded-full bg-white/15 border border-white/30"><Play size={24} fill="currentColor" /></span>
+      <span className="text-sm font-bold">{t?.ui?.videoPlay || 'Reproducir vídeo'} · {provider}</span>
+      <span className="text-[11px] opacity-70 max-w-xs leading-snug">{(t?.ui?.videoNotice || 'Al reproducir, {provider} puede guardar cookies.').replace('{provider}', provider)}</span>
+    </button>
+  );
+};
+
+// Contenido de una celda Bento: solo se incrusta YouTube/Vimeo (en un marco aislado y tras un clic); los vídeos subidos van en <video>
+const BentoMedia = ({ item, isPreview, t }) => {
+  const embedUrl = getVideoEmbedUrl(item.src);
+  if (embedUrl) return <ConsentVideo key={embedUrl} embedUrl={embedUrl} itemId={item.id} isPreview={isPreview} t={t} />;
   if (!isSafeMediaSrc(item.src)) return null;
   if (item.type === 'video') {
     return <video src={item.src} className="w-full h-full object-cover" controls={isPreview} muted loop playsInline preload="metadata" />;
@@ -2154,7 +2173,7 @@ return (
       <div className={`grid grid-flow-row-dense grid-cols-2 md:grid-cols-4 auto-rows-[180px] gap-4 mt-8 transition-all duration-500 ease-in-out`}>
         {items.map((item, index) => (
           <div key={item.id || `bento-item-${index}`} className={`${activeLayoutClasses[index] || 'col-span-1 row-span-1'} ${design.radius} border relative group overflow-hidden flex flex-col items-center justify-center p-0 transition-all duration-500 shadow-sm hover:shadow-md ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            {item.src ? (<div className="absolute inset-0 w-full h-full"><BentoMedia item={item} isPreview={isPreview} />{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
+            {item.src ? (<div className="absolute inset-0 w-full h-full"><BentoMedia item={item} isPreview={isPreview} t={t} />{!isPreview && <div className="absolute inset-0 bg-transparent z-10" />}</div>) : (<BentoEmptyCell id={item.id} isDarkMode={isDarkMode} t={t} isPreview={isPreview} onUpdate={handleItemUpdate} />)}
             {!isPreview && <input id={`bento-up-${item.id}`} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleItemUpload(e, item.id)} />}
             {!isPreview && (<div className={`absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20 ${!item.src ? 'pointer-events-none' : ''}`}>{item.src && (<button onClick={() => { handleItemUpdate(item.id, item.type, null); }} className="bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-lg text-xs font-bold text-slate-900 hover:bg-white hover:scale-105 transition-all">{t.ui.change}</button>)}</div>)}
           </div>
@@ -2622,11 +2641,6 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Bell size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.notif}</h4><p className="text-xs opacity-60">{safeT.profileTabs.notifDesc}</p></div></div>
                               <button onClick={() => toggleNotification('email')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.email ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.email ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
-                          
-                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Cookie size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.cookies}</h4><p className="text-xs opacity-60">{safeT.profileTabs.cookiesDesc}</p></div></div>
-                              <button onClick={() => toggleNotification('cookies')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.cookies !== false ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.cookies !== false ? 'translate-x-6' : 'translate-x-0'}`} /></button>
-                          </div>
                       </div>
                   </div>
               )}
@@ -2638,38 +2652,32 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
 });
 
 
-const CookieBanner = ({ isDarkMode, onAccept, onReject, onManage, t }) => {
+// Aviso informativo: BrandBara solo usa almacenamiento técnico necesario (no requiere consentimiento), así que no pide "aceptar".
+const CookieBanner = ({ isDarkMode, onClose, onMore, t }) => {
   const safeT = t || TRANSLATIONS.ES;
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] w-[calc(100%-2rem)] max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <div className={`p-6 rounded-[2rem] shadow-2xl backdrop-blur-2xl border flex flex-col lg:flex-row gap-6 items-center justify-between ${isDarkMode ? 'bg-[#151924]/80 border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]' : 'bg-white/80 border-white/50 shadow-[0_10px_40px_rgba(0,0,0,0.08)]'}`}>
+    <div role="region" aria-label={safeT.cookie.title} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] w-[calc(100%-2rem)] max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className={`p-5 rounded-[2rem] shadow-2xl backdrop-blur-2xl border flex flex-col sm:flex-row gap-4 items-center justify-between ${isDarkMode ? 'bg-[#151924]/90 border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]' : 'bg-white/90 border-white/50 shadow-[0_10px_40px_rgba(0,0,0,0.08)]'}`}>
         <div className="flex items-start gap-4 flex-1">
           <div className={`p-3 rounded-2xl shrink-0 ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-            <Cookie size={28} />
+            <Cookie size={24} />
           </div>
           <div>
-            <h3 className={`font-black text-lg mb-1 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{safeT.cookie.title}</h3>
+            <h3 className={`font-black text-base mb-1 tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{safeT.cookie.title}</h3>
             <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-              {safeT.cookie.desc}
+              {safeT.cookie.desc}{' '}
+              <button type="button" onClick={onMore} className="text-indigo-500 hover:underline font-bold">{safeT.cookie.more}</button>
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap sm:flex-nowrap gap-3 w-full lg:w-auto shrink-0 justify-end">
-          <button onClick={onManage} className={`px-5 py-3 text-xs font-bold rounded-xl border transition-all ${isDarkMode ? 'border-white/20 text-slate-300 hover:bg-white/10' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
-            {safeT.cookie.manage}
-          </button>
-          <button onClick={onReject} className={`px-5 py-3 text-xs font-bold rounded-xl transition-all ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
-            {safeT.cookie.reject}
-          </button>
-          <button onClick={onAccept} className="px-6 py-3 text-xs font-bold rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 active:scale-95 transition-all w-full sm:w-auto">
-            {safeT.cookie.accept}
-          </button>
-        </div>
+        <button onClick={onClose} className="px-6 py-3 text-xs font-bold rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 active:scale-95 transition-all w-full sm:w-auto shrink-0">
+          {safeT.cookie.accept}
+        </button>
       </div>
     </div>
   );
 };
-const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta }) => {
+const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta, onOpenLegal }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [name, setName] = useState('');
@@ -2703,7 +2711,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta }) => 
       } else {
         // REGISTRO REAL
         const { data, error } = await supabase.auth.signUp({
-          email, password, options: { data: { full_name: name }, emailRedirectTo: window.location.origin }
+          email, password, options: { data: { full_name: name, terms_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() }, emailRedirectTo: window.location.origin }
         });
         if (error) throw error;
         if (!data.session) {
@@ -2817,7 +2825,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t, beta }) => 
                 <Check size={14} className={`absolute text-white transition-transform scale-0 peer-checked:scale-100`} strokeWidth={3} />
               </div>
               <span className={`text-xs leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                {safeT.auth.termsPre} <a href="#" className="text-indigo-500 hover:underline font-bold">{safeT.auth.termsLink}</a> {safeT.auth.privacyAnd} <a href="#" className="text-indigo-500 hover:underline font-bold">{safeT.auth.privacyLink}</a>.
+                {safeT.auth.termsPre} <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('terms'); }} className="text-indigo-500 hover:underline font-bold">{safeT.auth.termsLink}</button> {safeT.auth.privacyAnd} <button type="button" onClick={(e) => { e.preventDefault(); onOpenLegal?.('privacy'); }} className="text-indigo-500 hover:underline font-bold">{safeT.auth.privacyLink}</button>.
               </span>
             </label>
           )}
@@ -2962,7 +2970,7 @@ const LegalModal = ({ isOpen, page, onClose, isDarkMode, t }) => {
   useEffect(() => { if (isOpen) setLang(appLang); }, [isOpen, appLang]);
   if (!isOpen) return null;
   
-  const currentHTML = LEGAL_CONTENT[page]?.[lang] || LEGAL_CONTENT.privacy.ES;
+  const currentHTML = LEGAL_CONTENT[page]?.[lang] || LEGAL_CONTENT.notice.ES;
   
   // 🛡️ BLINDAJE XSS: Sanitizamos el HTML antes de que toque el DOM
   const cleanHTML = DOMPurify.sanitize(currentHTML);
@@ -4199,9 +4207,8 @@ const isInitialMount = useRef(true);
       {showCookieBanner && (
         <CookieBanner 
           isDarkMode={isDarkMode} 
-          onAccept={() => handleCookieAction('accepted_all')}
-          onReject={() => handleCookieAction('rejected_all')}
-          onManage={() => handleCookieAction('managed')}
+          onClose={() => handleCookieAction('informed')}
+          onMore={() => setActiveLegalPage('cookies')}
           t={t}
         />
       )}
@@ -4260,6 +4267,7 @@ onResetCanvas={() => {
         isDarkMode={isDarkMode}
         t={t}
         beta={publicBeta}
+        onOpenLegal={setActiveLegalPage}
       />
 
       {/* BETA LLENA: quien ha iniciado sesión sin plaza ve la cola (los portales públicos de clientes siguen abiertos para todos) */}
@@ -4751,10 +4759,18 @@ onResetCanvas={() => {
                     &copy; {new Date().getFullYear()} BrandBara. {t.ui.rightsReserved}
                  </div>
                  <div className="flex flex-wrap justify-center gap-4 md:gap-8 font-semibold">
+                    <button onClick={() => setActiveLegalPage('notice')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.legalNotice}</button>
                     <button onClick={() => setActiveLegalPage('privacy')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.privacyPolicy}</button>
                     <button onClick={() => setActiveLegalPage('terms')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.termsOfUse}</button>
                     <button onClick={() => setActiveLegalPage('cookies')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.cookiePolicy}</button>
+                    <button onClick={() => setActiveLegalPage('report')} className={`transition-colors ${isDarkMode ? 'hover:text-slate-300' : 'hover:text-slate-600'}`}>{t.ui.reportContent}</button>
                  </div>
+              </div>
+          )}
+          {/* Portales públicos de clientes: solo un enlace discreto para denunciar contenido (obligatorio para quien aloja contenido de usuarios) */}
+          {effectiveIsPublicView && (
+              <div className="max-w-7xl mx-auto mt-16 pb-6 text-center select-none">
+                 <button onClick={() => setActiveLegalPage('report')} className={`text-[10px] font-semibold opacity-40 hover:opacity-80 transition-opacity ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.ui.reportContent}</button>
               </div>
           )}
         </div>
@@ -4778,6 +4794,8 @@ onResetCanvas={() => {
 const LandingPage = () => {
   const navigate = useNavigate();
   const [lang, setLang] = useState('ES');
+  const [legalPage, setLegalPage] = useState(null);
+  const legalT = lang === 'EN' ? TRANSLATIONS.EN : TRANSLATIONS.ES;
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -4793,16 +4811,16 @@ const LandingPage = () => {
       hero1: "El PDF está obsoleto.",
       hero2: "Tus brand guidelines,",
       hero3: "ahora vivas.",
-      subtitle: "Construye y protege el capital de tu marca. Centraliza tus activos digitales y haz que el trabajo creativo sea impecable, seguro y accesible para agencias y stakeholders.",
-      cta: "Comenzar gratis",
-      ctaSub: "No requiere tarjeta de crédito",
-      bento1Title: "Protección absoluta de tus Assets.",
-      bento1Desc: "Se acabó enviar archivos sueltos. Una única fuente de la verdad donde logotipos, fuentes y componentes están blindados y siempre actualizados.",
+      subtitle: "Construye y cuida el capital de tu marca. Centraliza tus activos digitales y haz que el trabajo creativo sea impecable y accesible para agencias y stakeholders.",
+      cta: "Pedir acceso a la beta",
+      ctaSub: "Beta gratuita con plazas limitadas · sin tarjeta",
+      bento1Title: "Tus assets, en un solo sitio.",
+      bento1Desc: "Se acabó enviar archivos sueltos. Una única fuente de la verdad donde logotipos, fuentes y componentes están ordenados y siempre actualizados.",
       bento2Title: "Sincronización Total",
       bento2Desc: "Alinea a equipos internos y agencias externas al instante. Un cambio se refleja en tiempo real para todos.",
       bento3Title: "Entregables Impecables",
       bento3Desc: "Despídete de las presentaciones estáticas. Entrega portales interactivos que elevan el valor de tu trabajo creativo.",
-      footer: "BrandBara Site Inc. © 2026 — Madrid, Spain."
+      footer: "BrandBara © 2026 · Beta"
     },
     EN: {
       nav: "Open Editor",
@@ -4810,16 +4828,16 @@ const LandingPage = () => {
       hero1: "The PDF is obsolete.",
       hero2: "Your brand guidelines,",
       hero3: "now alive.",
-      subtitle: "Build and protect your brand equity. Centralize your digital assets and make creative work flawless, secure, and always accessible for agencies and stakeholders.",
-      cta: "Start for free",
-      ctaSub: "No credit card required",
-      bento1Title: "Absolute Asset Protection.",
-      bento1Desc: "Stop sending loose files. A single source of truth where logos, fonts, and components are shielded and always up to date.",
+      subtitle: "Build and nurture your brand equity. Centralize your digital assets and make creative work flawless and always accessible for agencies and stakeholders.",
+      cta: "Request beta access",
+      ctaSub: "Free beta with limited places · no card needed",
+      bento1Title: "Your assets, in one place.",
+      bento1Desc: "Stop sending loose files. A single source of truth where logos, fonts, and components are organized and always up to date.",
       bento2Title: "Total Synchronization",
       bento2Desc: "Align internal teams and external agencies instantly. One change reflects in real-time for everyone.",
       bento3Title: "Flawless Deliverables",
       bento3Desc: "Say goodbye to static presentations. Deliver interactive portals that elevate the value of your creative work.",
-      footer: "BrandBara Site Inc. © 2026 — Madrid, Spain."
+      footer: "BrandBara © 2026 · Beta"
     }
   };
 
@@ -4994,6 +5012,12 @@ const LandingPage = () => {
           </span>
         </div>
         <span className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'opacity-60' : 'opacity-70 text-slate-900'}`}>{t.footer}</span>
+        <div className={`flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+          {[['notice', 'legalNotice'], ['privacy', 'privacyPolicy'], ['terms', 'termsOfUse'], ['cookies', 'cookiePolicy'], ['report', 'reportContent']].map(([page, key]) => (
+            <button key={page} onClick={() => setLegalPage(page)} className="hover:underline">{legalT.ui[key]}</button>
+          ))}
+        </div>
+        <LegalModal isOpen={!!legalPage} page={legalPage} onClose={() => setLegalPage(null)} isDarkMode={isDarkMode} t={legalT} />
       </footer>
     </div>
   );

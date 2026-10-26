@@ -109,6 +109,10 @@ export const TRANSLATIONS = {
       privacyPolicy: "Política de Privacidad",
       termsOfUse: "Términos de Uso",
       cookiePolicy: "Política de Cookies",
+      legalNotice: "Aviso Legal",
+      reportContent: "Denunciar contenido",
+      videoPlay: "Reproducir vídeo",
+      videoNotice: "Al reproducir, {provider} puede guardar cookies y saber que estás viendo esta página.",
       publishingToast: "Procesando imágenes y publicando portal...",
       confirmReset: "¿Estás seguro de que quieres empezar de cero? Esto vaciará todo tu diseño actual y restaurará los valores de fábrica.",
       resetDone: "Portal restaurado a su estado de fábrica.",
@@ -166,7 +170,7 @@ export const TRANSLATIONS = {
         typoSamples: { Display: "Titular", H1: "Encabezado", H2: "Subtítulo", Body: "Cuerpo de texto legible.", Caption: "Texto auxiliar." }, 
         partnerCaption: "Descripción del acuerdo." 
     },
-    cookie: { title: "Valoramos tu privacidad", desc: "Utilizamos cookies propias y de terceros para personalizar el contenido, analizar nuestro tráfico y ofrecerte una experiencia increíble. Al hacer clic en 'Aceptar todas', das tu consentimiento.", manage: "Solo Necesarias", reject: "Rechazar", accept: "Aceptar Todas" },
+    cookie: { title: "Almacenamiento técnico", desc: "BrandBara solo usa el almacenamiento técnico necesario para funcionar (sesión, borrador y preferencias). No usamos cookies de analítica ni de publicidad.", more: "Más información", accept: "Entendido" },
     auth: { loginTitle: "Bienvenido de nuevo", registerTitle: "Crea tu cuenta", loginDesc: "Inicia sesión para publicar tu portal.", registerDesc: "Regístrate para guardar y guardar tu progreso.", loginBtn: "Iniciar Sesión", registerBtn: "Registrarse", name: "Nombre completo", namePlaceholder: "Tu nombre", email: "Correo Electrónico", emailPlaceholder: "ejemplo@correo.com", password: "Contraseña", termsPre: "He leído y acepto los", termsLink: "Términos de Uso", privacyAnd: "y la", privacyLink: "Política de Privacidad", success: "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal." },
     profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferences", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
   },
@@ -279,6 +283,10 @@ export const TRANSLATIONS = {
       privacyPolicy: "Privacy Policy",
       termsOfUse: "Terms of Use",
       cookiePolicy: "Cookie Policy",
+      legalNotice: "Legal Notice",
+      reportContent: "Report content",
+      videoPlay: "Play video",
+      videoNotice: "When you play it, {provider} may store cookies and know you are viewing this page.",
       publishingToast: "Processing images and publishing portal...",
       confirmReset: "Are you sure you want to start over? This will clear your whole current design and restore the factory defaults.",
       resetDone: "Portal restored to its factory defaults.",
@@ -336,7 +344,7 @@ colorNeutralName: "Neutral", colorNeutralUsage: "Texts and borders.",
         typoSamples: { Display: "Headline", H1: "Header", H2: "Subtitle", Body: "Readable body text.", Caption: "Auxiliary text." }, 
         partnerCaption: "Agreement description." 
     },
-    cookie: { title: "We value your privacy", desc: "We use first and third-party cookies to personalize content, analyze our traffic, and offer you an incredible experience. By clicking 'Accept all', you give your consent.", manage: "Only Necessary", reject: "Reject", accept: "Accept All" },
+    cookie: { title: "Technical storage", desc: "BrandBara only uses the technical storage it needs to work (session, draft and preferences). We do not use analytics or advertising cookies.", more: "More information", accept: "Got it" },
     auth: { loginTitle: "Welcome back", registerTitle: "Create your account", loginDesc: "Log in to publish your portal.", registerDesc: "Sign up to save and publish your progress.", loginBtn: "Log In", registerBtn: "Sign Up", name: "Full name", namePlaceholder: "Your name", email: "Email", emailPlaceholder: "example@email.com", password: "Password", termsPre: "I have read and accept the", termsLink: "Terms of Use", privacyAnd: "and the", privacyLink: "Privacy Policy", success: "Successfully logged in! You can now publish your portal." },
     profileTabs: { title: "Settings", public: "Public Profile", publicDesc: "Information visible to other users and in your shared projects.", account: "Account", accountDesc: "Manage your credentials and security.", preferences: "Preferences", prefDesc: "Customize your BrandBara experience.", space: "Storage", filesMsg: "Files uploaded to the portal.", logout: "Log Out", changePass: "Change password", lang: "Language", langDesc: "Select the interface language.", notif: "Email Notifications", notifDesc: "Receive news and security alerts.", cookies: "Analytics Cookies", cookiesDesc: "Help us improve the platform anonymously.", role: "Role / Title", bio: "Biography" }
   }
