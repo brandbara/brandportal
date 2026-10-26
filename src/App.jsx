@@ -18,6 +18,7 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
+import { deleteMyAccount } from './utils/account';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
@@ -2324,7 +2325,28 @@ const ModuleSlot = React.memo(({ item, onUpdate, design, isDarkMode, t, isPrevie
 const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange, checkLimit }) => {  
   const [activeTab, setActiveTab] = useState('profile');
   const [showDangerZone, setShowDangerZone] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const safeT = t || TRANSLATIONS.ES;
+  const deleteWord = safeT.ui.deleteAccountWord;
+
+  const handleDeleteAccount = async () => {
+    setDeleteError(false);
+    setIsDeletingAccount(true);
+    try {
+      if (supabase) await deleteMyAccount(supabase);
+      idbClear().catch(console.error); // Vaciar copia local de imágenes
+      onClose();
+      if (onLogout) await onLogout(safeT.ui.deleteAccountDone);
+    } catch (err) {
+      console.error('No se pudo eliminar la cuenta:', err);
+      setDeleteError(true);
+    } finally {
+      setIsDeletingAccount(false);
+      setDeleteConfirm('');
+    }
+  };
   
   useEffect(() => {
     // Solo rellenamos datos de relleno si el perfil está completamente vacío (usuario nuevo sin registro)
@@ -2510,7 +2532,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 <ChevronDown size={16} className={`transition-transform duration-300 opacity-50 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} ${showDangerZone ? 'rotate-180' : ''}`} />
                             </button>
 
-                            <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-80 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ${showDangerZone ? 'max-h-[40rem] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className={`p-5 rounded-2xl border space-y-5 shadow-inner ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                                     {/* BOTÓN NARANJA AÑADIDO AQUÍ */}
                                     <div>
@@ -2524,23 +2546,25 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                     </div>
                                     <div className={`pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
                                         <p className={`text-[10px] opacity-70 mb-3 font-bold uppercase tracking-widest ${isDarkMode ? 'text-rose-400' : 'text-rose-500'}`}>Zona Crítica</p>                                       
-                                         <button onClick={async () => {
-                                          if(window.confirm("¿Estás 100% seguro de que quieres borrar tu cuenta y todos tus portales? Esta acción es irreversible.")) {
-                                            try {
-                                              if (supabase) {
-                                                // Borrar portal de la base de datos
-                                                await supabase.from('portals').delete().eq('user_id', content.id);
-                                              }
-                                              idbClear().catch(console.error); // Vaciar búnker
-                                              if(onLogout) onLogout();
-                                              onClose();
-                                            } catch (err) {
-                                              alert("Error al eliminar datos: " + err.message);
-                                            }
-                                          }
-                                        }} className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm">
-                                          Eliminar mi cuenta definitivamente
-                                        </button>                                    </div>
+                                        <p className={`text-xs mb-3 leading-relaxed ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{safeT.ui.deleteAccountWarn}</p>
+                                        <label htmlFor="delete-account-confirm" className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{safeT.ui.deleteAccountType.replace('{word}', deleteWord)}</label>
+                                        <input
+                                          id="delete-account-confirm"
+                                          type="text"
+                                          autoComplete="off"
+                                          value={deleteConfirm}
+                                          onChange={(e) => setDeleteConfirm(e.target.value)}
+                                          className={`w-full mb-3 px-3 py-2 rounded-lg border text-sm outline-none focus:border-rose-500 ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isDeletingAccount || deleteConfirm.trim().toUpperCase() !== deleteWord}
+                                          onClick={handleDeleteAccount}
+                                          className="w-full px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 rounded-lg text-sm font-bold transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                          {isDeletingAccount ? safeT.ui.deleteAccountBusy : safeT.ui.deleteAccount}
+                                        </button>
+                                        {deleteError && <p role="alert" className="mt-3 text-xs font-bold text-rose-500">{safeT.ui.deleteAccountError}</p>}                                    </div>
                                  </div>
                             </div>
                           </div>
@@ -3134,7 +3158,7 @@ const Editor = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (message) => {
     try {
       if (supabase) await supabase.auth.signOut();
     } catch (error) {
@@ -3148,7 +3172,7 @@ const Editor = () => {
 setCurrentFont('Inter');
       
       setCanvasItems(getInitialCanvas(t));
-      showToast("Sesión cerrada correctamente.");
+      showToast(typeof message === 'string' ? message : "Sesión cerrada correctamente.");
         }
   };
 
