@@ -21,6 +21,7 @@ import { LEGAL_CONTENT } from './data/legal';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // ==========================================
 // 1. CONSTANTES Y CONFIGURACIÓN (GLOBAL)
@@ -2318,7 +2319,11 @@ const ModuleSlot = React.memo(({ item, onUpdate, design, isDarkMode, t, isPrevie
   const update = React.useCallback((c) => onUpdate(item.id, c), [onUpdate, item.id]);
   const ModuleComponent = MODULE_COMPONENTS[item.type];
   if (!ModuleComponent) return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
-  return <ModuleComponent content={item.content} update={update} design={design} isDarkMode={isDarkMode} t={t} isPreview={isPreview} checkLimit={checkLimit} />;
+  return (
+    <ErrorBoundary resetKey={item.content} isDarkMode={isDarkMode} isPreview={isPreview}>
+      <ModuleComponent content={item.content} update={update} design={design} isDarkMode={isDarkMode} t={t} isPreview={isPreview} checkLimit={checkLimit} />
+    </ErrorBoundary>
+  );
 });
 
 const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange, checkLimit }) => {  
