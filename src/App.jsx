@@ -191,6 +191,9 @@ const hashPassword = async (password) => {
 // ==============================================================================
 
 // 1. Creador de URLs Seguras (Guarda en IDB explícitamente usando la API nativa)
+// Título original de la página (el de index.html); se restaura al salir de un portal
+const DEFAULT_PAGE_TITLE = typeof document !== 'undefined' ? document.title : 'BrandBara';
+
 const createSafeBlobUrl = (file) => {
   const url = URL.createObjectURL(file); // 🛡️ ¡Corregido! Ahora llama a la API nativa del navegador
   idbSet(url, file).catch(e => console.error("Error guardando en IDB:", e));
@@ -3063,8 +3066,12 @@ const Editor = () => {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [accessInput, setAccessInput] = useState("");
   const [isPublicView, setIsPublicView] = useState(false);
-  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
+  // Si se entra directamente en /enlace-de-un-portal, se muestra "Cargando" desde el primer momento (sin parpadeo del editor)
+  const [isLoadingPortal, setIsLoadingPortal] = useState(() => Boolean(supabase) && Boolean(pathParts[0]) && pathParts[0] !== 'info');
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState(false); // fallo de conexión o de servidor (distinto de "no existe")
+  const [reloadKey, setReloadKey] = useState(0);     // al cambiar, se reintenta la carga del portal
+  const [authReady, setAuthReady] = useState(!supabase); // true cuando ya se sabe si hay sesión (evita decidir "¿eres el dueño?" antes de tiempo)
   const [isRemixLocked, setIsRemixLocked] = useState(false);
   const [portalOwnerId, setPortalOwnerId] = useState(null);
 
@@ -3193,7 +3200,10 @@ setCurrentFont('Inter');
       }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => handleSession(session));
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => { handleSession(session); })
+      .catch((err) => console.error('No se pudo leer la sesión:', err))
+      .finally(() => setAuthReady(true));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleSession(session);
     });
@@ -3203,9 +3213,15 @@ setCurrentFont('Inter');
 // 2. LÓGICA DE VISTA PÚBLICA (READ-ONLY) CON VALIDACIÓN CRUZADA OWNER
   useEffect(() => {
     const path = location.pathname.replace('/', '').trim();
+    // Respuestas de cargas anteriores que llegan tarde se descartan (si no, podían pisar lo que el usuario ya está editando)
+    let cancelled = false;
     
     if (path && path !== '' && path !== 'info') {
+      // Hasta saber si hay sesión no se decide nada: antes, al recargar /enlace/edit se expulsaba al dueño al modo público
+      if (!authReady) return;
       setIsLoadingPortal(true);
+      setNotFound(false);
+      setLoadError(false);
       
 const fetchPortal = async () => {
         if (!supabase) return;
@@ -3219,6 +3235,7 @@ const fetchPortal = async () => {
             p_password: hashedAttempt
           });
 
+          if (cancelled) return;
           if (error) throw error;
           if (!data) {
             setNotFound(true);
@@ -3278,8 +3295,9 @@ setProfileContent({
             }
           }
         } catch (err) {
+          if (cancelled) return;
           console.error("Error al cargar el portal:", err);
-          setNotFound(true);
+          setLoadError(true); // fallo de red o de servidor: NO es "portal inexistente"
         }
         setIsLoadingPortal(false);
       };
@@ -3288,7 +3306,10 @@ setProfileContent({
     } else {
       setIsPublicView(false);
     }
-  }, [currentUser, location.pathname]); 
+    return () => { cancelled = true; };
+    // currentUser?.id (y no el objeto): Supabase renueva el objeto al volver a la pestaña y eso recargaba el portal pisando cambios sin guardar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, location.pathname, authReady, reloadKey]); 
 
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [profileContent, setProfileContent] = useState({});
@@ -3468,6 +3489,34 @@ setSaveStatus('saved');
   };
 
 const [canvasItems, setCanvasItems] = useState(() => getInitialCanvas(t));
+
+  // Idioma del documento, título de la pestaña y robots. Es una SPA: sin esto todas las páginas se llamaban igual
+  // ("BrandBara | Crea tu Brand Portal…") y el lector de pantalla leía todo en español aunque la interfaz estuviera en inglés.
+  useEffect(() => {
+    document.documentElement.lang = safeLanguage.toLowerCase();
+  }, [safeLanguage]);
+
+  useEffect(() => {
+    const isPortalRoute = Boolean(activeSlug) && activeSlug !== 'info';
+    let title = DEFAULT_PAGE_TITLE;
+    if (isPortalRoute) {
+      if (notFound) title = `${t.ui.portalNotFound} · BrandBara`;
+      else if (loadError) title = `${t.ui.portalLoadError} · BrandBara`;
+      else if (isLoadingPortal || !profileContent?.name) title = 'BrandBara';
+      else title = pathParts[1] === 'edit' ? `${profileContent.name} · Editor` : `${profileContent.name} · Brand Portal`;
+    }
+    document.title = title;
+
+    // Los portales de clientes no deben aparecer en buscadores (pueden contener material sin publicar)
+    let robots = document.querySelector('meta[name="robots"]');
+    if (isPortalRoute) {
+      if (!robots) { robots = document.createElement('meta'); robots.name = 'robots'; document.head.appendChild(robots); }
+      robots.content = 'noindex, nofollow';
+    } else if (robots) {
+      robots.remove();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSlug, pathParts[1], profileContent?.name, notFound, loadError, isLoadingPortal, safeLanguage]);
 
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
 
@@ -3852,11 +3901,22 @@ const isInitialMount = useRef(true);
   const effectiveIsPreview = (isBrandRoute && !isActualOwner) ? true : isPreview;
 
   if (isLoadingPortal) {
-    return <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><Wand2 className="animate-spin text-indigo-500 mb-4" size={40} /><p className="font-bold">Cargando portal...</p></div>;
+    return <div className={`flex h-screen w-full items-center justify-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><Wand2 className="animate-spin text-indigo-500 mb-4" size={40} /><p className="font-bold">{t.ui.loadingPortal}</p></div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className={`flex h-screen w-full items-center justify-center flex-col px-6 text-center ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`} role="alert">
+        <AlertCircle size={60} className="text-amber-500 mb-4" />
+        <h1 className="text-2xl font-black mb-2">{t.ui.portalLoadError}</h1>
+        <p className="opacity-60 mb-6 max-w-md">{t.ui.portalLoadErrorDesc}</p>
+        <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95">{t.ui.retry}</button>
+      </div>
+    );
   }
 
   if (notFound) {
-    return <div className={`flex h-screen w-full items-center justify-center flex-col ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><AlertCircle size={60} className="text-rose-500 mb-4"/><h1 className="text-2xl font-black mb-2">Portal no encontrado</h1><p className="opacity-60">Esta URL no existe o ha sido eliminada.</p></div>;
+    return <div className={`flex h-screen w-full items-center justify-center flex-col ${isDarkMode ? 'bg-[#0a0c10] text-white' : 'bg-slate-50 text-slate-900'}`}><AlertCircle size={60} className="text-rose-500 mb-4"/><h1 className="text-2xl font-black mb-2 text-center px-6">{t.ui.portalNotFound}</h1><p className="opacity-60 text-center px-6">{t.ui.portalNotFoundDesc}</p></div>;
   }
 
   if (effectiveIsPublicView && profileContent?.isPasswordProtected && !isUnlocked) {
@@ -3866,9 +3926,9 @@ const isInitialMount = useRef(true);
           <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock size={32} className="text-indigo-500" />
           </div>
-          <h2 className="text-2xl font-black mb-2">Portal Privado</h2>
+          <h2 className="text-2xl font-black mb-2">{t.ui.portalPrivate}</h2>
           <p className={`text-sm mb-8 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            Este portal está protegido. Introduce la contraseña de acceso proporcionada por la marca.
+            {t.ui.portalPrivateDesc}
           </p>
 <form onSubmit={async (e) => {
             e.preventDefault();
@@ -3882,8 +3942,12 @@ const isInitialMount = useRef(true);
                 p_password: hashedInput // Enviamos el Hash al backend
             });
 
-            if (error || !data || data.status === 'locked') {
-                showToast("Contraseña incorrecta");
+            if (error) {
+                // Fallo de conexión o de servidor: no es una contraseña incorrecta
+                showToast(t.ui.passwordCheckError);
+                setIsLoadingPortal(false);
+            } else if (!data || data.status === 'locked') {
+                showToast(t.ui.passwordWrong);
                 setAccessInput("");
                 setIsLoadingPortal(false);
             } else if (data.status === 'success') {
@@ -3897,19 +3961,21 @@ const isInitialMount = useRef(true);
                 });
                 setIsUnlocked(true);
                 setIsLoadingPortal(false);
-                showToast("Portal Desbloqueado");
+                showToast(t.ui.portalUnlocked);
             }
           }} className="space-y-4">
             <input
               type="password"
               value={accessInput}
               onChange={(e) => setAccessInput(e.target.value)}
-              placeholder="Escribe la contraseña..."
+              placeholder={t.ui.passwordPlaceholder}
+              aria-label={t.ui.passwordPlaceholder}
+              autoComplete="current-password"
               className={`w-full p-4 rounded-xl text-center font-mono tracking-widest outline-none border transition-all ${isDarkMode ? 'bg-black/20 border-white/10 focus:border-indigo-500' : 'bg-slate-50 border-slate-200 focus:border-indigo-500'}`}
               autoFocus
             />
             <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-              <Key size={18} /> Desbloquear Portal
+              <Key size={18} /> {t.ui.unlockPortal}
             </button>
           </form>
         </div>
