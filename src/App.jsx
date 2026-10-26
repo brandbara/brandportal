@@ -573,7 +573,7 @@ const recoverLostBlobs = async (obj) => {
         // ¡ESTÁ MUERTO (F5)! Lo rescatamos de la base de datos local.
         const recoveredBlob = await idbGet(node);
         if (recoveredBlob) {
-          const newUrl = window.URL.createObjectURL(recoveredBlob); // Esto a su vez lo re-guarda
+          const newUrl = createSafeBlobUrl(recoveredBlob); // Esto a su vez lo re-guarda
           hasChanges = true;
           return newUrl;
         }
@@ -2966,9 +2966,13 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
       } else {
         // REGISTRO REAL
         const { data, error } = await supabase.auth.signUp({
-          email, password, options: { data: { full_name: name } }
+          email, password, options: { data: { full_name: name }, emailRedirectTo: window.location.origin }
         });
         if (error) throw error;
+        if (!data.session) {
+          setSuccessMsg('Te hemos enviado un email para confirmar tu cuenta. Confírmalo y luego inicia sesión para publicar tu portal.');
+          return;
+        }
         onAuthenticate(data.user);
       }
     } catch (error) {
@@ -3568,11 +3572,15 @@ setProfileContent({
 
   const processBlobsInObject = async (obj, userId) => {
     let hasChanges = false;
+    let failed = 0;
+    let lost = 0;
+    let stage = 'fetch';
     const traverse = async (node) => {
       if (!node) return node;
       if (typeof node === 'string' && node.startsWith('blob:')) {
         hasChanges = true;
         try {
+          stage = 'fetch';
           const response = await fetch(node);
           let blob = await response.blob();
           
@@ -3586,7 +3594,8 @@ setProfileContent({
             }
           }
 
-          const fileExt = blob.type.split('/')[1] || 'png';
+          stage = 'upload';
+          const fileExt = (blob.type.split('/')[1] || 'png').split('+')[0].replace('jpeg', 'jpg');
           const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
           const filePath = `${userId}/${fileName}`; 
           
@@ -3601,7 +3610,9 @@ const { error } = await supabase.storage.from('portals_assets').upload(filePath,
           
           return data.publicUrl;
                 } catch (e) {
-          console.error("Error subiendo imagen:", e);
+          console.error("Error procesando imagen (" + stage + "):", e);
+          if (stage === 'fetch') { lost += 1; return null; }
+          failed += 1;
           return node;
         }
       }
@@ -3618,7 +3629,7 @@ const { error } = await supabase.storage.from('portals_assets').upload(filePath,
       return node;
     };
     const result = await traverse(obj);
-    return { result, hasChanges };
+    return { result, hasChanges, failed, lost };
   };
 
   // Limpiador de URLs efímeras antes de guardar en caché local
@@ -3658,6 +3669,11 @@ const savePortalData = async (isManual = false) => {
 // 🛡️ BACKGROUND AUTO-UPLOAD: Subimos los blobs a Supabase también durante el autoguardado si hay sesión
 const processedCanvas = currentUser?.id ? await processBlobsInObject(canvasItems, currentUser.id) : { result: canvasItems, hasChanges: false };
 const processedProfile = currentUser?.id ? await processBlobsInObject(profileContent, currentUser.id) : { result: profileContent, hasChanges: false };
+        const failedUploads = (processedCanvas.failed || 0) + (processedProfile.failed || 0);
+        const lostImages = (processedCanvas.lost || 0) + (processedProfile.lost || 0);
+        if (failedUploads > 0) {
+          throw new Error("No se pudieron subir " + failedUploads + " imagen(es). No se ha publicado nada para evitar imágenes rotas; revisa tu conexión e inténtalo de nuevo.");
+        }
         const { error: profileError } = await supabase.from('profiles').upsert({ id: currentUser.id, updated_at: new Date().toISOString() });
         if (profileError) throw new Error("Error al verificar perfil: " + profileError.message);
 // Hashear la contraseña antes de enviar a Supabase
@@ -3700,8 +3716,8 @@ if (processedProfile.hasChanges) {
 }
 
 setSaveStatus('saved');
-        idbClear().catch(console.error); // 🧹 LIMPIEZA: Vaciamos la DB local porque ya está a salvo en Supabase
-        if (isManual) showToast("¡Portal publicado y sincronizado con éxito!");
+        // Ya no se vacía toda la DB local aquí: cada imagen se borra de IDB justo después de subirse con éxito.
+        if (isManual) showToast(lostImages > 0 ? "Portal publicado, pero " + lostImages + " imagen(es) temporales ya no existían: súbelas de nuevo." : "¡Portal publicado y sincronizado con éxito!");
         setTimeout(() => setSaveStatus('idle'), 2500);
 
       } catch (err) {
