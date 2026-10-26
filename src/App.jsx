@@ -18,6 +18,7 @@ import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { LEGAL_CONTENT } from './data/legal';
+import { downloadFile } from './utils/download';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
@@ -202,41 +203,6 @@ const createExtraBlock = (type, param) => (
     ? { id: Date.now() + Math.random(), type: 'text', cols: param, content: Array(param).fill('') }
     : { id: Date.now() + Math.random(), type: 'image', src: null }
 );
-
-// ==========================================
-// DESCARGA DE ARCHIVOS CON NOMBRE Y EXTENSIÓN CORRECTOS
-// El atributo "download" de un enlace se ignora cuando el archivo está en otro dominio (Supabase Storage),
-// y el navegador guardaba el archivo con el nombre aleatorio de la nube (p. ej. "phsxv4m1nn7.svg+xml").
-// Por eso se descarga primero el archivo y se guarda con un nombre limpio según su tipo real.
-// ==========================================
-const MIME_EXTENSIONS = {
-  'image/svg+xml': 'svg', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
-  'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'video/mp4': 'mp4', 'video/webm': 'webm',
-};
-
-const safeFileName = (name) =>
-  String(name || 'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'archivo';
-
-const downloadFile = async (src, baseName) => {
-  try {
-    const response = await fetch(src);
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const blob = await response.blob();
-    const extension = MIME_EXTENSIONS[(blob.type || '').split(';')[0]] || 'png';
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = `${safeFileName(baseName)}.${extension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  } catch (err) {
-    console.error('No se pudo descargar el archivo, se abre en una pestaña nueva:', err);
-    window.open(src, '_blank', 'noopener,noreferrer');
-  }
-};
 
 // Crea el manejador para añadir un bloque extra al final de un módulo (compartido por todos los módulos)
 const makeAddExtra = (content, update) => (type, param) =>
@@ -488,7 +454,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
   const handleDownload = (e) => {
     e.stopPropagation();
     if (!src) return;
-    downloadFile(src, `${type}_mockup`);
+    downloadFile(src, `${type}_mockup`, { errorMessage: t?.ui?.downloadError });
   };
 
   const renderFrame = () => {
@@ -502,7 +468,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
          
          {!isPreview && (
             <>
-                {src && <button onClick={handleDownload} className="absolute bottom-2 left-2 p-2 bg-indigo-600 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110" title="Descargar"><Download size={14}/></button>}
+                {src && <button type="button" onClick={handleDownload} className="absolute bottom-2 left-2 p-2.5 bg-indigo-600 text-white rounded-full transition-opacity shadow-lg z-20 hover:scale-110 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/dev:opacity-100 focus-visible:opacity-100" title={t?.ui?.downloadImage || "Descargar imagen"} aria-label={t?.ui?.downloadImage || "Descargar imagen"}><Download size={14}/></button>}
                 <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110"><Trash2 size={14}/></button>
             </>
          )}
@@ -1137,7 +1103,7 @@ const handleVariationUpload = (e, id) => { const file = e.target.files[0]; if(fi
 const handleLogoDownload = (e, src, label) => {
     e.stopPropagation();
     if (!src) return;
-    downloadFile(src, `${label}_logo`);
+    downloadFile(src, `${label}_logo`, { errorMessage: t?.ui?.downloadError });
   };
 
   const handleAddExtra = makeAddExtra(content, update);
@@ -1200,11 +1166,13 @@ const handleLogoDownload = (e, src, label) => {
                     {variant.src ? <img src={variant.src} className="w-2/3 h-2/3 object-contain" alt={variant.label} /> : <div className={`text-center p-4 opacity-30 font-bold ${variant.bg === 'dark' ? 'text-white' : 'text-slate-900'}`}>LOGO</div>}
                     
                     {variant.src && (
-                        <div className="absolute bottom-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-3 right-3 z-20 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-within:opacity-100">
                             <button 
+                                type="button"
                                 onClick={(e) => handleLogoDownload(e, variant.src, variant.label)}
-                                className="p-2.5 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-110"
+                                className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-110"
                                 title={t?.ui?.downloadLogo || "Descargar Logotipo"}
+                                aria-label={`${t?.ui?.downloadLogo || "Descargar Logotipo"}: ${variant.label}`}
                             >
                                 <Download size={16} />
                             </button>
@@ -3126,10 +3094,17 @@ const Editor = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   
-  const showToast = (msg) => {
+  const showToast = React.useCallback((msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
-  };
+  }, []);
+
+  // Avisos lanzados desde fuera de React (p. ej. el ayudante de descargas)
+  useEffect(() => {
+    const onToast = (e) => { if (e.detail) showToast(e.detail); };
+    window.addEventListener('brandbara:toast', onToast);
+    return () => window.removeEventListener('brandbara:toast', onToast);
+  }, [showToast]);
 
   const [currentUser, setCurrentUser] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
