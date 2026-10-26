@@ -1,0 +1,43 @@
+name: Esquema de Supabase
+
+# Monta un Postgres vacío, aplica supabase/schema/esquema_referencia.sql y ejecuta pruebas
+# de seguridad (quién puede leer, escribir, subir o borrar qué). Solo corre cuando se toca
+# la carpeta supabase/. No usa ningún secreto ni toca el Supabase real.
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/esquema-supabase.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+
+jobs:
+  esquema:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Montar un Supabase vacío (simulado)
+        run: psql -v ON_ERROR_STOP=1 -f supabase/schema/verificacion/supabase_simulado.sql
+      - name: Aplicar el esquema de referencia
+        run: psql -v ON_ERROR_STOP=1 -f supabase/schema/esquema_referencia.sql
+      - name: Pruebas de seguridad
+        run: psql -v ON_ERROR_STOP=1 -f supabase/schema/verificacion/pruebas_seguridad.sql
