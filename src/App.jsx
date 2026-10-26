@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
+import { TRANSLATIONS } from './data/translations';
+import { LEGAL_CONTENT } from './data/legal';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
@@ -137,379 +139,10 @@ const getInitialCanvas = (t) => {
   ];
 };
 
-const TRANSLATIONS = {
-  ES: {
-    ui: {
-      generate: "Remix Mágico", coffee: "Invítame a un café", tools: "Herramientas", styles: "Estilos Globales",
-      publish: "Publicar", preview: "Vista Previa", backToEdit: "Volver a Editar", addText: "Añadir texto",
-      upload: "Subir", change: "Cambiar", uploadMedia: "Subir Media", pasteLink: "Pegar enlace...",
-      add: "Añadir", cancel: "Cancelar", navigate: "Navegar", noModules: "Sin módulos activos",
-      colors: "Tintas", hex: "Hex", bgImage: "Imagen", bgColor: "Fondo Color", addBlock: "Añadir Bloque",
-      addDevice: "Añadir Formato", addPartner: "Añadir Caso", addExample: "Añadir Ejemplo", duplicate: "Duplicar",
-      downloadTemplate: "Descargar Plantilla", downloadFamily: "Descargar Familia", addIcon: "Añadir Icono",
-      iconName: "Nombre del icono", text1Col: "Texto 1 Columna", text2Col: "Texto 2 Columnas",
-      text3Col: "Texto 3 Columnas", imageExtra: "Imagen Multimedia", watermark: "Creado con",
-      logo: "Logotipo", color: "Color", typography: "Tipografía", image: "Imagen", bento: "Bento Box",
-      editorial: "Editorial", icons: "Iconos", web: "Web", social: "Redes Sociales", cobranding: "Co-branding",
-      footer: "Pie de Página", profile: "Perfil", layout: "Layout", identity: "Identidad", assets: "Materiales",
-      placeholders: { text: "Escribe aquí tu contenido...", bento: "Contenido Bento", caption: "Pie de foto...", copyright: "© 2026 BrandBara. Todos los derechos reservados.", website: "www.brandbara.com" },
-      settings: { layout: "Diseño", font: "Tipografía", spacing: "Espaciado" }
-    },
-    modules: {
-      header: { title: "Portal de Marca", subtitle: "Guía Oficial" },
-      hero: { title: "Identidad de Marca", subtitle: "Un sistema visual diseñado para escalar." },
-      identity: { 
-        title: "Nuestra Identidad", 
-        desc: "Los valores fundamentales que definen quiénes somos y cómo operamos.",
-        precision: "Precisión", precisionDesc: "Apuntamos a resultados exactos en cada proyecto que emprendemos.",
-        integrity: "Integridad", integrityDesc: "La honestidad y los estándares éticos son la base de nuestras operaciones.",
-        innovation: "Innovación", innovationDesc: "Always seeking the next horizon in technology and service.",
-        excellence: "Excellence", excellenceDesc: "Estableciendo el punto de referencia de calidad en el panorama moderno."
-      },
-      logo: { title: "Logotipo", desc: "Versiones principales y permitidas de la marca.", uploadLabel: "Logotipo (2MB)", safeArea: "Area de Seguridad", correct: "Usos Correctos", incorrect: "Usos Incorrectos", addVariant: "Añadir Versión" },
-      color: { title: "Paleta de Color", desc: "Colores corporativos para uso digital e impreso.", addColor: "Añadir Color" },
-      typography: { title: "Tipografía", desc: "Jerarquía visual y escala tipográfica.", size: "Tamaño", weight: "Peso", addLevel: "Añadir Nivel", showMore: "Ver todos los estilos", showLess: "Ver menos" },
-      image: { title: "Moodboard", desc: "Inspiración visual y fotografía.", addImage: "Añadir Imagen" },
-      editorial: { title: "Editorial Kit", desc: "Contenido mixto para narrativa de marca.", btnText: "Texto", btnImage: "Imagen", downloadText: "Descargar Kit Editorial", toggleDownload: "Activar descarga" },
-      layout: { title: "Sistema de Layout", desc: "Retículas base 8px para consistencia espacial.", grid1: "12 Columnas", grid2: "Modular", grid3: "Línea Base", grid4: "Jerárquico", uploadLabel: "Ejemplo de uso", downloadText: "Descargar Plantilla", toggleDownload: "Link de descarga", usageTitle: "Casos de Estudio & Aplicación", usageDesc: "Visualización detallada de la estructura gráfica." },
-      bento: { title: "Bento Box", desc: "Galería multimedia con distribución flexible." },
-      icons: { title: "Iconografía", desc: "Set de iconos para interfaz y comunicación.", googleOutlined: "Material Outlined", googleRounded: "Material Rounded", googleSharp: "Material Sharp", custom: "Import Custom", downloadGoogle: "Descargar de Google Fonts", downloadCustom: "Descargar Kit de Iconos", toggleDownload: "Link de descarga" },
-      web: { title: "Web", laptop: "Laptop", tablet: "Tablet", mobile: "Mobile" },
-      social: { title: "Social Media", desc: "Style guide for social media content.", post: "Post (4:5)", reel: "Reel (9:16)", youtube: "YouTube (16:9)" },
-      cobranding: { title: "Co-branding & Partners", desc: "Guías para coexistencia con otras marcas y casos de uso conjunto." },
-      assets: { title: "Artes Finales", desc: "Descarga los materiales oficiales de la marca listos para usar en diferentes formatos.", addAsset: "Añadir Material", download: "Descargar", formatLabel: "Formato (Ej: ZIP, 5MB)" },
-      footer: { title: "Footer", desc: "Elementos legales y de navegación." }
-    },
-    defaults: { 
-        logoDos: "Fondo blanco", logoDonts: "Distort", 
-        logoMain: "Logo Principal", logoMainDesc: "Versión preferente en color.", 
-        logoDark: "Sobre Negro", logoDarkDesc: "Versión negativa.", 
-        logoSymbol: "Símbolo", logoSymbolDesc: "Isotipo o elemento gráfico.", 
-        colorPrimaryName: "Color Principal", colorPrimaryUsage: "Color dominante de la marca.", 
-        colorSecondaryName: "Color Secundario", colorSecondaryUsage: "Soporte y validaciones.", 
-        colorAccentName: "Color de Acento", colorAccentUsage: "Destacados y llamadas a la acción.",
-        colorNeutralName: "Neutro", colorNeutralUsage: "Textos y bordes.", 
-        colorErrorName: "Error", colorErrorUsage: "Alertas y estados críticos.",
-        editorialContent: "Example editorial content...", 
-        typoSamples: { Display: "Titular", H1: "Encabezado", H2: "Subtítulo", Body: "Cuerpo de texto legible.", Caption: "Texto auxiliar." }, 
-        partnerCaption: "Descripción del acuerdo." 
-    },
-    cookie: { title: "Valoramos tu privacidad", desc: "Utilizamos cookies propias y de terceros para personalizar el contenido, analizar nuestro tráfico y ofrecerte una experiencia increíble. Al hacer clic en 'Aceptar todas', das tu consentimiento.", manage: "Solo Necesarias", reject: "Rechazar", accept: "Aceptar Todas" },
-    auth: { loginTitle: "Bienvenido de nuevo", registerTitle: "Crea tu cuenta", loginDesc: "Inicia sesión para publicar tu portal.", registerDesc: "Regístrate para guardar y guardar tu progreso.", loginBtn: "Iniciar Sesión", registerBtn: "Registrarse", name: "Nombre completo", namePlaceholder: "Tu nombre", email: "Correo Electrónico", emailPlaceholder: "ejemplo@correo.com", password: "Contraseña", termsPre: "He leído y acepto los", termsLink: "Términos de Uso", privacyAnd: "y la", privacyLink: "Política de Privacidad", success: "¡Sesión iniciada con éxito! Ahora puedes publicar tu portal." },
-    profileTabs: { title: "Ajustes", public: "Perfil Público", publicDesc: "Información visible para otros usuarios y en tus proyectos compartidos.", account: "Cuenta", accountDesc: "Gestiona tus credenciales y seguridad.", preferences: "Preferences", prefDesc: "Personaliza tu experiencia en BrandBara.", space: "Espacio", filesMsg: "Archivos subidos al portal.", logout: "Cerrar Sesión", changePass: "Cambiar contraseña", lang: "Idioma", langDesc: "Selecciona el idioma de la interfaz.", notif: "Notificaciones por Email", notifDesc: "Recibe novedades y alertas de seguridad.", cookies: "Cookies de Análisis", cookiesDesc: "Ayúdanos a mejorar la plataforma de forma anónima.", role: "Rol / Cargo", bio: "Biografía" }
-  },
-  EN: {
-    ui: {
-      generate: "Magic Remix", coffee: "Buy me a coffee", tools: "Tools", styles: "Global Styles",
-      publish: "Publish", preview: "Preview", backToEdit: "Back to Edit", addText: "Add text",
-      upload: "Upload", change: "Change", uploadMedia: "Upload Media", pasteLink: "Paste link...",
-      add: "Add", cancel: "Cancel", navigate: "Navigate", noModules: "No active modules",
-      colors: "Colors", hex: "Hex", bgImage: "Image", bgColor: "Bg Color", addBlock: "Add Block",
-      addDevice: "Add Format", addPartner: "Add Case", addExample: "Add Example", duplicate: "Duplicate",
-      downloadTemplate: "Download Template", downloadFamily: "Download Family", addIcon: "Add Icon",
-      iconName: "Icon name", text1Col: "1 Column Text", text2Col: "2 Columns Text",
-      text3Col: "3 Columns Text", imageExtra: "Media Image", watermark: "Created with",
-      logo: "Logo", color: "Color", typography: "Typography", image: "Image", bento: "Bento Box",
-      editorial: "Editorial", icons: "Icons", web: "Web", social: "Social Media", cobranding: "Co-branding",
-      footer: "Footer", profile: "Profile", layout: "Layout", identity: "Identity", assets: "Assets",
-      placeholders: { text: "Type your content here...", bento: "Bento Content", caption: "Caption...", copyright: "© 2026 BrandBara. All rights reserved.", website: "www.brandbara.com" },
-      settings: { layout: "Layout", font: "Typography", spacing: "Spacing" }
-    },
-    modules: {
-      header: { title: "Brand Portal", subtitle: "Official Guide" },
-      hero: { title: "Brand Identity", subtitle: "A visual system designed to scale." },
-      identity: { 
-        title: "Our Identity", 
-        desc: "The core values that define who we are and how we operate.",
-        precision: "Precision", precisionDesc: "We aim for exact results in every project we undertake.",
-        integrity: "Integrity", integrityDesc: "Honesty and ethical standards are the bedrock of our operations.",
-        innovation: "Innovation", innovationDesc: "Always looking for the next horizon in technology and service.",
-        excellence: "Excellence", excellenceDesc: "Setting the benchmark for quality in the modern landscape."
-      },
-      logo: { title: "Logo", desc: "Main and allowed brand versions.", uploadLabel: "Logo (2MB)", safeArea: "Safe Area", correct: "Do's", incorrect: "Don'ts", addVariant: "Add Version" },
-      color: { title: "Color Palette", desc: "Corporate colors for digital and print use.", addColor: "Add Color" },
-      typography: { title: "Typography", desc: "Visual hierarchy and typographic scale.", size: "Size", weight: "Weight", addLevel: "Add Level", showMore: "View all styles", showLess: "View less" },
-      image: { title: "Moodboard", desc: "Visual inspiration and photography.", addImage: "Add Image" },
-      editorial: { title: "Editorial Kit", desc: "Mixed content for brand narrative.", btnText: "Text", btnImage: "Image", downloadText: "Download Editorial Kit", toggleDownload: "Enable download" },
-      layout: { title: "Layout System", desc: "8px base grids for spatial consistency.", grid1: "12 Columns", grid2: "Modular", grid3: "Baseline", grid4: "Hierarchical", uploadLabel: "Usage example", downloadText: "Download Template", toggleDownload: "Download link", usageTitle: "Study Cases & Application", usageDesc: "Detailed visualization of graphic structure." },
-      bento: { title: "Bento Box", desc: "Multimedia gallery with flexible distribution." },
-      icons: { title: "Iconography", desc: "Icon set for interface and communication.", googleOutlined: "Material Outlined", googleRounded: "Material Rounded", googleSharp: "Material Sharp", custom: "Import Custom", downloadGoogle: "Download from Google Fonts", downloadCustom: "Download Icon Kit", toggleDownload: "Download link" },
-      web: { title: "Web", laptop: "Laptop", tablet: "Tablet", mobile: "Mobile" },
-      social: { title: "Social Media", desc: "Style guide for social media content.", post: "Post (4:5)", reel: "Reel (9:16)", youtube: "YouTube (16:9)" },
-      cobranding: { title: "Co-branding & Partners", desc: "Guidelines for coexistence with other brands and joint use cases." },
-      assets: { title: "Final Assets", desc: "Download official brand materials ready to use in different formats.", addAsset: "Add Asset", download: "Download", formatLabel: "Format (e.g. ZIP, 5MB)" },
-      footer: { title: "Footer", desc: "Legal and navigation elements." }
-    },
-    defaults: { 
-        logoDos: "White background", logoDonts: "Distort", 
-        logoMain: "Main Logo", logoMainDesc: "Preferred color version.", 
-        logoDark: "On Black", logoDarkDesc: "Negative version.", 
-        logoSymbol: "Symbol", logoSymbolDesc: "Isotype or graphic element.", 
-        colorPrimaryName: "Primary Color", colorPrimaryUsage: "Brand's dominant color.", 
-        colorSecondaryName: "Secondary Color", colorSecondaryUsage: "Support and validations.", 
-        colorAccentName: "Accent Color", colorAccentUsage: "Highlights and call to actions.",
-colorNeutralName: "Neutral", colorNeutralUsage: "Texts and borders.", 
-        colorErrorName: "Error", colorErrorUsage: "Alerts and critical states.",
-                editorialContent: "Example editorial content...", 
-        typoSamples: { Display: "Headline", H1: "Header", H2: "Subtitle", Body: "Readable body text.", Caption: "Auxiliary text." }, 
-        partnerCaption: "Agreement description." 
-    },
-    cookie: { title: "We value your privacy", desc: "We use first and third-party cookies to personalize content, analyze our traffic, and offer you an incredible experience. By clicking 'Accept all', you give your consent.", manage: "Only Necessary", reject: "Reject", accept: "Accept All" },
-    auth: { loginTitle: "Welcome back", registerTitle: "Create your account", loginDesc: "Log in to publish your portal.", registerDesc: "Sign up to save and publish your progress.", loginBtn: "Log In", registerBtn: "Sign Up", name: "Full name", namePlaceholder: "Your name", email: "Email", emailPlaceholder: "example@email.com", password: "Password", termsPre: "I have read and accept the", termsLink: "Terms of Use", privacyAnd: "and the", privacyLink: "Privacy Policy", success: "Successfully logged in\! You can now publish your portal." },
-    profileTabs: { title: "Settings", public: "Public Profile", publicDesc: "Information visible to other users and in your shared projects.", account: "Account", accountDesc: "Manage your credentials and security.", preferences: "Preferences", prefDesc: "Customize your BrandBara experience.", space: "Storage", filesMsg: "Files uploaded to the portal.", logout: "Log Out", changePass: "Change password", lang: "Language", langDesc: "Select the interface language.", notif: "Email Notifications", notifDesc: "Receive news and security alerts.", cookies: "Analytics Cookies", cookiesDesc: "Help us improve the platform anonymously.", role: "Role / Title", bio: "Biography" }
-  }
-};
 
 // ==============================================================================
 // BLINDAJE LEGAL GLOBAL - NIVEL EMPRESARIAL (ADAPTACIÓN STANDARDS V2.0)
 // ==============================================================================
-const LEGAL_CONTENT = {
-  privacy: {
-    EN: `
-      <div class="space-y-6">
-        <div>
-          <h2 class="text-2xl font-black mb-2">Standards Privacy Policy</h2>
-          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Last Updated: 03.09.26</p>
-        </div>
-        
-        <div>
-          <h3 class="text-lg font-bold mb-2">How This Privacy Policy Applies</h3>
-          <p class="mb-2">BrandBara Site Inc. (“BrandBara,” “we,” “us,” or “our”) operates the BrandBara platform, including the website at brandbara.com, the application at app.brandbara.com, and related services and APIs (collectively, the “Services”). This Privacy Policy describes what information we collect, how we use it, when we share it, and your rights regarding your data.</p>
-          <p>For customers who have entered into a separate Software as a Service Agreement with BrandBara Site Inc., this Privacy Policy is incorporated into that agreement by reference, and in the event of any conflict, the terms of the SaaS Agreement will prevail. By accessing or using our Services, you accept the practices outlined in this policy, including future updates.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">What Information We Collect and Receive</h3>
-          <p class="mb-2">We collect information in the following ways:</p>
-          <ul class="list-disc pl-5 space-y-2">
-            <li><strong>Account Information.</strong> When you create an account, we collect your name, email address, and authentication credentials. If you sign in through a third-party provider (such as Google, Microsoft, or SAML SSO), we receive basic profile information from that provider.</li>
-            <li><strong>Billing Information.</strong> When you subscribe to a paid plan, payment information is collected and processed by our payment processor, Stripe. We do not store full credit card numbers on our servers.</li>
-            <li><strong>Content and Files.</strong> We store the content you create, upload, or manage through the platform, including documents, images, fonts, and other assets.</li>
-            <li><strong>Usage Information.</strong> We collect information about how you interact with our Services, including pages visited, features used, IP addresses, browser type, and device information.</li>
-            <li><strong>API Data.</strong> If you access our Services through our API, we collect API credentials, request logs (including timestamps, endpoints accessed, and IP addresses), and usage metrics for the purposes of security, rate limiting, and abuse prevention.</li>
-            <li><strong>Published Project Visitor Data.</strong> When visitors access a published project, we may collect their email address (if authentication is required), IP address, the time of their visit, and interaction data such as page views, downloads, and other engagement events. This data is made available to the workspace owner.</li>
-            <li><strong>Communications.</strong> We retain messages you send to our support team or through other communication channels.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Types of Cookies We Utilize</h3>
-          <p>BrandBara uses cookies for Security, Localization, Site Features, Performance, and Analytics. Users can control cookies through browser settings, though blocking them may limit website functionality.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Custom Code on Published Projects</h3>
-          <p>Our platform allows users to embed custom code and third-party scripts on their published projects. BrandBara does not control, review, or assume responsibility for the data practices of user-embedded code or for how visitor data made available through our platform tools is used by that code.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">California & Nevada Users</h3>
-          <p class="mb-2"><strong>California:</strong> Under California Civil Code Section 1798.83, we do not sell or transfer personal information to third parties for direct marketing purposes without your consent.</p>
-          <p><strong>Nevada:</strong> Nevada residents have specific rights under Nevada Revised Statutes Chapter 603A to opt out of the sale of covered information. We do not currently sell covered information. Contact: brandbara.hello@gmail.com.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">European Union Users</h3>
-          <p>EU data protection law requires a lawful basis for processing personal data. BrandBara relies on Consent, Contract Performance, and Legitimate Interests. We do not share email addresses, IP addresses, or API credentials publicly.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Data Sub-processors</h3>
-          <ul class="list-disc pl-5 space-y-1">
-            <li>Google Cloud (US/EU) - Hosting and infrastructure</li>
-            <li>Supabase (US/EU) - Database and Auth</li>
-            <li>Vercel (US) - Networking and CDN</li>
-            <li>Stripe (US) - Payment processing</li>
-          </ul>
-        </div>
-      </div>
-    `,
-    ES: `
-      <div class="space-y-6">
-        <div>
-          <h2 class="text-2xl font-black mb-2">Política de Privacidad</h2>
-          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Última actualización: 03.09.26</p>
-        </div>
-        
-        <div>
-          <h3 class="text-lg font-bold mb-2">Aplicación de esta Política</h3>
-          <p class="mb-2">BrandBara Site Inc. (“BrandBara”, “nosotros”, “nuestro”) opera la plataforma BrandBara, incluyendo brandbara.com y servicios relacionados. Esta política describe la información que recopilamos, cómo la usamos y sus derechos.</p>
-          <p>Al usar nuestros Servicios, acepta estas prácticas. Para clientes con acuerdos SaaS por separado, prevalecerán los términos de dicho acuerdo.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Información que Recopilamos</h3>
-          <ul class="list-disc pl-5 space-y-2">
-            <li><strong>Información de Cuenta:</strong> Recopilamos nombre, email y credenciales.</li>
-            <li><strong>Información de Facturación:</strong> Procesada por Stripe. No almacenamos datos de tarjetas.</li>
-            <li><strong>Contenido y Archivos:</strong> Almacenamos documentos, imágenes, fuentes y activos que usted sube al sistema.</li>
-            <li><strong>Información de Uso:</strong> Direcciones IP, navegador, y comportamiento en la herramienta.</li>
-            <li><strong>Datos de la API:</strong> Logs y métricas para prevención de abusos.</li>
-            <li><strong>Visitantes de Proyectos:</strong> Recopilamos IP e interacciones en portales públicos, datos que se proporcionan al dueño del Workspace.</li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Código Personalizado</h3>
-          <p>Nuestra plataforma permite incrustar código de terceros. BrandBara no asume responsabilidad por las prácticas de datos de dichos scripts insertados por el usuario.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Usuarios de la Unión Europea (RGPD)</h3>
-          <p>Cumplimos con las leyes de protección de datos de la UE basándonos en: Consentimiento, Ejecución de Contrato e Intereses Legítimos. Los residentes tienen derecho a acceder, rectificar, borrar y portar sus datos.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Sub-procesadores de Datos</h3>
-          <ul class="list-disc pl-5 space-y-1">
-            <li>Google Cloud (US/EU) - Infraestructura</li>
-            <li>Supabase (US/EU) - Base de datos y Autenticación</li>
-            <li>Vercel (US) - Redes y Seguridad</li>
-            <li>Stripe (US) - Procesamiento de Pagos</li>
-          </ul>
-        </div>
-      </div>
-    `
-  },
-  terms: {
-    EN: `
-      <div class="space-y-6">
-        <div>
-          <h2 class="text-2xl font-black mb-2">Terms of Service</h2>
-          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Last Updated: 4.14.26</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Agreement To Terms</h3>
-          <p>These Terms of Service constitute a legally binding agreement made between you and BrandBara Site Inc. concerning your access to and use of the brandbara.com website. We are registered in Madrid, Spain. IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF SERVICE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SITE AND YOU MUST DISCONTINUE USE IMMEDIATELY.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Intellectual Property Rights</h3>
-          <p>Unless otherwise indicated, the Site is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the Site are owned or controlled by us. You are granted a limited license to access and use the Site.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">User Responsibility for Font Licensing</h3>
-          <p>By using the Site and uploading fonts files directly to the Company’s website/app, you represent and warrant that you have obtained all necessary rights and licenses to the fonts you upload. You are solely responsible for ensuring that your use of uploaded fonts complies with all applicable licenses. You hereby agree to indemnify, defend, and hold Company harmless from any claims, damages, liabilities, costs, losses, and expenses arising from or related to any breach of font licenses.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">API Usage & Custom Code</h3>
-          <p>You may use the API solely to access and manage your own data. You may not use the API to build a competing product or exceed rate limits. You are solely responsible for any Custom Code you embed on your published projects, including its functionality, performance, and legality.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Prohibited Activities</h3>
-          <p>As a user, you agree not to: systematically retrieve data to compile a database; circumvent security features; engage in unauthorized framing; or use automated scripts or data mining tools. We reserve the right to block IP addresses and terminate accounts immediately for violations.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Dispute Resolution & Governing Law</h3>
-          <p>These Terms of Service and your use of the Site are governed by and construed in accordance with the laws of Spain. Any legal action or proceeding related to the Site shall be brought exclusively in the courts located in Madrid, Spain.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Limitations of Liability & Indemnification</h3>
-          <p>THE SITE IS PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. IN NO EVENT WILL WE BE LIABLE FOR DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES. You agree to defend, indemnify, and hold us harmless from any loss, damage, or claim made by any third party due to your use of the Site or breach of these Terms.</p>
-        </div>
-      </div>
-    `,
-    ES: `
-      <div class="space-y-6">
-        <div>
-          <h2 class="text-2xl font-black mb-2">Términos de Servicio</h2>
-          <p class="text-xs font-mono opacity-50 uppercase tracking-widest">Última actualización: 14.04.26</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Acuerdo de los Términos</h3>
-          <p>Estos Términos constituyen un acuerdo legalmente vinculante entre usted y BrandBara Site Inc. con sede en Madrid, España. SI NO ESTÁ DE ACUERDO CON TODOS ESTOS TÉRMINOS, TIENE PROHIBIDO EL USO DEL SITIO Y DEBE SUSPENDER SU USO INMEDIATAMENTE.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Responsabilidad del Usuario sobre Licencias de Fuentes</h3>
-          <p>Al utilizar el Sitio y cargar archivos de fuentes, usted declara y garantiza que ha obtenido todos los derechos y licencias necesarios. Usted es el único responsable de asegurar el cumplimiento normativo. Acepta indemnizar y eximir de responsabilidad a la Empresa frente a reclamaciones de terceros derivadas del incumplimiento de licencias de fuentes tipográficas.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Actividades Prohibidas (Cláusula Anti-Abuso)</h3>
-          <p>Usted acepta no: recuperar datos sistemáticamente para compilar bases de datos, eludir medidas de seguridad, realizar "framing" no autorizado o usar herramientas de minería de datos. Nos reservamos el derecho a denegar el acceso, bloquear la IP y eliminar cuentas sin previo aviso ante conductas abusivas.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Limitación de Responsabilidad</h3>
-          <p>EL SITIO SE PROPORCIONA "TAL CUAL". EN NINGÚN CASO SEREMOS RESPONSABLES POR DAÑOS DIRECTOS, INDIRECTOS O CONSECUENTES (INCLUYENDO PÉRDIDA DE DATOS O BENEFICIOS). Su recurso exclusivo es dejar de usar la plataforma.</p>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-bold mb-2">Ley Aplicable y Jurisdicción</h3>
-          <p>Estos Términos se rigen por las leyes de España. Cualquier acción o procedimiento legal relacionado con el Sitio se llevará a cabo exclusivamente en los juzgados y tribunales de la ciudad de Madrid, España.</p>
-        </div>
-      </div>
-    `
-  },
-cookies: {
-    EN: `
-      <h2>Cookie Policy</h2>
-      <p><em>Last Updated: 04.16.26</em></p>
-
-      <h3>What Are Cookies</h3>
-      <p>Cookies are small text files that are placed on your computer or mobile device when you visit a website or use an app. BrandBara Site Inc. uses cookies and similar tracking technologies to recognize you, remember your preferences, and provide a secure and seamless experience on our platform.</p>
-
-      <h3>How We Use Cookies</h3>
-      <p>We use cookies for the following purposes:</p>
-      <ul>
-        <li><strong>Strictly Necessary Cookies:</strong> These are required for the operation of the BrandBara platform. They include cookies that enable you to log into secure areas, such as Supabase authentication tokens, and make use of our core design tools.</li>
-        <li><strong>Functionality Cookies:</strong> These are used to recognize you when you return to our platform. This enables us to personalize our content for you and remember your preferences (such as your choice of language, light/dark mode, or region).</li>
-        <li><strong>Analytical/Performance Cookies:</strong> These allow us to recognize and count the number of visitors and see how visitors move around our platform. This helps us improve the way our website works.</li>
-      </ul>
-
-      <h3>Third-Party Cookies</h3>
-      <p>In addition to our own cookies, we may also use various third-party cookies to report usage statistics and process payments. Key third-party providers include:</p>
-      <ul>
-        <li><strong>Supabase:</strong> Essential for secure user authentication and session management.</li>
-        <li><strong>Stripe:</strong> Strictly necessary for processing secure payments and managing your PRO subscription. Stripe sets its own cookies for fraud prevention.</li>
-      </ul>
-
-      <h3>Controlling Cookies and Do Not Track</h3>
-      <p>Most web browsers allow you to control cookies through their settings preferences. However, if you limit the ability of websites to set cookies, you may worsen your overall user experience or lose the ability to access your BrandBara account, as essential authentication cookies will be blocked.</p>
-      <p>Some browsers have a "Do Not Track" (DNT) feature. Currently, there is no industry standard for how DNT signals should be recognized, so BrandBara does not respond to these signals.</p>
-
-      <h3>Changes and Contact</h3>
-      <p>We may update this Cookie Policy from time to time. If you have any questions, please contact us at brandbara.hello@gmail.com.</p>
-    `,
-    ES: `
-      <h2>Política de Cookies</h2>
-      <p><em>Última actualización: 16.04.26</em></p>
-
-      <h3>¿Qué son las Cookies?</h3>
-      <p>Las cookies son pequeños archivos de texto que se almacenan en su ordenador o dispositivo móvil cuando visita un sitio web o utiliza una aplicación. BrandBara Site Inc. utiliza cookies y tecnologías de seguimiento similares para reconocerle, recordar sus preferencias y ofrecer una experiencia segura en nuestra plataforma.</p>
-
-      <h3>Cómo Usamos las Cookies</h3>
-      <p>Utilizamos cookies para los siguientes propósitos:</p>
-      <ul>
-        <li><strong>Cookies Estrictamente Necesarias:</strong> Son esenciales para el funcionamiento de la plataforma BrandBara. Incluyen cookies que le permiten iniciar sesión en áreas seguras, como los tokens de autenticación de Supabase, y utilizar nuestro editor de manera ininterrumpida.</li>
-        <li><strong>Cookies de Funcionalidad:</strong> Se utilizan para reconocerle cuando vuelve a nuestra plataforma. Esto nos permite personalizar nuestro contenido y recordar sus preferencias (como su elección de idioma o el modo claro/oscuro de la interfaz).</li>
-        <li><strong>Cookies Analíticas y de Rendimiento:</strong> Nos permiten reconocer y contar el número de visitantes, y ver cómo se mueven por nuestra plataforma. Esto nos ayuda a mejorar el funcionamiento de nuestro sitio web.</li>
-      </ul>
-
-      <h3>Cookies de Terceros</h3>
-      <p>Además de nuestras propias cookies, también podemos utilizar varias cookies de terceros para informar sobre estadísticas de uso y procesar pagos. Los principales proveedores externos incluyen:</p>
-      <ul>
-        <li><strong>Supabase:</strong> Esencial para la autenticación segura de usuarios, encriptación y la gestión de sesiones activas.</li>
-        <li><strong>Stripe:</strong> Estrictamente necesarias para procesar pagos seguros y gestionar su suscripción PRO. Stripe establece sus propias cookies para la prevención del fraude internacional.</li>
-      </ul>
-
-      <h3>Control de Cookies y "Do Not Track"</h3>
-      <p>La mayoría de los navegadores web le permiten controlar las cookies a través de sus preferencias de configuración. Sin embargo, si limita la capacidad de los sitios web para establecer cookies, es posible que no pueda acceder a su cuenta de BrandBara, ya que se bloquearán las cookies esenciales de autenticación que lo mantienen logueado.</p>
-      <p>Algunos navegadores tienen una función de "Do Not Track" (No Rastrear). Actualmente, no existe un estándar en la industria sobre cómo deben reconocerse estas señales, por lo que BrandBara no responde a ellas de forma predeterminada.</p>
-
-      <h3>Cambios y Contacto</h3>
-      <p>Podemos actualizar esta Política de Cookies de vez en cuando para reflejar cambios legales o técnicos. Si tiene alguna pregunta, póngase en contacto con nuestro equipo legal en brandbara.hello@gmail.com.</p>
-    `
-    }
-};
 
 // --- 2. UTILIDADES ---
 
@@ -569,6 +202,11 @@ const createExtraBlock = (type, param) => (
     ? { id: Date.now() + Math.random(), type: 'text', cols: param, content: Array(param).fill('') }
     : { id: Date.now() + Math.random(), type: 'image', src: null }
 );
+
+// Crea el manejador para añadir un bloque extra al final de un módulo (compartido por todos los módulos)
+const makeAddExtra = (content, update) => (type, param) =>
+  update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+
 
 // 2. Motor de Rescate Asíncrono: Busca enlaces muertos y los revive
 const recoverLostBlobs = async (obj) => {
@@ -1079,7 +717,7 @@ const IdentityModule = React.memo(({ content, update, design, isDarkMode, t, isP
     return iconObj ? iconObj.component : Fingerprint;
   };
 
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
 
 return (
     <div className="p-6 md:p-10 relative">
@@ -1154,7 +792,7 @@ return (
                  <button 
                     onClick={() => removeItem(item.id)} 
                     className="absolute top-4 right-4 p-2 text-rose-400 opacity-0 group-hover/card:opacity-100 transition-all hover:bg-rose-500/10 hover:text-rose-500 rounded-full"
-                    title="Eliminar"
+                    title={t?.ui?.delete || "Eliminar"}
                  >
                     <Trash2 size={16} />
                  </button>
@@ -1227,7 +865,7 @@ const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems
 });
 
 const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => {  
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });  const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
+const handleAddExtra = makeAddExtra(content, update);  const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
   
   // 🛡️ Subida principal de la retícula base con validación de cuota
@@ -1369,7 +1007,7 @@ const handleExampleUpload = (e, id) => {
                             type="text" 
                             value={example.templateUrl || ''} 
                             onChange={(e) => updateExample(example.id, 'templateUrl', e.target.value)}
-                            placeholder="URL de la plantilla (Figma, Drive...)"
+                            placeholder={t?.ui?.templateUrlLong || "URL de la plantilla (Figma, Drive...)"}
                             className={`w-full text-[10px] p-2 rounded border bg-transparent mb-2 outline-none transition-colors ${isDarkMode ? 'border-white/20 text-slate-300 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`}
                         />
                     )}
@@ -1463,7 +1101,7 @@ const handleLogoDownload = (e, src, label) => {
     document.body.removeChild(link);
   };
 
-  const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+  const handleAddExtra = makeAddExtra(content, update);
   
   const handleSafeAreaUpload = (e) => {
         const file = e.target.files[0];
@@ -1527,7 +1165,7 @@ const handleLogoDownload = (e, src, label) => {
                             <button 
                                 onClick={(e) => handleLogoDownload(e, variant.src, variant.label)}
                                 className="p-2.5 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-transform hover:scale-110"
-                                title="Descargar Logotipo"
+                                title={t?.ui?.downloadLogo || "Descargar Logotipo"}
                             >
                                 <Download size={16} />
                             </button>
@@ -1714,7 +1352,7 @@ const ColorModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const addColor = () => update({ ...content, colors: [...colors, { name: 'New', hex: '#000000', cmyk: '0,0,0,0', pantone: '-', usage: '...' }] });
   const removeColor = (i) => update({ ...content, colors: colors.filter((_, idx) => idx !== i) });
   const updateColorValue = (i, f, v) => { const n = [...colors]; n[i][f] = v; update({ ...content, colors: n }); };
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
 
   const isListLayout = content.layout === 'list';
 
@@ -1798,7 +1436,7 @@ const TypographyModule = React.memo(({ content, update, design, isDarkMode, t, i
   const updateLevel = (i, f, v) => { const n = [...levels]; n[i] = { ...n[i], [f]: v }; update({ ...content, levels: n }); };
   const moveLevel = (i, dir) => { const n = [...levels]; if (dir === 'up' && i > 0) [n[i], n[i-1]] = [n[i-1], n[i]]; if (dir === 'down' && i < n.length - 1) [n[i], n[i+1]] = [n[i+1], n[i]]; update({ ...content, levels: n }); };
   
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
 
   // Manejador para subir imágenes de muestra en modo Custom
   const handleSampleUpload = (e, index) => {
@@ -1846,7 +1484,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
                     isDarkMode={isDarkMode}
                     isPreview={isPreview}
                     onChange={(v) => update({...content, customFontName: v})}
-                    placeholder="Escribe el nombre..."
+                    placeholder={t?.ui?.typeName || "Escribe el nombre..."}
                   />
               ) : (
                   <h2 className={`text-5xl font-black tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: currentFontName }}>{currentFontName}</h2>
@@ -1878,7 +1516,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
                         type="text" 
                         value={content.customFontUrl || ''} 
                         onChange={(e) => update({ ...content, customFontUrl: e.target.value })} 
-                        placeholder="Enlace de descarga (Drive, Dropbox...)" 
+                        placeholder={t?.ui?.downloadLinkShort || "Enlace de descarga (Drive, Dropbox...)"} 
                         className={`w-full p-2.5 text-[10px] rounded-xl outline-none border transition-colors ${isDarkMode ? `bg-black/20 border-white/10 text-white focus:border-${design.palette?.base || 'indigo'}-500` : `bg-slate-50 border-slate-200 text-slate-700 focus:border-${design.palette?.base || 'indigo'}-500`}`}
                     />
                 )}
@@ -1919,7 +1557,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
                             ) : (
                                 <div className="flex flex-col items-center gap-2 opacity-40">
                                     <ImageIcon size={24} />
-                                    <span className="text-[10px] font-bold uppercase">Subir muestra de {level.tag}</span>
+                                    <span className="text-[10px] font-bold uppercase">{t?.ui?.uploadSampleOf || "Subir muestra de"} {level.tag}</span>
                                 </div>
                             )}
                             {!isPreview && (
@@ -1954,7 +1592,7 @@ const ImageModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const images = content.images || [1, 2, 3, 4];
   const addImage = () => update({ ...content, images: [...images, { id: Date.now() }] });
   const removeImage = (idx) => update({ ...content, images: images.filter((_, i) => i !== idx) });
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const handleImageUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newImages = [...images]; newImages[idx] = { ...newImages[idx], src: url }; update({ ...content, images: newImages }); } };
 
   return (
@@ -1983,7 +1621,7 @@ const EditorialModule = React.memo(({ content, update, design, isDarkMode, t, is
   const updateBlock = (i, val) => { const newBlocks = [...blocks]; newBlocks[i].content = val; update({ ...content, blocks: newBlocks }); };
   const removeBlock = (i) => update({ ...content, blocks: blocks.filter((_, idx) => idx !== i) });
   
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
 
   const handleImageUpload = (e, index) => { 
     const file = e.target.files[0]; 
@@ -2024,7 +1662,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
               <textarea
                 value={block.content}
                 onChange={(e) => updateBlock(index, e.target.value)}
-                placeholder="Escribe algo inspirador..."
+                placeholder={t?.ui?.writeInspiring || "Escribe algo inspirador..."}
                 className={`w-full bg-transparent resize-none outline-none leading-relaxed transition-all placeholder:opacity-30 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
                 style={{ 
                   fontFamily: design.font, 
@@ -2041,7 +1679,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
                   <div className={`w-full aspect-[16/9] flex items-center justify-center rounded-xl border-2 border-dashed ${isDarkMode ? 'border-white/20 bg-white/5' : 'border-slate-300 bg-slate-100'}`}>
                     <label className="cursor-pointer flex flex-col items-center gap-2 p-8 hover:opacity-70 transition-opacity">
                       <ImagePlus size={32} className="opacity-50" />
-                      <span className="text-sm font-bold opacity-50">Subir imagen</span>
+                      <span className="text-sm font-bold opacity-50">{t?.ui?.uploadImage || "Subir imagen"}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, index)} disabled={isPreview} />
                     </label>
                   </div>
@@ -2153,11 +1791,11 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
            <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1 self-center"></div>
 
            {/* Selectores de Color */}
-           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title="Color de Fondo">
+           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title={t?.ui?.backgroundColor || "Color de Fondo"}>
               <PaintBucket size={14} className="text-slate-500" />
               <input type="color" value={content.bgColor || (isDarkMode?'#0a0c10':'#f8fafc')} onChange={(e) => update({...content, bgColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
            </div>
-           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title="Color del Texto">
+           <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title={t?.ui?.textColor || "Color del Texto"}>
               <Type size={14} className="text-slate-500" />
               <input type="color" value={content.textColor || (isDarkMode?'#ffffff':'#0f111a')} onChange={(e) => update({...content, textColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
            </div>
@@ -2284,7 +1922,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
 });
 
 const CobrandingModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const addPartner = () => { const newItem = { id: Date.now(), src: null, type: 'image', caption: '', templateUrl: '' }; update({ ...content, partners: [...(content.partners || []), newItem] }); };
   const removePartner = (id) => update({ ...content, partners: (content.partners || []).filter(item => item.id !== id) });
   const updatePartner = (id, field, value) => { const newItems = (content.partners || []).map(item => item.id === id ? { ...item, [field]: value } : item); update({ ...content, partners: newItems }); };
@@ -2314,7 +1952,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
              <div className="space-y-3 flex-1 flex flex-col">
                <EditableText text={partner.caption} placeholder={t.ui.placeholders.caption} className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`} isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updatePartner(partner.id, 'caption', v)} />
                <div className="mt-auto pt-2">
-                   {!isPreview && (<input type="text" placeholder="URL Plantilla (https://...)" value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
+                   {!isPreview && (<input type="text" placeholder={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
                    <a href={partner.templateUrl || '#'} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
                </div>
              </div>
@@ -2347,7 +1985,7 @@ const AssetsModule = React.memo(({ content, update, design, isDarkMode, t, isPre
     update({ ...content, assets: assets.map(a => a.id === id ? { ...a, [field]: value } : a) });
   };
   
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
 
   return (
     <div className="p-6 md:p-10 relative">
@@ -2389,7 +2027,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
                  <div className="pt-3">
                     <input 
                         type="text" 
-                        placeholder="URL de descarga (Enlace de Google Drive, Dropbox, etc.)" 
+                        placeholder={t?.ui?.downloadLinkLong || "URL de descarga (Enlace de Google Drive, Dropbox, etc.)"} 
                         value={asset.url || ''} 
                         onChange={(e) => updateAsset(asset.id, 'url', e.target.value)} 
                         className={`w-full max-w-md p-2 text-xs rounded border bg-transparent outline-none transition-colors ${isDarkMode ? `border-white/10 text-slate-300 focus:border-${colorBase}-500` : `border-slate-300 text-slate-600 focus:border-${colorBase}-500`}`} 
@@ -2451,7 +2089,7 @@ const BentoModule = React.memo(({ content, update, design, isDarkMode, t, isPrev
   const toggleLayout = () => { const nextIdx = (currentLayoutIdx + 1) % bentoLayouts.length; setCurrentLayoutIdx(nextIdx); update({ ...content, layoutIndex: nextIdx }); };
   const handleItemUpdate = (id, type, value) => { const newItems = items.map(it => it.id === id ? { ...it, type: type, src: value } : it); update({ ...content, items: newItems }); };
   const handleItemUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const type = file.type.startsWith('video') ? 'video' : 'image'; handleItemUpdate(id, type, url); } };
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const activeLayoutClasses = bentoLayouts[currentLayoutIdx] || bentoLayouts[0];
 
 return (
@@ -2486,7 +2124,7 @@ return (
 const IconsModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
   const [selectedLib, setSelectedLib] = useState(content.selectedLibrary || 'outlined');
   const [showLibSelector, setShowLibSelector] = useState(false);
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const libraries = [{ id: 'outlined', label: t.modules.icons.googleOutlined }, { id: 'rounded', label: t.modules.icons.googleRounded }, { id: 'sharp', label: t.modules.icons.googleSharp }, { id: 'custom', label: t.modules.icons.custom }];
   const googleIcons = [Home, Search, User, Settings, Bell, Mail]; 
   const addCustomIcon = () => { const newIcon = { id: Date.now(), src: null, name: 'Icon Name' }; update({ ...content, customIcons: [...(content.customIcons || []), newIcon] }); };
@@ -2525,7 +2163,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
 });
 
 const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const handleWebUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url =createSafeBlobUrl(file); const newDevices = content.devices ? [...content.devices] : [null, null, null]; newDevices[idx] = url; update({ ...content, devices: newDevices }); } };
   const devices = content.items || [];
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
@@ -2569,7 +2207,7 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
 });
 
 const SocialModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
-const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(content.extraBlocks || []), createExtraBlock(type, param)] });
+const handleAddExtra = makeAddExtra(content, update);
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
   const removeDevice = (id) => update({ ...content, items: (content.items || []).filter(item => item.id !== id) });
   const handleDeviceUpload = (e, id) => { const file = e.target.files[0]; if (file) { const url = createSafeBlobUrl(file); const newItems = (content.items || []).map(item => item.id === id ? { ...item, src: url } : item); update({ ...content, items: newItems }); } };
@@ -2615,6 +2253,22 @@ const handleAddExtra = (type, param) => update({ ...content, extraBlocks: [...(c
 // ==============================================================================
 // === FILE: UserProfileModal.tsx ===
 // ==============================================================================
+
+// Cada módulo del lienzo se pinta a través de este envoltorio memorizado:
+// mantiene estable la función "update" de cada módulo para que React no repinte los 16 módulos a cada tecla.
+const MODULE_COMPONENTS = {
+  hero: HeroModule, identity: IdentityModule, logo: LogoModule, typography: TypographyModule,
+  color: ColorModule, image: ImageModule, editorial: EditorialModule, bento: BentoModule,
+  layout: LayoutModule, icons: IconsModule, web: WebModule, social: SocialModule,
+  cobranding: CobrandingModule, assets: AssetsModule, footer: FooterModule,
+};
+
+const ModuleSlot = React.memo(({ item, onUpdate, design, isDarkMode, t, isPreview, checkLimit }) => {
+  const update = React.useCallback((c) => onUpdate(item.id, c), [onUpdate, item.id]);
+  const ModuleComponent = MODULE_COMPONENTS[item.type];
+  if (!ModuleComponent) return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
+  return <ModuleComponent content={item.content} update={update} design={design} isDarkMode={isDarkMode} t={t} isPreview={isPreview} checkLimit={checkLimit} />;
+});
 
 const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t, content, update, usedSpace, userPlan, showWatermark, setShowWatermark, onResetCanvas, slugStatus, handleSlugChange, checkLimit }) => {  
   const [activeTab, setActiveTab] = useState('profile');
@@ -3755,7 +3409,7 @@ setSaveStatus('saved');
     }
   };
 
-const [canvasItems, setCanvasItems] = useState(getInitialCanvas(t));
+const [canvasItems, setCanvasItems] = useState(() => getInitialCanvas(t));
 
   const [showUpdatePassword, setShowUpdatePassword] = useState(false);
 
@@ -4062,8 +3716,14 @@ const isInitialMount = useRef(true);
     }
   };
 
-  const removeComponent = (id) => setCanvasItems(prev => prev.filter(i => i.id !== id));
-  const updateComponent = (id, c) => setCanvasItems(prev => prev.map(i => i.id === id ? { ...i, content: c } : i));
+  // Callbacks estables: así React.memo de cada módulo funciona y solo se repinta el módulo que cambia
+  const removeComponent = React.useCallback((id) => setCanvasItems(prev => prev.filter(i => i.id !== id)), []);
+  const updateComponent = React.useCallback((id, c) => setCanvasItems(prev => prev.map(i => i.id === id ? { ...i, content: c } : i)), []);
+
+  // Diseño activo memorizado (antes se creaba un objeto nuevo por módulo en cada render)
+  const designStyle = design.style || DESIGN_STYLES.crystal;
+  const designFont = design.font || 'Inter';
+  const activeDesign = React.useMemo(() => ({ ...designStyle, font: designFont }), [designStyle, designFont]);
 
   const renderCanvasItem = (item, index) => {
     const style = design.style || DESIGN_STYLES.crystal;
@@ -4071,7 +3731,6 @@ const isInitialMount = useRef(true);
     const spacingClass = design.spacing?.value || 'mb-16';
     const font = design.font || 'Inter';
     const alignmentClass = style.align || 'text-left';
-    const activeDesign = { ...style, font };
     const currentBg = isDarkMode ? (style.cardBgDark || 'bg-[#161b26]') : style.cardBg;
     
     const cardClasses = `relative group transition-all duration-700 ease-in-out ${style.radius} ${style.border} ${style.shadow} ${currentBg} ${isDarkMode ? 'border-white/5' : palette.border} ${alignmentClass} ${spacingClass} overflow-hidden`;
@@ -4096,7 +3755,7 @@ const isInitialMount = useRef(true);
                  </div>
              )}
              <div id={`module-${item.id}`} className="mt-0">
-                <FooterModule content={item.content} update={(c)=>updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />
+                <ModuleSlot item={item} onUpdate={updateComponent} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} />
              </div>
           </React.Fragment>
         );
@@ -4120,26 +3779,7 @@ const isInitialMount = useRef(true);
             <button onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
           </div>
         )}
-{(() => {
-          switch(item.type) {
-            case 'hero': return <HeroModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'identity': return <IdentityModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'logo': return <LogoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'typography': return <TypographyModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'color': return <ColorModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'image': return <ImageModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'editorial': return <EditorialModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'bento': return <BentoModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'layout': return <LayoutModule content={item.content} update={(c) => updateComponent(item.id, c)} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'icons': return <IconsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'web': return <WebModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'social': return <SocialModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'cobranding': return <CobrandingModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'assets': return <AssetsModule design={activeDesign} isDarkMode={isDarkMode} content={item.content} update={(c) => updateComponent(item.id, c)} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />;
-            case 'profile': return null;
-            default: return <div className="p-16 text-center opacity-50 uppercase tracking-widest text-sm">Módulo {item.type}</div>;
-          }
-        })()}
+<ModuleSlot item={item} onUpdate={updateComponent} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />
               </div>
     );
   };
