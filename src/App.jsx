@@ -4090,7 +4090,7 @@ const isInitialMount = useRef(true);
                       className={`group flex items-center gap-2 px-5 py-2 rounded-full border shadow-sm transition-all hover:scale-105 pointer-events-auto ${isDarkMode ? 'bg-[#1e2330] border-white/10 text-slate-300 hover:border-white/20' : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-200 hover:shadow-md'}`}
                     >
                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">{t.ui.watermark}</span> 
-                       <span className="text-xs font-black text-indigo-500 group-hover:text-indigo-600 transition-colors">BrandBara</span>
+                       <img src="/brandbara-logo.svg" alt="BrandBara" className="h-3.5 w-auto" />
                        <ExternalLink size={10} className="opacity-0 group-hover:opacity-40 transition-opacity ml-0.5" />
                     </a>
                  </div>
@@ -4430,8 +4430,8 @@ onResetCanvas={() => {
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                 title="Recargar BrandBara"
               >
-                <h1 className={`text-xl font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  BRANDBARA
+                <h1 className="m-0 leading-none">
+                  <img src="/brandbara-logo.svg" alt="BrandBara" className="h-7 w-auto" />
                 </h1>
                 <span className={`px-1.5 py-0.5 text-[8px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
                   BETA
@@ -4864,9 +4864,7 @@ const LandingPage = () => {
           onClick={() => navigate('/')} 
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
         >
-          <span className={`text-2xl md:text-3xl font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-[#0f111a]'}`}>
-            BRANDBARA
-          </span>
+          <img src="/brandbara-logo.svg" alt="BrandBara" className="h-8 md:h-10 w-auto" />
           <span className={`px-1.5 py-0.5 text-[10px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
             BETA
           </span>
