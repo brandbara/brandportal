@@ -18,7 +18,7 @@ Supabase nuevo y vacío si algún día se pierde el actual.
 
 Se calculó una huella (md5) de cada elemento (columnas, permisos, definiciones de funciones,
 políticas, restricciones, índices, disparador y cubo) en producción y en un Postgres vacío donde se
-aplicó este archivo. **Las dos huellas coinciden (45 elementos).**
+aplicó este archivo. **Las dos huellas coinciden** (45 elementos al crear el archivo; tras la migración de la beta, 62: huella `a217fbf5…`, comprobada también en producción el 26-oct).
 
 ## Comprobación automática
 
