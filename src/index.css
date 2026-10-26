@@ -3,3 +3,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Controles del editor que solo aparecían al pasar el ratón (borrar, mover,
+   cambiar estructura, mostrar/ocultar…). En pantallas táctiles no existe el
+   "pasar el ratón", así que ahí deben verse siempre; y con el teclado deben
+   aparecer en cuanto reciben el foco. Los fondos oscuros que cubren una imagen
+   (inset-0) y los menús desplegables (invisible) se dejan como están.
+   --------------------------------------------------------------------------- */
+@media (hover: none), (pointer: coarse) {
+  [class*="opacity-0"][class*="opacity-100"][class*="group-hover"]:not(.inset-0):not(.invisible) {
+    opacity: 1 !important;
+  }
+  [class*="opacity-0"][class*="opacity-100"][class*="group-hover"]:not(.inset-0):not(.invisible) button {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+[class*="opacity-0"][class*="opacity-100"][class*="group-hover"]:focus-within {
+  opacity: 1 !important;
+}
