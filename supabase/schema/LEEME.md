@@ -24,7 +24,7 @@ aplicó este archivo. **Las dos huellas coinciden (45 elementos).**
 
 El robot de GitHub «Esquema de Supabase» (`.github/workflows/esquema-supabase.yml`) corre cuando se
 toca `supabase/`: monta un Postgres vacío, aplica el archivo y ejecuta
-`verificacion/pruebas_seguridad.sql` (24 comprobaciones: nadie puede cambiarse el plan, un usuario no
+`verificacion/pruebas_seguridad.sql` (23 comprobaciones: nadie puede cambiarse el plan, un usuario no
 ve datos de otro, el servidor rechaza subidas sin espacio, eliminar cuenta borra solo lo propio…).
 Se probó además que las pruebas **fallan** si se rompe el esquema a propósito.
 
