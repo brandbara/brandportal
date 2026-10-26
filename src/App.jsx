@@ -291,12 +291,19 @@ const EditableText = ({ text, className = '', tag = 'div', placeholder = '', isD
   
   if (isPreview) { return <Tag className={finalClass} style={style}>{safeText}</Tag>; }
   
+  // Los títulos (h1-h6) no pueden tener role="textbox"; el resto de textos editables sí necesitan nombre accesible
+  const isHeading = /^h[1-6]$/.test(String(tag));
+  const a11yProps = isHeading ? {} : {
+    role: 'textbox',
+    'aria-multiline': 'true',
+    'aria-label': placeholder || (document.documentElement.lang === 'en' ? 'Editable text' : 'Texto editable'),
+  };
+  
   return (
     <Tag 
       contentEditable
       suppressContentEditableWarning
-      role="textbox" 
-      aria-multiline="true"
+      {...a11yProps}
       // CAMBIOS AQUÍ: Añadimos hover:bg y hover:ring para que se vea que es editable al pasar el ratón
       className={`outline-none empty:before:content-[attr(placeholder)] empty:before:text-slate-400 focus:bg-indigo-500/10 hover:bg-slate-500/5 dark:hover:bg-white/5 hover:ring-1 hover:ring-dashed hover:ring-slate-400/50 rounded px-2 -mx-2 transition-all cursor-text ${finalClass} break-words max-w-full`}
       placeholder={placeholder}
@@ -375,7 +382,7 @@ const AddContentFooter = ({ onAdd, isDarkMode, t, isPreview }) => {
             <button onClick={() => { onAdd('text', 3); setIsOpen(false); }} className={`p-2.5 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-slate-300' : 'hover:bg-slate-50 text-slate-600'}`} title={t.ui.text3Col}><Grid3X3 size={18} /></button>
             <div className={`w-px h-6 mx-1 ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`} />
             <button onClick={() => { onAdd('image'); setIsOpen(false); }} className={`p-2.5 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-slate-300' : 'hover:bg-slate-50 text-slate-600'}`} title={t.ui.imageExtra}><ImagePlus size={18} /></button>
-            <button onClick={() => setIsOpen(false)} className={`p-2.5 rounded-full hover:bg-rose-500/10 text-rose-500 ml-1`}><X size={18} /></button>
+            <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={() => setIsOpen(false)} className={`p-2.5 rounded-full hover:bg-rose-500/10 text-rose-500 ml-1`}><X size={18} /></button>
           </div>
         )}
       </div>
@@ -503,7 +510,7 @@ const DeviceMockup = ({ type, src, onUpload, onDelete, isDarkMode, label, isPrev
          {!isPreview && (
             <>
                 {src && <button onClick={handleDownload} className="absolute bottom-2 left-2 p-2 bg-indigo-600 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110" title="Descargar"><Download size={14}/></button>}
-                <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110"><Trash2 size={14}/></button>
+                <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={(e) => { e.stopPropagation(); onDelete(); }} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover/dev:opacity-100 transition-opacity shadow-lg z-20 hover:scale-110"><Trash2 size={14}/></button>
             </>
          )}
       </div>
@@ -534,12 +541,12 @@ const DynamicBlocks = React.memo(({ blocks, update, isDarkMode, design, t, isPre
         <div key={block.id || `block-${i}`} className="relative group/row">
           {!isPreview && (
             <div className="absolute -top-4 right-0 opacity-100 md:opacity-0 group-hover/row:opacity-100 transition-opacity z-10 bg-white/90 dark:bg-black/90 backdrop-blur border border-slate-200 dark:border-white/10 rounded-full p-1.5 flex items-center gap-2 shadow-lg">
-              {block.type === 'text' && (<><button onClick={() => updateBlock(i, 'cols', 1)} className={`p-2 rounded-full ${block.cols === 1 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><RectangleHorizontal size={16}/></button><button onClick={() => updateBlock(i, 'cols', 2)} className={`p-2 rounded-full ${block.cols === 2 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><Columns size={16}/></button><button onClick={() => updateBlock(i, 'cols', 3)} className={`p-2 rounded-full ${block.cols === 3 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><Grid3X3 size={16}/></button><div className="w-px h-4 bg-slate-300 dark:bg-white/20 mx-1" /></>)}
-              <button onClick={() => removeBlock(i)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full"><Trash2 size={16}/></button>
+              {block.type === 'text' && (<><button type="button" aria-label={t?.ui?.col1 || '1 columna'} onClick={() => updateBlock(i, 'cols', 1)} className={`p-2 rounded-full ${block.cols === 1 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><RectangleHorizontal size={16}/></button><button type="button" aria-label={t?.ui?.col2 || '2 columnas'} onClick={() => updateBlock(i, 'cols', 2)} className={`p-2 rounded-full ${block.cols === 2 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><Columns size={16}/></button><button type="button" aria-label={t?.ui?.col3 || '3 columnas'} onClick={() => updateBlock(i, 'cols', 3)} className={`p-2 rounded-full ${block.cols === 3 ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-400'}`}><Grid3X3 size={16}/></button><div className="w-px h-4 bg-slate-300 dark:bg-white/20 mx-1" /></>)}
+              <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeBlock(i)} className="text-rose-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-full"><Trash2 size={16}/></button>
             </div>
           )}
           {block.type === 'text' ? (
-            <div className={`grid gap-6 ${block.cols === 1 ? 'grid-cols-1' : block.cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>{block.content.map((text, colIndex) => (isPreview ? <div key={`col-${colIndex}`} className={`w-full p-4 text-sm whitespace-pre-wrap ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{String(text)}</div> : <textarea key={`col-${colIndex}`} value={text} onChange={(e) => updateTextContent(i, colIndex, e.target.value)} placeholder={t.ui.placeholders.text} className={`w-full bg-transparent p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all min-h-[120px] text-sm ${isDarkMode ? 'text-slate-300 bg-white/5 placeholder-slate-600' : 'text-slate-600 bg-slate-50 placeholder-slate-400'}`} />))}</div>
+            <div className={`grid gap-6 ${block.cols === 1 ? 'grid-cols-1' : block.cols === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>{block.content.map((text, colIndex) => (isPreview ? <div key={`col-${colIndex}`} className={`w-full p-4 text-sm whitespace-pre-wrap ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{String(text)}</div> : <textarea aria-label={t.ui.placeholders.text} key={`col-${colIndex}`} value={text} onChange={(e) => updateTextContent(i, colIndex, e.target.value)} placeholder={t.ui.placeholders.text} className={`w-full bg-transparent p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all min-h-[120px] text-sm ${isDarkMode ? 'text-slate-300 bg-white/5 placeholder-slate-600' : 'text-slate-600 bg-slate-50 placeholder-slate-400'}`} />))}</div>
           ) : (
             <div className="w-full"><FileUploadPlaceholder id={`extra-img-${block.id}`} label={t.ui.imageExtra} design={design} isDarkMode={isDarkMode} onUpload={(e) => handleImageUpload(e, i)} preview={block.src} t={t} isPreview={isPreview} /></div>
           )}
@@ -607,8 +614,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
           </div>
 
           <div className="bg-white/95 dark:bg-slate-950/90 text-slate-700 dark:text-slate-200 backdrop-blur-xl p-1 rounded-xl shadow-sm border border-slate-200/60 dark:border-white/5 flex gap-0.5 relative">
-            <button onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-lg transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={16} /></button>
-            <button onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"><ImagePlus size={16} /></button>
+            <button type="button" aria-label={t?.ui?.backgroundColor || 'Color de fondo'} onClick={() => { setShowColorPicker(!showColorPicker); setShowTextMenu(false); }} className={`p-2.5 rounded-lg transition-colors ${showColorPicker ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-slate-100 dark:hover:bg-white/5'}`}><PaintBucket size={16} /></button>
+            <button type="button" aria-label={t?.ui?.uploadImage || 'Subir imagen'} onClick={() => triggerFileInput('hero-bg-upload')} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"><ImagePlus size={16} /></button>
             <input id="hero-bg-upload" type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             <div className="w-px h-6 bg-slate-300 dark:bg-white/20 mx-1 my-auto"></div>
             <div className="relative">
@@ -650,8 +657,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                 {activeTab === 'bg' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                            <input type="color" value={content?.bgType === 'color' ? (content?.bgValue || '#ffffff') : '#ffffff'} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
-                            <input type="text" value={content?.bgType === 'color' ? content?.bgValue : ''} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} placeholder="#HEX" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
+                            <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={content?.bgType === 'color' ? (content?.bgValue || '#ffffff') : '#ffffff'} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
+                            <input aria-label={t?.ui?.hex || 'HEX'} type="text" value={content?.bgType === 'color' ? content?.bgValue : ''} onChange={(e) => updateContent({ bgType: 'color', bgValue: e.target.value })} placeholder="#HEX" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
                         </div>
                         <div>
                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2 block">Presets</span>
@@ -664,8 +671,8 @@ const HeroModule = React.memo(({ content, update, design, isDarkMode, t, isPrevi
                 {activeTab === 'text' && (
                     <div className="flex flex-col gap-4 animate-in fade-in duration-150">
                         <div className="flex items-center gap-2 p-1 bg-slate-50 dark:bg-black/20 rounded-xl border border-slate-100 dark:border-white/5">
-                            <input type="color" value={content?.textColor || (isDarkBg ? '#ffffff' : '#111111')} onChange={(e) => updateContent({ textColor: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
-                            <input type="text" value={content?.textColor || ''} onChange={(e) => updateContent({ textColor: e.target.value })} placeholder="Auto" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
+                            <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={content?.textColor || (isDarkBg ? '#ffffff' : '#111111')} onChange={(e) => updateContent({ textColor: e.target.value })} className="w-9 h-9 rounded-lg cursor-pointer border-0 p-0" />
+                            <input aria-label={t?.ui?.textColor || 'Color del texto'} type="text" value={content?.textColor || ''} onChange={(e) => updateContent({ textColor: e.target.value })} placeholder="Auto" className="flex-1 text-xs p-2 rounded-lg bg-transparent text-slate-900 dark:text-white outline-none uppercase font-mono" />
                         </div>
                        {content?.textColor && (
                             <button onClick={() => updateContent({ textColor: null })} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 rounded-xl text-xs font-bold transition-colors">
@@ -772,7 +779,7 @@ return (
               
               {/* Icon Container */}
               <div className="relative mb-6 self-start">
-                 <button 
+                 <button type="button" aria-label={t?.ui?.chooseIcon || 'Elegir icono'} 
                     onClick={() => !isPreview && setEditingIconId(editingIconId === item.id ? null : item.id)}
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 transition-colors ${!isPreview ? 'cursor-pointer hover:scale-105 active:scale-95' : ''} ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30' : 'bg-white shadow-sm border border-indigo-100 hover:border-indigo-300'}`}
                  >
@@ -785,7 +792,7 @@ return (
                        {AVAILABLE_ICONS.map((iconOption) => {
                           const OptionIcon = iconOption.component;
                           return (
-                             <button
+                             <button type="button" aria-label={t?.ui?.chooseIcon || 'Elegir icono'}
                                 key={iconOption.id}
                                 onClick={() => handleIconSelect(item.id, iconOption.id)}
                                 className={`p-2 rounded-lg flex items-center justify-center transition-colors ${item.icon === iconOption.id ? 'bg-indigo-600 text-white' : (isDarkMode ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600')}`}
@@ -1033,7 +1040,7 @@ const handleExampleUpload = (e, id) => {
 
                  <div className="mt-6 pt-4 border-t border-dashed border-slate-200 dark:border-white/10">
                     {!isPreview && (
-                        <input 
+                        <input aria-label={t?.ui?.templateUrlLong || "URL de la plantilla (Figma, Drive...)"} 
                             type="text" 
                             value={example.templateUrl || ''} 
                             onChange={(e) => updateExample(example.id, 'templateUrl', e.target.value)}
@@ -1056,7 +1063,7 @@ const handleExampleUpload = (e, id) => {
                  {!isPreview && (
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-40">
                         <button onClick={() => duplicateExample(example.id)} className="p-2 bg-white text-indigo-600 rounded-full hover:scale-110 shadow-lg" title={t.ui.duplicate}><Copy size={16}/></button>
-                        <button onClick={() => update({...content, usageExamples: usageExamples.filter(e => e.id !== example.id)})} className="p-2 bg-rose-500 text-white rounded-full hover:scale-110 shadow-lg"><Trash2 size={16}/></button>
+                        <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => update({...content, usageExamples: usageExamples.filter(e => e.id !== example.id)})} className="p-2 bg-rose-500 text-white rounded-full hover:scale-110 shadow-lg"><Trash2 size={16}/></button>
                     </div>
                  )}
               </div>
@@ -1074,7 +1081,7 @@ const handleExampleUpload = (e, id) => {
       {content.showDownload && (
           <div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
               {!isPreview && (
-                  <input 
+                  <input aria-label={t?.ui?.templateUrlLong || 'URL de la plantilla'} 
                       type="text" 
                       value={content.downloadUrl || ''} 
                       onChange={(e) => updateLink(e.target.value)} 
@@ -1316,8 +1323,8 @@ const handleLogoDownload = (e, src, label) => {
                     {!isPreview && (
                         <div className="flex items-center gap-2">
                             <HideSectionButton onClick={() => update({...content, showDos: false})} t={t} />
-                            <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Correctos"/>
-                            <button onClick={() => update({...content, dos: [...dos, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dosColor, backgroundColor: `${dosColor}20` }}><Plus size={20}/></button>
+                            <input type="color" value={dosColor} onChange={(e) => update({...content, dosColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Correctos" aria-label="Color Usos Correctos"/>
+                            <button type="button" aria-label={t?.ui?.add || 'Añadir'} onClick={() => update({...content, dos: [...dos, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dosColor, backgroundColor: `${dosColor}20` }}><Plus size={20}/></button>
                         </div>
                     )}
                   </div>
@@ -1335,7 +1342,7 @@ const handleLogoDownload = (e, src, label) => {
                          
                          <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('dos', i, v)} />
                          
-                         {!isPreview && <button onClick={() => removeRule('dos', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
+                         {!isPreview && <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeRule('dos', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
                       </div>
                     ))}
                   </div>
@@ -1349,8 +1356,8 @@ const handleLogoDownload = (e, src, label) => {
                     {!isPreview && (
                         <div className="flex items-center gap-2">
                              <HideSectionButton onClick={() => update({...content, showDonts: false})} t={t} />
-                             <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Incorrectos"/>
-                             <button onClick={() => update({...content, donts: [...donts, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dontsColor, backgroundColor: `${dontsColor}20` }}><Plus size={20}/></button>
+                             <input type="color" value={dontsColor} onChange={(e) => update({...content, dontsColor: e.target.value})} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" title="Color Usos Incorrectos" aria-label="Color Usos Incorrectos"/>
+                             <button type="button" aria-label={t?.ui?.add || 'Añadir'} onClick={() => update({...content, donts: [...donts, { text: '...', image: null }]})} className="p-2 rounded-full transition-colors" style={{ color: dontsColor, backgroundColor: `${dontsColor}20` }}><Plus size={20}/></button>
                         </div>
                     )}
                   </div>
@@ -1367,7 +1374,7 @@ const handleLogoDownload = (e, src, label) => {
                          
                          <EditableText text={rule.text} className="w-full text-sm leading-relaxed font-medium" isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updateRuleText('donts', i, v)} />
                          
-                         {!isPreview && <button onClick={() => removeRule('donts', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
+                         {!isPreview && <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeRule('donts', i)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-black/90 text-rose-500 p-2 rounded-full shadow-sm hover:scale-110 transition-all z-10"><Trash2 size={16}/></button>}
                       </div>
                     ))}
                   </div>
@@ -1418,7 +1425,7 @@ const handleAddExtra = makeAddExtra(content, update);
            {colors.map((color, i) => (
              <div key={`color-${i}`} className={`flex items-center gap-6 p-4 ${design.radius} border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className={`w-20 h-20 ${design.radius} shadow-inner flex-shrink-0 relative overflow-hidden`} style={{ backgroundColor: color.hex }}>
-                     {!isPreview && <input type="color" value={color.hex} onChange={(e) => updateColorValue(i, 'hex', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />}
+                     {!isPreview && <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={color.hex} onChange={(e) => updateColorValue(i, 'hex', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />}
                 </div>
                 <div className="flex-1 space-y-2">
                    <div className="flex items-center gap-4">
@@ -1431,7 +1438,7 @@ const handleAddExtra = makeAddExtra(content, update);
                    </div>
                    <EditableText text={color.usage} className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`} isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'usage', val)} isPreview={isPreview} />
                 </div>
-                {!isPreview && <button onClick={() => removeColor(i)} className="p-2 opacity-50 hover:opacity-100 hover:bg-rose-500 hover:text-white rounded-full transition-all"><Trash2 size={16} /></button>}
+                {!isPreview && <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeColor(i)} className="p-2 opacity-50 hover:opacity-100 hover:bg-rose-500 hover:text-white rounded-full transition-all"><Trash2 size={16} /></button>}
              </div>
            ))}
         </div>
@@ -1439,9 +1446,9 @@ const handleAddExtra = makeAddExtra(content, update);
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 -mx-6 px-6 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 md:pb-0 md:mx-0 md:px-0 scrollbar-hide">
           {colors.map((color, i) => (
               <div key={`color-${i}`} className={`snap-center min-w-[85vw] md:min-w-0 group relative p-6 ${design.radius} border flex flex-col gap-5 ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                  {!isPreview && <button onClick={() => removeColor(i)} className="absolute top-3 right-3 p-2 opacity-100 md:opacity-0 group-hover:opacity-100 hover:bg-rose-500 hover:text-white text-slate-400 rounded-full transition-all z-10"><Trash2 size={16} /></button>}
+                  {!isPreview && <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeColor(i)} className="absolute top-3 right-3 p-2 opacity-100 md:opacity-0 group-hover:opacity-100 hover:bg-rose-500 hover:text-white text-slate-400 rounded-full transition-all z-10"><Trash2 size={16} /></button>}
                   <div className={`w-full h-40 ${design.radius} shadow-inner relative overflow-hidden`} style={{ backgroundColor: color.hex }}>
-                      {!isPreview && <input type="color" value={color.hex} onChange={(e) => updateColorValue(i, 'hex', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />}
+                      {!isPreview && <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={color.hex} onChange={(e) => updateColorValue(i, 'hex', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />}
                   </div>
                   <div className="space-y-3">
                       <div className="flex justify-between items-center"><EditableText text={color.name} className="font-bold text-xl" isDarkMode={isDarkMode} onChange={(val) => updateColorValue(i, 'name', val)} isPreview={isPreview} /></div>
@@ -1563,7 +1570,7 @@ const handleAddExtra = makeAddExtra(content, update);
           ) : (
             <div className="flex flex-col gap-2 shrink-0 w-full md:w-64">
                 {!isPreview && (
-                    <input 
+                    <input aria-label={t?.ui?.downloadLinkShort || "Enlace de descarga (Drive, Dropbox...)"} 
                         type="text" 
                         value={content.customFontUrl || ''} 
                         onChange={(e) => update({ ...content, customFontUrl: e.target.value })} 
@@ -1597,8 +1604,8 @@ const handleAddExtra = makeAddExtra(content, update);
         {(window.innerWidth < 768 && !isExpanded ? visibleLevels : levels).map((level, i) => (
             <div key={`level-${i}`} className={`flex flex-col md:flex-row md:items-start gap-6 group border-b pb-8 last:border-0 ${isDarkMode ? 'border-white/10' : 'border-slate-100'}`}>
                 <div className={`w-full md:w-56 flex-shrink-0 space-y-3 p-5 rounded-2xl ${isDarkMode ? 'bg-white/5' : 'bg-slate-50'}`}>
-                    <div className="flex items-center justify-between mb-2">{isPreview ? <span className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{level.tag}</span> : <><input value={level.tag} onChange={(e) => updateLevel(i, 'tag', e.target.value)} className={`w-20 bg-transparent font-bold text-lg outline-none border-b border-transparent focus:border-indigo-500 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} /><div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => moveLevel(i, 'up')} disabled={i === 0} className="text-slate-400 hover:text-indigo-500 disabled:opacity-30 p-1"><ChevronUp size={16} /></button><button onClick={() => moveLevel(i, 'down')} disabled={i === levels.length - 1} className="text-slate-400 hover:text-indigo-500 disabled:opacity-30 p-1"><ChevronDown size={16} className="rotate-180"/></button><button onClick={() => removeLevel(i)} className="text-slate-400 hover:text-rose-500 transition-colors p-1"><Trash2 size={16}/></button></div></>}</div>
-                    <div className="grid grid-cols-2 gap-4"><div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider opacity-50 block">{t.modules.typography.size}</label>{isPreview ? <span className={`text-sm font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{level.size}</span> : <input value={level.size} onChange={(e) => updateLevel(i, 'size', e.target.value)} className={`w-full bg-transparent text-sm font-mono outline-none border-b border-white/10 focus:border-indigo-500 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} />}</div><div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider opacity-50 block">{t.modules.typography.weight}</label>{isPreview ? <span className={`text-sm font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{level.weight}</span> : <input value={level.weight} onChange={(e) => updateLevel(i, 'weight', e.target.value)} className={`w-full bg-transparent text-sm font-mono outline-none border-b border-white/10 focus:border-indigo-500 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} />}</div></div>
+                    <div className="flex items-center justify-between mb-2">{isPreview ? <span className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{level.tag}</span> : <><input aria-label={`${t?.ui?.styleName || 'Nombre del estilo'}: ${level.tag}`} value={level.tag} onChange={(e) => updateLevel(i, 'tag', e.target.value)} className={`w-20 bg-transparent font-bold text-lg outline-none border-b border-transparent focus:border-indigo-500 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} /><div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity"><button type="button" aria-label={t?.ui?.moveUp || 'Subir'} onClick={() => moveLevel(i, 'up')} disabled={i === 0} className="text-slate-400 hover:text-indigo-500 disabled:opacity-30 p-1"><ChevronUp size={16} /></button><button type="button" aria-label={t?.ui?.moveDown || 'Bajar'} onClick={() => moveLevel(i, 'down')} disabled={i === levels.length - 1} className="text-slate-400 hover:text-indigo-500 disabled:opacity-30 p-1"><ChevronDown size={16} className="rotate-180"/></button><button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeLevel(i)} className="text-slate-400 hover:text-rose-500 transition-colors p-1"><Trash2 size={16}/></button></div></>}</div>
+                    <div className="grid grid-cols-2 gap-4"><div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider opacity-50 block">{t.modules.typography.size}</label>{isPreview ? <span className={`text-sm font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{level.size}</span> : <input aria-label={`${t.modules.typography.size} ${level.tag}`} value={level.size} onChange={(e) => updateLevel(i, 'size', e.target.value)} className={`w-full bg-transparent text-sm font-mono outline-none border-b border-white/10 focus:border-indigo-500 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} />}</div><div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider opacity-50 block">{t.modules.typography.weight}</label>{isPreview ? <span className={`text-sm font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{level.weight}</span> : <input aria-label={`${t.modules.typography.weight} ${level.tag}`} value={level.weight} onChange={(e) => updateLevel(i, 'weight', e.target.value)} className={`w-full bg-transparent text-sm font-mono outline-none border-b border-white/10 focus:border-indigo-500 ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`} />}</div></div>
                 </div>
                 <div className="flex-1 min-w-0">
                     {isCustom ? (
@@ -1624,7 +1631,7 @@ const handleAddExtra = makeAddExtra(content, update);
                         isPreview ? 
                         <div style={{ fontSize: level.size, fontWeight: level.weight, lineHeight: '1.2' }} className={`w-full break-words ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{level.sample || `Texto de ejemplo para ${level.tag}`}</div> 
                         : 
-                        <textarea value={level.sample || `Texto de ejemplo para ${level.tag}`} onChange={(e) => updateLevel(i, 'sample', e.target.value)} style={{ fontSize: level.size, fontWeight: level.weight, lineHeight: '1.2' }} className={`w-full bg-transparent outline-none resize-none overflow-hidden transition-all min-h-[80px] ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-300'}`} rows={i >= 3 ? 3 : 1} />
+                        <textarea aria-label={`${t?.ui?.sampleText || 'Texto de ejemplo'}: ${level.tag}`} value={level.sample || `Texto de ejemplo para ${level.tag}`} onChange={(e) => updateLevel(i, 'sample', e.target.value)} style={{ fontSize: level.size, fontWeight: level.weight, lineHeight: '1.2' }} className={`w-full bg-transparent outline-none resize-none overflow-hidden transition-all min-h-[80px] ${isDarkMode ? 'text-white placeholder-slate-600' : 'text-slate-900 placeholder-slate-300'}`} rows={i >= 3 ? 3 : 1} />
                     )}
                     <div className={`mt-3 text-[10px] font-mono opacity-40 uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{level.size} • {level.weight} • {currentFontName}</div>
                 </div>
@@ -1651,7 +1658,7 @@ const handleAddExtra = makeAddExtra(content, update);
       <ModuleHeader title={t.modules.image.title} desc={t.modules.image.desc} isDarkMode={isDarkMode} isPreview={isPreview}>
          <button onClick={addImage} className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full transition-colors flex-shrink-0 shadow-sm ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Plus size={14}/> {t.modules.image.addImage}</button>
       </ModuleHeader>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-10">{images.map((img, i) => (<div key={img.id || `img-${i}`} className={`aspect-square ${design.radius} border flex items-center justify-center relative group overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}><input id={`mood-img-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, i)} />{img.src ? <img src={img.src} className="w-full h-full object-cover" alt="Mood" /> : <ImageIcon size={32} className={`mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-300'}`} />}{!isPreview && <div className={`absolute inset-0 bg-black/10 transition-opacity flex items-center justify-center gap-2 ${img.src ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}><button onClick={() => document.getElementById(`mood-img-${i}`).click()} className="bg-white px-3 py-1.5 rounded shadow text-xs font-bold text-slate-900 hover:bg-slate-100">{img.src ? t.ui.change : t.ui.upload}</button><button onClick={() => removeImage(i)} className="bg-rose-500 p-1.5 rounded shadow text-white hover:bg-rose-600"><Trash2 size={14}/></button></div>}</div>))}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-10">{images.map((img, i) => (<div key={img.id || `img-${i}`} className={`aspect-square ${design.radius} border flex items-center justify-center relative group overflow-hidden ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}><input id={`mood-img-${i}`} type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, i)} />{img.src ? <img src={img.src} className="w-full h-full object-cover" alt="Mood" /> : <ImageIcon size={32} className={`mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-300'}`} />}{!isPreview && <div className={`absolute inset-0 bg-black/10 transition-opacity flex items-center justify-center gap-2 ${img.src ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}><button onClick={() => document.getElementById(`mood-img-${i}`).click()} className="bg-white px-3 py-1.5 rounded shadow text-xs font-bold text-slate-900 hover:bg-slate-100">{img.src ? t.ui.change : t.ui.upload}</button><button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeImage(i)} className="bg-rose-500 p-1.5 rounded shadow text-white hover:bg-rose-600"><Trash2 size={14}/></button></div>}</div>))}</div>
       <DynamicBlocks blocks={content.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -1701,7 +1708,7 @@ const handleAddExtra = makeAddExtra(content, update);
             
             {/* Botón borrar bloque individual */}
             {!isPreview && blocks.length > 1 && (
-              <button 
+              <button type="button" aria-label={t?.ui?.close || 'Cerrar'} 
                 onClick={() => removeBlock(index)} 
                 className="absolute -right-2 -top-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover/block:opacity-100 transition-opacity z-10 shadow-lg"
               >
@@ -1710,7 +1717,7 @@ const handleAddExtra = makeAddExtra(content, update);
             )}
 
             {block.type === 'text' ? (
-              <textarea
+              <textarea aria-label={t?.ui?.writeInspiring || "Escribe algo inspirador..."}
                 value={block.content}
                 onChange={(e) => updateBlock(index, e.target.value)}
                 placeholder={t?.ui?.writeInspiring || "Escribe algo inspirador..."}
@@ -1764,7 +1771,7 @@ const handleAddExtra = makeAddExtra(content, update);
       {content.showDownload && (
         <div className="mt-6 flex flex-col md:flex-row gap-4 items-center">
           {!isPreview && (
-             <input
+             <input aria-label={t?.ui?.downloadLinkLong || 'URL de descarga'}
                type="url"
                placeholder="https://drive.google.com/..."
                value={content.downloadUrl || ''}
@@ -1844,11 +1851,11 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
            {/* Selectores de Color */}
            <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title={t?.ui?.backgroundColor || "Color de Fondo"}>
               <PaintBucket size={14} className="text-slate-500" />
-              <input type="color" value={content.bgColor || (isDarkMode?'#0a0c10':'#f8fafc')} onChange={(e) => update({...content, bgColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+              <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={content.bgColor || (isDarkMode?'#0a0c10':'#f8fafc')} onChange={(e) => update({...content, bgColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
            </div>
            <div className="relative flex items-center justify-center p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 rounded" title={t?.ui?.textColor || "Color del Texto"}>
               <Type size={14} className="text-slate-500" />
-              <input type="color" value={content.textColor || (isDarkMode?'#ffffff':'#0f111a')} onChange={(e) => update({...content, textColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+              <input aria-label={t?.ui?.pickColor || 'Elegir color'} type="color" value={content.textColor || (isDarkMode?'#ffffff':'#0f111a')} onChange={(e) => update({...content, textColor: e.target.value})} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
            </div>
            
            {/* Resetear Colores */}
@@ -1933,7 +1940,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                                         {/* Editor Popover Redes */}
                                         {activeSocialEdit === platform.id && (
                                             <div className={`absolute bottom-full mb-3 left-1/2 -translate-x-1/2 p-2 rounded-xl shadow-2xl border z-50 w-64 flex gap-2 animate-in fade-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-[#1e2330] border-white/10' : 'bg-white border-slate-200'}`}>
-                                                <input 
+                                                <input aria-label={platform.id.charAt(0).toUpperCase() + platform.id.slice(1)} 
                                                     type="text" 
                                                     value={link} 
                                                     onChange={(e) => updateSocialLink(platform.id, e.target.value)}
@@ -1941,7 +1948,7 @@ const FooterModule = React.memo(({ content, update, design, isDarkMode, t, isPre
                                                     className={`w-full text-xs p-2.5 rounded-lg border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-white focus:border-indigo-500' : 'border-slate-200 text-slate-700 focus:border-indigo-500'}`}
                                                     autoFocus
                                                 />
-                                                <button onClick={() => setActiveSocialEdit(null)} className="p-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"><Check size={16} /></button>
+                                                <button type="button" aria-label={t?.ui?.done || 'Hecho'} onClick={() => setActiveSocialEdit(null)} className="p-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"><Check size={16} /></button>
                                             </div>
                                         )}
                                         {activeSocialEdit === platform.id && <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveSocialEdit(null); }} />}
@@ -2003,11 +2010,11 @@ const handleAddExtra = makeAddExtra(content, update);
              <div className="space-y-3 flex-1 flex flex-col">
                <EditableText text={partner.caption} placeholder={t.ui.placeholders.caption} className={`text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`} isDarkMode={isDarkMode} isPreview={isPreview} onChange={(v) => updatePartner(partner.id, 'caption', v)} />
                <div className="mt-auto pt-2">
-                   {!isPreview && (<input type="text" placeholder={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
+                   {!isPreview && (<input aria-label={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} type="text" placeholder={t?.ui?.templateUrlShort || "URL Plantilla (https://...)"} value={partner.templateUrl || ''} onChange={(e) => updatePartner(partner.id, 'templateUrl', e.target.value)} className={`w-full p-2 mb-2 text-[10px] rounded border bg-transparent outline-none ${isDarkMode ? 'border-white/10 text-slate-400 focus:border-indigo-500' : 'border-slate-300 text-slate-600 focus:border-indigo-500'}`} />)}
                    <a href={partner.templateUrl || '#'} target="_blank" rel="noopener noreferrer" className={`w-full py-2.5 flex items-center justify-center gap-2 text-xs font-bold border rounded-lg transition-all ${!partner.templateUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'} ${isDarkMode ? 'border-white/10 hover:bg-white/10 text-white' : 'border-slate-200 hover:bg-white text-slate-900 bg-white/50'}`}><Download size={14}/> {t.ui.downloadTemplate}</a>
                </div>
              </div>
-             {!isPreview && <button onClick={() => removePartner(partner.id)} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>}
+             {!isPreview && <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removePartner(partner.id)} className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>}
           </div>
         ))}
       </div>
@@ -2076,7 +2083,7 @@ const handleAddExtra = makeAddExtra(content, update);
               
               {!isPreview && (
                  <div className="pt-3">
-                    <input 
+                    <input aria-label={t?.ui?.downloadLinkLong || "URL de descarga (Enlace de Google Drive, Dropbox, etc.)"} 
                         type="text" 
                         placeholder={t?.ui?.downloadLinkLong || "URL de descarga (Enlace de Google Drive, Dropbox, etc.)"} 
                         value={asset.url || ''} 
@@ -2099,7 +2106,7 @@ const handleAddExtra = makeAddExtra(content, update);
             </div>
 
             {!isPreview && (
-               <button onClick={() => removeAsset(asset.id)} className="absolute -top-3 -right-3 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>
+               <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={() => removeAsset(asset.id)} className="absolute -top-3 -right-3 p-2 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-110 z-10"><Trash2 size={14}/></button>
             )}
           </div>
         ))}
@@ -2186,7 +2193,7 @@ const handleAddExtra = makeAddExtra(content, update);
   const updateLink = (val) => update({ ...content, downloadUrl: val });
   useEffect(() => { if(selectedLib === 'custom' && (!content.customIcons || content.customIcons.length === 0)) { update({ ...content, customIcons: Array(6).fill(null).map((_,i) => ({ id: Date.now()+i, src: null, name: t.ui.iconName })) }); } }, [selectedLib]);
   const renderGoogleIcons = () => (<div className="grid grid-cols-6 gap-6 mt-10">{googleIcons.map((Icon, i) => (<div key={`google-icon-${i}`} className={`aspect-square ${design.radius} border flex items-center justify-center ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}><Icon size={28} strokeWidth={selectedLib === 'outlined' ? 1.5 : selectedLib === 'rounded' ? 2.5 : 2} className={isDarkMode ? 'text-white' : 'text-slate-900'} /></div>))}</div>);
-  const renderCustomIcons = () => (<div className="grid grid-cols-3 md:grid-cols-6 gap-6 mt-10">{(content.customIcons || []).map((icon) => (<div key={icon.id} className="relative group/icon"><div onClick={() => !isPreview && document.getElementById(`cust-icon-${icon.id}`).click()} className={`aspect-square ${design.radius} border flex items-center justify-center relative overflow-hidden mb-2 ${!isPreview ? 'cursor-pointer' : ''} ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}><input id={`cust-icon-${icon.id}`} type="file" className="hidden" accept="image/svg+xml,image/png" onChange={(e) => handleCustomUpload(e, icon.id)} />{icon.src ? <img src={icon.src} className="w-2/3 h-2/3 object-contain" alt="icon" /> : <div className={`text-xs text-center p-2 opacity-50 ${isDarkMode?'text-white':'text-slate-900'}`}>{t.ui.upload}</div>}</div><EditableText text={icon.name} className={`text-[10px] text-center font-mono ${isDarkMode?'text-slate-400':'text-slate-500'}`} onChange={(v)=>updateCustomIcon(icon.id, 'name', v)} isDarkMode={isDarkMode} isPreview={isPreview} />{!isPreview && <button onClick={()=>removeCustomIcon(icon.id)} className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 opacity-0 group-hover/icon:opacity-100 transition-opacity"><X size={10}/></button>}</div>))}{!isPreview && <button onClick={addCustomIcon} className={`aspect-square ${design.radius} border border-dashed flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${isDarkMode ? 'border-white/20 text-slate-400' : 'border-slate-300 text-slate-500'}`}><Plus size={20} /><span className="text-[10px] uppercase font-bold">{t.ui.addText}</span></button>}</div>);
+  const renderCustomIcons = () => (<div className="grid grid-cols-3 md:grid-cols-6 gap-6 mt-10">{(content.customIcons || []).map((icon) => (<div key={icon.id} className="relative group/icon"><div onClick={() => !isPreview && document.getElementById(`cust-icon-${icon.id}`).click()} className={`aspect-square ${design.radius} border flex items-center justify-center relative overflow-hidden mb-2 ${!isPreview ? 'cursor-pointer' : ''} ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-white'}`}><input id={`cust-icon-${icon.id}`} type="file" className="hidden" accept="image/svg+xml,image/png" onChange={(e) => handleCustomUpload(e, icon.id)} />{icon.src ? <img src={icon.src} className="w-2/3 h-2/3 object-contain" alt="icon" /> : <div className={`text-xs text-center p-2 opacity-50 ${isDarkMode?'text-white':'text-slate-900'}`}>{t.ui.upload}</div>}</div><EditableText text={icon.name} className={`text-[10px] text-center font-mono ${isDarkMode?'text-slate-400':'text-slate-500'}`} onChange={(v)=>updateCustomIcon(icon.id, 'name', v)} isDarkMode={isDarkMode} isPreview={isPreview} />{!isPreview && <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={()=>removeCustomIcon(icon.id)} className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 opacity-0 group-hover/icon:opacity-100 transition-opacity"><X size={10}/></button>}</div>))}{!isPreview && <button onClick={addCustomIcon} className={`aspect-square ${design.radius} border border-dashed flex flex-col items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${isDarkMode ? 'border-white/20 text-slate-400' : 'border-slate-300 text-slate-500'}`}><Plus size={20} /><span className="text-[10px] uppercase font-bold">{t.ui.addText}</span></button>}</div>);
 
   return (
     <div className="p-10 relative">
@@ -2206,7 +2213,7 @@ const handleAddExtra = makeAddExtra(content, update);
          </div>
       </ModuleHeader>
       {selectedLib === 'custom' ? renderCustomIcons() : renderGoogleIcons()}
-      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={content.downloadUrl || '#'} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
+      {content.showDownload && (<div className={`mt-8 pt-6 border-t border-dashed ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>{selectedLib === 'custom' ? (<>{!isPreview && (<input aria-label={t?.ui?.downloadLinkLong || 'URL de descarga'} type="text" value={content.downloadUrl || ''} onChange={(e) => updateLink(e.target.value)} placeholder="https://drive.google.com/icons..." className={`w-full p-3 text-xs rounded-lg mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-600 focus:border-indigo-500'}`} />)}<a href={content.downloadUrl || '#'} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${!content.downloadUrl && !isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><Download size={16} />{t.modules.icons.downloadCustom}</a></>) : (<a href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 hover:scale-105 ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><ExternalLink size={16} />{t.modules.icons.downloadGoogle}</a>)}</div>)}
       <DynamicBlocks blocks={content?.extraBlocks} update={(newBlocks) => update({...content, extraBlocks: newBlocks})} isDarkMode={isDarkMode} design={design} t={t} isPreview={isPreview} />
       <AddContentFooter onAdd={handleAddExtra} isDarkMode={isDarkMode} t={t} isPreview={isPreview} />
     </div>
@@ -2235,9 +2242,9 @@ const handleAddExtra = makeAddExtra(content, update);
         isPreview={isPreview}
       >
           <div className="flex gap-2">
-             <button onClick={() => addDevice('laptop')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Laptop size={16}/></button>
-             <button onClick={() => addDevice('tablet')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Tablet size={16}/></button>
-             <button onClick={() => addDevice('mobile')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Smartphone size={16}/></button>
+             <button type="button" aria-label={t?.ui?.addLaptop || 'Añadir ordenador'} onClick={() => addDevice('laptop')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Laptop size={16}/></button>
+             <button type="button" aria-label={t?.ui?.addTablet || 'Añadir tableta'} onClick={() => addDevice('tablet')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Tablet size={16}/></button>
+             <button type="button" aria-label={t?.ui?.addMobile || 'Añadir móvil'} onClick={() => addDevice('mobile')} className={`p-2 rounded-full border transition-colors ${isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'}`}><Smartphone size={16}/></button>
           </div>
       </ModuleHeader>
       
@@ -2397,7 +2404,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
 
         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
           
-           <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10"><X size={24} className={isDarkMode ? 'text-white' : 'text-slate-900'} /></button>
+           <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10"><X size={24} className={isDarkMode ? 'text-white' : 'text-slate-900'} /></button>
 
            <div className="p-8 md:p-12 max-w-3xl">
               {activeTab === 'profile' && (
@@ -2414,8 +2421,8 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                         </div>
                         <div className="flex-1 space-y-6 w-full">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.name}</label><input type="text" value={content.name || ''} onChange={(e) => updateData('name', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
-                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.role}</label><input type="text" value={content.role || ''} onChange={(e) => updateData('role', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
+                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.name}</label><input aria-label={safeT.auth.name} type="text" value={content.name || ''} onChange={(e) => updateData('name', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
+                                <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.role}</label><input aria-label={safeT.profileTabs.role} type="text" value={content.role || ''} onChange={(e) => updateData('role', e.target.value)} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                             </div>
                             
                             <div className="space-y-2">
@@ -2429,7 +2436,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                                 <span className="opacity-50 text-sm mr-1 hidden sm:inline">brandbara.com/</span>
                                 <span className="opacity-50 text-sm mr-1 sm:hidden">.../</span>
                        
-                                <input 
+                                <input aria-label={safeT.ui.portalLinkLabel} 
                                   type="text" 
                                   value={content.slug || ''} 
                                   onChange={(e) => handleSlugChange(e.target.value)} 
@@ -2458,7 +2465,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                               )}
                             </div>
 
-                            <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label><textarea value={content.bio || ''} onChange={(e) => updateData('bio', e.target.value)} rows={4} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
+                            <div className="space-y-2"><label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.profileTabs.bio}</label><textarea aria-label={safeT.profileTabs.bio} value={content.bio || ''} onChange={(e) => updateData('bio', e.target.value)} rows={4} className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none ${isDarkMode ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`} /></div>
                         </div>
                     </div>
                  </div>
@@ -2473,7 +2480,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             <label className="text-xs font-bold uppercase tracking-wider opacity-50">{safeT.auth.email}</label>
                             <div className={`flex items-center px-4 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                               <Mail size={18} className="opacity-50 mr-3"/>
-                              <input type="email" value={content.email || ''} readOnly className={`w-full py-3 bg-transparent outline-none opacity-70 cursor-not-allowed ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
+                              <input aria-label={safeT.auth.emailPlaceholder} type="email" value={content.email || ''} readOnly className={`w-full py-3 bg-transparent outline-none opacity-70 cursor-not-allowed ${isDarkMode ? 'text-white' : 'text-slate-900'}`} />
                             </div>
                             <p className="text-[10px] opacity-60">El email no se puede cambiar por motivos de seguridad.</p>
                           </div>
@@ -2581,7 +2588,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                             {content.isPasswordProtected && userPlan === 'PRO' && (
                                <div className="relative group animate-in slide-in-from-top-2 duration-200">
                                 <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-indigo-500" />
-                                <input 
+                                <input aria-label="Define la contraseña de acceso..." 
                                   type="password" 
                                   value={content.portalPassword || ''} 
                                   onChange={(e) => updateData('portalPassword', e.target.value)} 
@@ -2594,7 +2601,7 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
 
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4><p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p></div></div>
-                              <select value={content.language || 'ES'} onChange={(e) => updateData('language', e.target.value)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><option value="ES">Español</option><option value="EN">English</option></select>
+                              <select aria-label={safeT.profileTabs.lang} value={content.language || 'ES'} onChange={(e) => updateData('language', e.target.value)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><option value="ES">Español</option><option value="EN">English</option></select>
                           </div>
                           
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
@@ -2723,7 +2730,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className={`relative w-full max-w-md p-8 rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#151924] border border-white/10 text-slate-300' : 'bg-white border border-slate-200 text-slate-900'}`}>
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
+        <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={onClose} className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors z-10">
           <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
         </button>
 
@@ -2751,7 +2758,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
               <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.name}</label>
               <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <User size={18} className="opacity-50 mr-3" />
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required={!isLogin} />
+                <input aria-label={safeT.auth.namePlaceholder} autoComplete="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={safeT.auth.namePlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required={!isLogin} />
               </div>
             </div>
           )}
@@ -2760,7 +2767,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
             <label className="text-xs font-bold uppercase tracking-wider opacity-60">{safeT.auth.email}</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Mail size={18} className="opacity-50 mr-3" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={safeT.auth.emailPlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label={safeT.auth.emailPlaceholder} autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={safeT.auth.emailPlaceholder} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
@@ -2775,7 +2782,7 @@ const AuthModal = ({ isOpen, onClose, onAuthenticate, isDarkMode, t }) => {
             </div>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label={safeT.auth.password} autoComplete={isLogin ? 'current-password' : 'new-password'} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
@@ -2873,7 +2880,7 @@ const ManageSubscriptionModal = ({ isOpen, onClose, isDarkMode, onUpgrade, t }) 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className={`relative w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row ${isDarkMode ? 'bg-[#151924] border border-white/10' : 'bg-white border border-slate-200'} rounded-3xl`}>
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+        <button type="button" aria-label={t?.ui?.close || 'Cerrar'} onClick={onClose} className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <X size={20} className={isDarkMode ? 'text-white' : 'text-slate-900'} />
         </button>
         <div className={`w-full md:w-5/12 p-8 flex flex-col justify-center ${isDarkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
@@ -2987,7 +2994,7 @@ const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
             <label className="text-xs font-bold uppercase tracking-wider opacity-60">Nueva Contraseña</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label="Nueva contraseña" autoComplete="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
@@ -2995,7 +3002,7 @@ const UpdatePasswordModal = ({ isOpen, onClose, isDarkMode }) => {
             <label className="text-xs font-bold uppercase tracking-wider opacity-60">Repite la Contraseña</label>
             <div className={`flex items-center px-4 rounded-xl border focus-within:border-indigo-500 transition-colors ${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
               <Lock size={18} className="opacity-50 mr-3" />
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirma tu nueva clave" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
+              <input aria-label="Confirma tu nueva clave" autoComplete="new-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirma tu nueva clave" className={`w-full py-3 bg-transparent outline-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`} required />
             </div>
           </div>
 
@@ -3820,10 +3827,10 @@ const isInitialMount = useRef(true);
             >              <LayoutTemplate size={14} />
             </button>
             <div className="flex border-r border-slate-200 dark:border-white/10 pr-1 mr-1">
-              <button onClick={() => moveComponent(index, index - 1)} disabled={index <= 1} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronUp size={14} /></button>
-              <button onClick={() => moveComponent(index, index + 1)} disabled={index >= canvasItems.length - 2} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronDown size={14} /></button>
+              <button type="button" aria-label={t?.ui?.moveUp || 'Subir'} onClick={() => moveComponent(index, index - 1)} disabled={index <= 1} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronUp size={14} /></button>
+              <button type="button" aria-label={t?.ui?.moveDown || 'Bajar'} onClick={() => moveComponent(index, index + 1)} disabled={index >= canvasItems.length - 2} className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded text-slate-500 disabled:opacity-30"><ChevronDown size={14} /></button>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
+            <button type="button" aria-label={t?.ui?.delete || 'Eliminar'} onClick={(e) => { e.stopPropagation(); removeComponent(item.id); }} className="p-1 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded text-rose-500"><Trash2 size={16} /></button>
           </div>
         )}
 <ModuleSlot item={item} onUpdate={updateComponent} design={activeDesign} isDarkMode={isDarkMode} t={t} isPreview={effectiveIsPreview} checkLimit={validateStorageLimit} />
@@ -3834,7 +3841,7 @@ const isInitialMount = useRef(true);
   const DraggableTool = ({ type, icon: Icon, label }) => (
     <div onClick={() => handleToolClick(type)} className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all cursor-pointer hover:scale-105 active:scale-95 group select-none ${isDarkMode ? 'bg-[#151924] border-white/5 hover:bg-[#1a1f2e] hover:border-indigo-500/40' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-indigo-500/40 hover:shadow-sm'}`}>
       <Icon className={`w-6 h-6 mb-2 transition-colors ${isDarkMode ? 'text-slate-400 group-hover:text-indigo-400' : 'text-slate-500 group-hover:text-indigo-600'}`} />
-      <span className={`text-[10px] font-bold uppercase tracking-widest text-center transition-colors ${isDarkMode ? 'text-slate-500 group-hover:text-slate-300' : 'text-slate-400 group-hover:text-slate-900'}`}>{label}</span>
+      <span className={`text-[10px] font-bold uppercase tracking-widest text-center transition-colors ${isDarkMode ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-900'}`}>{label}</span>
     </div>
   );
 
@@ -4120,7 +4127,7 @@ onResetCanvas={() => {
                 <h1 className="m-0 leading-none">
                   <img src="/brandbara-logo.svg" alt="BrandBara" className="h-7 w-auto" />
                 </h1>
-                <span className={`px-1.5 py-0.5 text-[8px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                <span className={`px-1.5 py-0.5 text-[8px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
                   BETA
                 </span>
               </div>
@@ -4134,7 +4141,7 @@ onResetCanvas={() => {
 
               <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2 text-indigo-500">
+                  <div className={`flex items-center gap-2 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                     <DownloadCloud size={14} />
                     <span className="text-[10px] font-black uppercase">Storage</span>
                   </div>
@@ -4154,7 +4161,7 @@ onResetCanvas={() => {
               
               {/* STYLES SECTION */}
               <div>
-                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ui.styles}</h3>
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.ui.styles}</h3>
                 <div className="space-y-2">
                   
                   {/* Layout Selector */}
@@ -4206,27 +4213,27 @@ onResetCanvas={() => {
 
               {/* FONDO CANVAS SECTION (Sin acordeón) */}
               <div className="mt-8">
-                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <h3 className={`text-[10px] font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   Fondo Canvas
                 </h3>
                 
                 <div className="space-y-4">
                   {/* Color Modo Claro */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Sun size={12}/> Modo Claro</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1.5"><Sun size={12}/> {t.ui.lightMode}</label>
                     <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
                         <div 
                           className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
                           style={{ backgroundColor: design.customBgLight || '#f8fafc', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
                         >
-                          <input 
+                          <input aria-label={t?.ui?.pickColor || 'Elegir color'} 
                             type="color" 
                             value={design.customBgLight || '#f8fafc'} 
                             onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} 
                             className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
                           />
                         </div>
-                        <input 
+                        <input aria-label={t?.ui?.backgroundColor || 'Color de fondo'} 
                           type="text" 
                           value={design.customBgLight || ''} 
                           onChange={(e) => setDesign(prev => ({...prev, customBgLight: e.target.value}))} 
@@ -4238,20 +4245,20 @@ onResetCanvas={() => {
 
                   {/* Color Modo Oscuro */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-1.5"><Moon size={12}/> Modo Oscuro</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest opacity-70 flex items-center gap-1.5"><Moon size={12}/> {t.ui.darkMode}</label>
                     <div className={`flex items-center gap-3 p-1.5 rounded-xl border ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
                         <div 
                           className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 border shadow-sm transition-transform hover:scale-105"
                           style={{ backgroundColor: design.customBgDark || '#0a0c10', borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
                         >
-                          <input 
+                          <input aria-label={t?.ui?.pickColor || 'Elegir color'} 
                             type="color" 
                             value={design.customBgDark || '#0a0c10'} 
                             onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} 
                             className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0" 
                           />
                         </div>
-                        <input 
+                        <input aria-label={t?.ui?.backgroundColor || 'Color de fondo'} 
                           type="text" 
                           value={design.customBgDark || ''} 
                           onChange={(e) => setDesign(prev => ({...prev, customBgDark: e.target.value}))} 
@@ -4323,7 +4330,7 @@ onResetCanvas={() => {
               <div className={`lg:hidden flex items-center justify-between w-full max-w-md h-[56px] p-2 rounded-2xl shadow-xl border pointer-events-auto backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#151924]/95 border-white/10' : 'bg-white/95 border-slate-200'}`}>
                 <div className="flex items-center gap-1.5">
                   {!effectiveIsPublicView && (
-                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'} ${mobileMenuOpen ? (isDarkMode ? 'bg-white/10' : 'bg-slate-200') : ''}`}>
+                    <button type="button" aria-label={mobileMenuOpen ? t.ui.close : t.ui.menu} aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`h-full w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-100'} ${mobileMenuOpen ? (isDarkMode ? 'bg-white/10' : 'bg-slate-200') : ''}`}>
                       {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
                     </button>
                   )}
@@ -4333,28 +4340,28 @@ onResetCanvas={() => {
                 </div>
                 
                 <div className="flex items-center gap-1 ml-auto">
-                  <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-10 w-10 flex items-center justify-center rounded-xl text-[11px] font-black transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                  <button type="button" aria-label={`${language}: ${t.ui.changeLanguage}`} onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-10 w-10 flex items-center justify-center rounded-xl text-[11px] font-black transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                     {language}
                   </button>
 
-                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                  <button type="button" aria-label={isDarkMode ? t.ui.lightMode : t.ui.darkMode} onClick={() => setIsDarkMode(!isDarkMode)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                     {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                   </button>
                   
                   {!effectiveIsPreview && !effectiveIsPublicView && (
-                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-emerald-400 hover:bg-white/10' : 'text-emerald-600 hover:bg-slate-100'}`}>
+                    <button type="button" aria-label={t?.ui?.save || 'Guardar'} onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else savePortalData(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-emerald-400 hover:bg-white/10' : 'text-emerald-600 hover:bg-slate-100'}`}>
                       <Save size={18} />
                     </button>
                   )}
                   
 {!effectiveIsPublicView && (
-                    <button onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
+                    <button type="button" aria-label={isPreview ? t.ui.backToEdit : t.ui.preview} onClick={() => setIsPreview(!isPreview)} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors ${isPreview ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}`}>
                       {isPreview ? <Edit3 size={18} /> : <Eye size={18} />}
                     </button>
                   )}
                                     
                   {!effectiveIsPreview && !effectiveIsPublicView && (
-                    <button onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
+                    <button type="button" aria-label={t.ui.profile} onClick={() => { if (!isAuthenticated) setIsAuthModalOpen(true); else setIsProfileOpen(true); }} className={`h-10 w-10 flex items-center justify-center rounded-xl transition-colors overflow-hidden ${isDarkMode ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}>
                       {currentUser && profileContent.avatar ? (
                         <img src={profileContent.avatar} alt="User" className="w-full h-full object-cover" />
                       ) : (
@@ -4396,8 +4403,8 @@ onResetCanvas={() => {
                 {/* 2. PÍLDORA CONFIGURACIÓN */}
                 {(!effectiveIsPreview || effectiveIsPublicView) && (
                   <div className={`h-[60px] flex items-center p-2.5 gap-1 rounded-2xl shadow-sm border transition-all ${isDarkMode ? 'bg-[#151924]/90 border-white/10' : 'bg-white/90 border-slate-200/70 backdrop-blur-xl'}`}>
-                    <button onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-full px-5 flex items-center justify-center rounded-xl text-[13px] font-medium transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{language}</button>
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`h-full px-5 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{isDarkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
+                    <button type="button" aria-label={`${language}: ${t.ui.changeLanguage}`} title={t.ui.changeLanguage} onClick={() => setLanguage(prev => prev === 'ES' ? 'EN' : 'ES')} className={`h-full px-5 flex items-center justify-center rounded-xl text-[13px] font-medium transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{language}</button>
+                    <button type="button" aria-label={isDarkMode ? t.ui.lightMode : t.ui.darkMode} title={isDarkMode ? t.ui.lightMode : t.ui.darkMode} onClick={() => setIsDarkMode(!isDarkMode)} className={`h-full px-5 flex items-center justify-center rounded-xl transition-colors ${isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>{isDarkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
                     <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2"></div>
                     
                     {!effectiveIsPublicView && isAuthenticated && (
@@ -4552,7 +4559,7 @@ const LandingPage = () => {
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
         >
           <img src="/brandbara-logo.svg" alt="BrandBara" className="h-8 md:h-10 w-auto" />
-          <span className={`px-1.5 py-0.5 text-[10px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+          <span className={`px-1.5 py-0.5 text-[10px] font-black rounded border tracking-widest ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
             BETA
           </span>
         </div>
@@ -4560,6 +4567,8 @@ const LandingPage = () => {
         <div className="flex items-center gap-3 md:gap-6">
           {/* Toggle Light/Dark Mode */}
           <button 
+            type="button"
+            aria-label={lang === 'ES' ? (isDarkMode ? 'Modo claro' : 'Modo oscuro') : (isDarkMode ? 'Light mode' : 'Dark mode')}
             onClick={() => setIsDarkMode(!isDarkMode)} 
             className={`p-2.5 rounded-xl transition-colors ${isDarkMode ? 'text-amber-400 bg-white/5 hover:bg-white/10' : 'text-slate-600 bg-slate-200/50 hover:bg-slate-200'}`}
           >
@@ -4568,8 +4577,8 @@ const LandingPage = () => {
 
           {/* Selector de Idioma */}
           <div className={`hidden md:flex p-1 rounded-xl border ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <button onClick={() => setLang('ES')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'ES' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-800')}`}>ES</button>
-            <button onClick={() => setLang('EN')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'EN' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-400 hover:text-slate-800')}`}>EN</button>
+            <button onClick={() => setLang('ES')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'ES' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-800')}`}>ES</button>
+            <button onClick={() => setLang('EN')} className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${lang === 'EN' ? 'bg-violet-600 text-white' : (isDarkMode ? 'text-white/40 hover:text-white' : 'text-slate-500 hover:text-slate-800')}`}>EN</button>
           </div>
 
           <button 
@@ -4592,7 +4601,7 @@ const LandingPage = () => {
           
           <h1 className="text-[3.5rem] md:text-[6rem] lg:text-[8rem] font-black tracking-tighter leading-[0.85] mb-8 flex flex-col items-center">
             {/* 1. Gris */}
-            <span className={`block ${isDarkMode ? 'text-slate-500' : 'text-[#8a94a6]'}`}>
+            <span className={`block ${isDarkMode ? 'text-slate-400' : 'text-[#667085]'}`}>
               {t.hero1}
             </span>
             {/* 2. Negro / Blanco puro */}
@@ -4616,7 +4625,7 @@ const LandingPage = () => {
             >
               {t.cta}
             </button>
-            <span className={`text-xs font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t.ctaSub}</span>
+            <span className={`text-xs font-bold tracking-widest uppercase ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t.ctaSub}</span>
           </div>
         </div>
 
@@ -4632,9 +4641,9 @@ const LandingPage = () => {
                 <Lock size={32} />
               </div>
               <div className="relative z-10">
-                <h3 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight">
+                <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 leading-tight">
                   {t.bento1Title}
-                </h3>
+                </h2>
                 <p className={`text-lg md:text-xl font-medium max-w-xl leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   {t.bento1Desc}
                 </p>
@@ -4647,9 +4656,9 @@ const LandingPage = () => {
                 <Globe size={28} />
               </div>
               <div>
-                <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
                   {t.bento2Title}
-                </h3>
+                </h2>
                 <p className={`font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   {t.bento2Desc}
                 </p>
@@ -4662,9 +4671,9 @@ const LandingPage = () => {
                 <LayoutTemplate size={28} />
               </div>
               <div>
-                <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
                   {t.bento3Title}
-                </h3>
+                </h2>
                 <p className={`font-medium leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                   {t.bento3Desc}
                 </p>
@@ -4680,7 +4689,7 @@ const LandingPage = () => {
                     <span className={`text-sm font-black tracking-tighter italic ${isDarkMode ? 'text-white' : 'text-[#0f111a]'}`}>
                       BRANDBARA
                     </span>
-                    <span className={`px-1 py-0.5 text-[6px] font-black rounded border ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+                    <span aria-hidden="true" className={`px-1 py-0.5 text-[6px] font-black rounded border ${isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
                       BETA
                     </span>
                   </div>
@@ -4700,13 +4709,13 @@ const LandingPage = () => {
 
       {/* FOOTER */}
       <footer className={`w-full py-12 flex flex-col items-center justify-center gap-6 border-t ${isDarkMode ? 'border-white/5 bg-[#0a0c10]' : 'border-slate-200 bg-[#f8fafc]'}`}>
-        <div className={`flex items-center gap-1.5 ${isDarkMode ? 'opacity-40 text-white' : 'opacity-50 text-slate-900'}`}>
+        <div className={`flex items-center gap-1.5 ${isDarkMode ? 'opacity-70 text-white' : 'opacity-70 text-slate-900'}`}>
           <span className="font-black tracking-tighter italic text-lg">BRANDBARA</span>
           <span className="px-1 py-0.5 text-[8px] font-black rounded border bg-transparent tracking-widest">
             BETA
           </span>
         </div>
-        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'opacity-30' : 'opacity-40 text-slate-900'}`}>{t.footer}</span>
+        <span className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'opacity-60' : 'opacity-70 text-slate-900'}`}>{t.footer}</span>
       </footer>
     </div>
   );
@@ -4725,7 +4734,7 @@ const NotFoundPage = () => {
       </p>
       
       <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-white/5 max-w-md w-full">
-        <h3 className="text-xl font-bold mb-2 dark:text-white">¿Eres diseñador?</h3>
+        <h2 className="text-xl font-bold mb-2 dark:text-white">¿Eres diseñador?</h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           Crea portales de marca profesionales y deja de enviar PDFs que se pierden en el Drive.
         </p>
