@@ -35,6 +35,7 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 | Límite de intentos de la contraseña de portal | Dirección del portal y hora de cada intento fallido (se borra a la hora); **sin IP ni datos personales** | Supabase | Sin cambio legal (no hay dato personal). **Si algún día se guarda la IP, hay que declararlo en Privacidad §2 y §5 y subir `LEGAL_VERSION`.** | En producción (migración `20261027090300`) |
 | Vídeos de YouTube/Vimeo | Ninguno nuestro; el proveedor puede guardar cookies al reproducir | YouTube, Vimeo | Privacidad §3; Cookies §2 | En producción: solo tras pulsar «Reproducir» |
 | Borrador local y sesión | Almacenamiento del navegador | — | Cookies §1 | En producción |
+| Compresión de imágenes al subirlas | La imagen se procesa en el navegador; solo sale al subirla a Supabase | Supabase. **Hasta la revisión de calidad de oct-2026 la librería pedía su código a cdn.jsdelivr.net (IP del usuario a un tercero no declarado, solo en el editor al subir imágenes); ahora usa nuestra copia** | Sin cambio en los textos (se elimina el tercero en vez de declararlo) | Corregido en la rama de carga diferida; una prueba lo vigila |
 | Eliminar cuenta | Borra archivos, usuario, perfil y portal | Supabase | Privacidad §5; Términos §14 | En producción |
 | Copias de seguridad cifradas | Copia diaria de la base (30 días), sin archivos subidos | GitHub | Privacidad §5, §8; Términos §11 | Código en producción; faltan 2 secretos de GitHub |
 | Denunciar contenido | Mensajes por correo | — | Denunciar contenido; Términos §9 | En producción |
@@ -79,6 +80,7 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 - Antes de abrir al público o de cobrar: abogado de protección de datos y servicios digitales (preguntas en el Paquete legal) y gestoría.
 
 ## Preguntas abiertas para el abogado (resumen; el detalle está en el Paquete legal)
+- Hasta la revisión de calidad de oct-2026, al subir imágenes en el editor el navegador pedía el código de compresión a jsDelivr (cdn.jsdelivr.net), con la IP y las cabeceras habituales, sin estar declarado. Ya está corregido y vigilado por una prueba; la pregunta es si hace falta algún aviso adicional (solo afecta a usuarios del editor durante la beta).
 - Edad de 14 años: contratación por menores y encaje con un uso «profesional».
 - ¿Una beta gratuita ya es actividad económica a efectos del art. 10 LSSI? ¿Es válido el domicilio «a petición» mientras no haya otra dirección?
 - ¿Es BrandBara «plataforma en línea» según el DSA?
