@@ -32,6 +32,7 @@ No es asesoramiento legal: deja el trabajo hecho para que un profesional lo revi
 | Beta con plazas y cola | Estado de cuenta, fechas de cola | Supabase | Privacidad §2, §10; Términos §4 | En producción |
 | Portales públicos | Contenido del usuario, IP técnica del servidor | Supabase, Vercel | Privacidad §2, §3; Términos §5–§8 | En producción |
 | Contraseña de portal | Huella (hash) de la contraseña | Supabase | Privacidad §2, §3; Términos §7 | En producción (comparación en el navegador: mejorar, ver seguridad) |
+| Límite de intentos de la contraseña de portal | Dirección del portal y hora de cada intento fallido (se borra a la hora); **sin IP ni datos personales** | Supabase | Sin cambio legal (no hay dato personal). **Si algún día se guarda la IP, hay que declararlo en Privacidad §2 y §5 y subir `LEGAL_VERSION`.** | En producción (migración `20261027090300`) |
 | Vídeos de YouTube/Vimeo | Ninguno nuestro; el proveedor puede guardar cookies al reproducir | YouTube, Vimeo | Privacidad §3; Cookies §2 | En producción: solo tras pulsar «Reproducir» |
 | Borrador local y sesión | Almacenamiento del navegador | — | Cookies §1 | En producción |
 | Eliminar cuenta | Borra archivos, usuario, perfil y portal | Supabase | Privacidad §5; Términos §14 | En producción |

@@ -105,6 +105,108 @@ begin
   if txt is distinct from 'success' then raise exception 'FALLO: get_portal_secure devolvió %', txt; end if;
   raise notice 'OK · un visitante sí puede abrir un portal público por get_portal_secure';
 
+  ------------------------------------------------------------------ Contraseña de portales: límite de intentos
+  -- (dentro de un bloque DO now() no avanza: el "paso del tiempo" se simula moviendo failed_at hacia atrás)
+  reset role;
+  update public.portals set is_protected = true, password_hash = 'hash-correcto' where slug = 'marca-a';
+  insert into public.portals (user_id, slug, brand_name, is_protected, password_hash)
+    values (b, 'marca-b-protegida', 'Marca B', true, 'otro-hash');
+  set local role anon;
+
+  for i in 1..10 loop
+    j := public.get_portal_secure('marca-a');                       -- abrir sin escribir contraseña
+    if j->>'status' <> 'locked' or j->>'rate_limited' is not null then raise exception 'FALLO: abrir un portal protegido sin contraseña debía devolver locked y devolvió %', j; end if;
+  end loop;
+  reset role;
+  select count(*) into n from public.portal_password_failures;
+  set local role anon;
+  if n <> 0 then raise exception 'FALLO: abrir sin escribir contraseña no debe contar como fallo y hay % fallos', n; end if;
+  raise notice 'OK · abrir un portal protegido sin escribir contraseña no cuenta como intento fallido';
+
+  j := public.get_portal_secure('marca-a', 'hash-correcto');
+  if j->>'status' <> 'success' then raise exception 'FALLO: la contraseña correcta debía abrir el portal y devolvió %', j; end if;
+  raise notice 'OK · la contraseña correcta abre el portal protegido';
+
+  for i in 1..8 loop
+    j := public.get_portal_secure('marca-a', 'mal-' || i);
+    if j->>'status' <> 'locked' or j->>'rate_limited' is not null then raise exception 'FALLO: el intento fallido nº % debía devolver locked sin límite y devolvió %', i, j; end if;
+  end loop;
+  j := public.get_portal_secure('marca-a', 'mal-9');
+  if j->>'status' <> 'locked' or (j->>'rate_limited')::boolean is distinct from true then raise exception 'FALLO: tras 8 fallos debía bloquearse y devolvió %', j; end if;
+  if (j->>'retry_after')::int not between 1 and 600 then raise exception 'FALLO: retry_after fuera de rango: %', j; end if;
+  raise notice 'OK · 8 contraseñas incorrectas seguidas bloquean el portal, y dicen cuánto esperar';
+
+  j := public.get_portal_secure('marca-a', 'hash-correcto');
+  if j->>'status' <> 'locked' or (j->>'rate_limited')::boolean is distinct from true then raise exception 'FALLO: durante el bloqueo ni la contraseña correcta debe abrir y devolvió %', j; end if;
+  raise notice 'OK · durante el bloqueo no entra nadie, ni con la contraseña correcta';
+
+  j := public.get_portal_secure('marca-b-protegida', 'x');
+  if j->>'status' <> 'locked' or j->>'rate_limited' is not null then raise exception 'FALLO: el bloqueo de un portal no debe afectar a otro y devolvió %', j; end if;
+  raise notice 'OK · el bloqueo de un portal no afecta a los demás';
+
+  reset role;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', a::text, true);
+  set local role authenticated;
+  j := public.get_portal_secure('marca-a');
+  if j->>'status' <> 'success' then raise exception 'FALLO: el dueño debe poder abrir su portal aunque esté bloqueado para visitantes y devolvió %', j; end if;
+  raise notice 'OK · el dueño nunca queda bloqueado';
+
+  reset role;
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+  select count(*) into n from public.portal_password_failures where slug = 'marca-a';
+  if n <> 8 then raise exception 'FALLO: debían constar 8 fallos (los intentos bloqueados no se anotan) y constan %', n; end if;
+  update public.portal_password_failures set failed_at = now() - interval '11 minutes';   -- pasan 11 minutos
+  set local role anon;
+  j := public.get_portal_secure('marca-a', 'hash-correcto');
+  if j->>'status' <> 'success' then raise exception 'FALLO: pasada la ventana la contraseña correcta debe abrir y devolvió %', j; end if;
+  j := public.get_portal_secure('marca-a', 'mal-otra-vez');
+  if j->>'status' <> 'locked' or j->>'rate_limited' is not null then raise exception 'FALLO: pasada la ventana un fallo no debe bloquear de inmediato y devolvió %', j; end if;
+  raise notice 'OK · pasados 10 minutos el bloqueo se levanta solo';
+
+  reset role;
+  insert into public.portal_password_failures (slug, failed_at) values ('marca-a', now() - interval '2 hours');
+  set local role anon;
+  perform public.get_portal_secure('marca-a', 'mal-limpieza');
+  reset role;
+  select count(*) into n from public.portal_password_failures where failed_at < now() - interval '1 hour';
+  if n <> 0 then raise exception 'FALLO: los fallos de más de 1 hora debían borrarse solos y quedan %', n; end if;
+  raise notice 'OK · los fallos antiguos se borran solos';
+
+  set local role anon;
+  begin
+    perform count(*) from public.portal_password_failures;
+    raise exception 'FALLO: anon pudo leer los intentos fallidos';
+  exception when insufficient_privilege then
+    raise notice 'OK · un visitante no puede leer los intentos fallidos';
+  end;
+  begin
+    insert into public.portal_password_failures (slug) values ('marca-a');
+    raise exception 'FALLO: anon pudo anotar intentos fallidos';
+  exception when insufficient_privilege then
+    raise notice 'OK · un visitante no puede inventar ni borrar intentos fallidos';
+  end;
+  reset role;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', b::text, true);
+  set local role authenticated;
+  begin
+    perform count(*) from public.portal_password_failures;
+    raise exception 'FALLO: un usuario con sesión pudo leer los intentos fallidos';
+  exception when insufficient_privilege then
+    raise notice 'OK · ni con sesión iniciada se pueden leer los intentos fallidos';
+  end;
+
+  -- se deja todo como estaba para las pruebas siguientes
+  reset role;
+  delete from public.portal_password_failures;
+  delete from public.portals where slug = 'marca-b-protegida';
+  update public.portals set is_protected = false, password_hash = null where slug = 'marca-a';
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+  set local role anon;
+
   begin
     perform public.can_upload_asset();
     raise exception 'FALLO: anon pudo llamar a can_upload_asset';

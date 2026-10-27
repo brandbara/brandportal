@@ -18,15 +18,15 @@ Supabase nuevo y vacío si algún día se pierde el actual.
 
 Se calculó una huella (md5) de cada elemento (columnas, permisos, definiciones de funciones,
 políticas, restricciones, índices, disparador y cubo) en producción y en un Postgres vacío donde se
-aplicó este archivo. **Las dos huellas coinciden** (45 elementos al crear el archivo; tras la migración de la beta, 62; tras el registro de aceptación de Términos, 75: huella `79bf4ec6…`, comprobada también en producción el 26-oct).
+aplicó este archivo. **Las dos huellas coinciden** (45 elementos al crear el archivo; tras la migración de la beta, 62; tras el registro de aceptación de Términos, 75: huella `79bf4ec6…`, comprobada también en producción el 26-oct; tras el límite de intentos de las contraseñas de portal, 83: huella `5a7eacfa…`, comprobada también en producción el 27-oct).
 
 ## Comprobación automática
 
 El robot de GitHub «Esquema de Supabase» (`.github/workflows/esquema-supabase.yml`) corre cuando se
 toca `supabase/`: monta un Postgres vacío, aplica el archivo y ejecuta
-`verificacion/pruebas_seguridad.sql` (50 comprobaciones: nadie puede cambiarse el plan, un usuario no
+`verificacion/pruebas_seguridad.sql` (61 comprobaciones: nadie puede cambiarse el plan, un usuario no
 ve datos de otro, el servidor rechaza subidas sin espacio, eliminar cuenta borra solo lo propio, la cola de la
-beta respeta el orden de llegada y nadie puede activarse a sí mismo…).
+beta respeta el orden de llegada, nadie puede activarse a sí mismo, 8 contraseñas de portal incorrectas bloquean 10 minutos…).
 Se probó además que las pruebas **fallan** si se rompe el esquema a propósito.
 
 Esto garantiza que el archivo es aplicable y que las reglas de seguridad que describe funcionan. No
