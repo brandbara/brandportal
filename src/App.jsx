@@ -2409,7 +2409,6 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
         location: content.location || "Madrid, Spain",
         bio: content.bio || "Creando experiencias digitales.",
         joinDate: content.joinDate || new Date().toLocaleDateString(),
-        notifications: content.notifications || { email: true, push: false },
         language: content.language || 'ES'
       });
     }
@@ -2421,7 +2420,6 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
   };
   
   const updateData = (field, value) => update({ ...content, [field]: value });
-  const toggleNotification = (type) => update({ ...content, notifications: { ...content.notifications, [type]: !content.notifications?.[type] } });
 
   if (!isOpen) return null;
 
@@ -2659,11 +2657,6 @@ const UserProfileModal = React.memo(({ isOpen, onClose, onLogout, isDarkMode, t,
                           <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
                               <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Globe size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.lang}</h4><p className="text-xs opacity-60">{safeT.profileTabs.langDesc}</p></div></div>
                               <select aria-label={safeT.profileTabs.lang} value={content.language || 'ES'} onChange={(e) => updateData('language', e.target.value)} className={`px-3 py-1.5 rounded-lg text-sm font-bold border outline-none ${isDarkMode ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><option value="ES">Español</option><option value="EN">English</option></select>
-                          </div>
-                          
-                          <div className={`p-4 rounded-xl border flex items-center justify-between ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-                              <div className="flex items-center gap-4"><div className={`p-2 rounded-lg ${isDarkMode ? 'bg-black/30' : 'bg-white'}`}><Bell size={20}/></div><div><h4 className="font-bold text-sm">{safeT.profileTabs.notif}</h4><p className="text-xs opacity-60">{safeT.profileTabs.notifDesc}</p></div></div>
-                              <button onClick={() => toggleNotification('email')} className={`w-12 h-6 rounded-full p-1 transition-colors ${content.notifications?.email ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/20'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${content.notifications?.email ? 'translate-x-6' : 'translate-x-0'}`} /></button>
                           </div>
                       </div>
                   </div>
