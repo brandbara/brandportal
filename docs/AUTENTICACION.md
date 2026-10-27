@@ -28,7 +28,7 @@ Entra en <https://console.cloud.google.com> con la cuenta de Google que quieras 
    - Página principal: `https://brandbara.com`
    - Política de privacidad: `https://brandbara.com/legal/privacidad`
    - Condiciones del servicio: `https://brandbara.com/legal/terminos`
-   - Dominios autorizados: `brandbara.com` y `supabase.co`
+   - Dominios autorizados: solo `brandbara.com` (Google rechaza `supabase.co` porque es un dominio público; no hace falta: la dirección de retorno de Supabase va en el cliente, paso 6)
 4. En **Acceso a los datos** (ámbitos) deja **solo** los básicos: `openid`, `.../auth/userinfo.email` y `.../auth/userinfo.profile`. No añadas ningún otro: con ellos no hace falta verificación de Google.
 5. En **Público** pulsa **Publicar aplicación** (pasar de «En pruebas» a «En producción»). Si se queda en pruebas, solo pueden entrar 100 personas dadas de alta a mano y las sesiones caducan a los 7 días.
 6. En **Clientes** → **Crear cliente** → tipo **Aplicación web**, nombre `BrandBara web`:
