@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Wand2, Coffee, Type, Image as ImageIcon,
+  Wand2, Type, Image as ImageIcon,
   LayoutGrid, Globe, Sun, Moon, Eye, EyeOff, ChevronDown, 
   Plus, Trash2, X, Upload, Check, AlertCircle, Grid, Smartphone,
-  Layers, Palette, Hash, FileText, ImagePlus, 
+  Layers, Palette, FileText, ImagePlus, 
   PaintBucket, Copy, ExternalLink,
   ChevronUp, Shuffle, LayoutTemplate, Menu, Anchor,
   ArrowUpDown, RectangleHorizontal, Edit3, Tablet, Laptop,
   Instagram, Youtube, Users, Share2, Download,
   Home, Search, User, Settings, Bell, Mail, Twitter, Linkedin, Facebook,
-  Link2, SunMoon, Grid3X3, Columns, Video, Play,
-  Sliders, CreditCard, LogOut, Lock, Cookie,
+  Link2, SunMoon, Grid3X3, Columns, Play,
+  Sliders, LogOut, Lock, Cookie,
  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
   FileArchive, DownloadCloud, Loader2, Save, Hourglass, LogIn
 } from 'lucide-react';
@@ -845,62 +845,6 @@ return (
   );
 });
 
-const HeaderModule = React.memo(({ content, update, design, isDarkMode, allItems, t, isPreview }) => {
-  const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) update({ ...content, logo: createSafeBlobUrl(file) }); };
-  const scrollToModule = (id) => { const element = document.getElementById(`module-${id}`); if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
-  
-  // 1. Filtramos módulos activos (quitamos cabecera y pie) [cite: 1429]
-  const navItems = allItems.filter(i => i.type !== 'header' && i.type !== 'footer');
-
-  // 2. Lógica para obtener el nombre exacto que el usuario ve en el portal [cite: 1428]
-  const getModuleDisplayName = (item) => {
-    if (item.content?.title && typeof item.content.title === 'string' && item.content.title.trim() !== "") return item.content.title;
-    if (t.modules[item.type]?.title) return t.modules[item.type].title;
-    return t.ui[item.type] || item.type.charAt(0).toUpperCase() + item.type.slice(1);
-  };
-  
-  return (
-    <div className={`w-full p-4 md:p-5 flex flex-col md:flex-row justify-between items-center gap-6 relative z-20 transition-all duration-500 backdrop-blur-xl ${design.radius} ${design.border} ${design.shadow} ${isDarkMode ? 'bg-slate-950/80 border-white/10 shadow-2xl' : 'bg-white/80 border-white/40 shadow-xl'}`}>
-      <div className={`flex items-center gap-4 flex-shrink-0`}>
-        {/* REPARADO AQUÍ: triggerFileInput + Clases de estilo recuperadas */}
-        <div onClick={() => !isPreview && triggerFileInput('header-logo-upload')} className={`relative h-12 w-12 md:h-14 md:w-14 flex-shrink-0 cursor-pointer group rounded-xl overflow-hidden border flex items-center justify-center transition-all ${isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-200 bg-slate-50'}`}>
-          {content?.logo ? <img src={content.logo} alt="Logo" className="w-full h-full object-contain p-1.5" style={{ filter: isDarkMode ? 'brightness(0) invert(1)' : 'none' }} /> : <ImageIcon size={20} className="opacity-40" />}
-          {!isPreview && <input id="header-logo-upload" type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />}
-        </div>
-        <div className="flex flex-col">
-            <EditableText text={content?.title || t.modules.header.title} className={`text-xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`} onChange={(val) => update({...content, title: val})} isDarkMode={isDarkMode} isPreview={isPreview} />
-            <span className="text-[9px] font-bold uppercase tracking-wider opacity-50">{t.modules.header.subtitle}</span>
-        </div>
-      </div>
-
-      <div className="w-full md:w-auto relative group z-30 lg:ml-4">
-        <button className={`w-full md:w-56 flex items-center justify-between px-5 py-2.5 rounded-full border text-left transition-all ${isDarkMode ? 'bg-black/20 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-          <div className="flex items-center gap-2">
-            <Anchor size={14} className="opacity-50" />
-            <span className="text-[10px] font-bold uppercase tracking-wide">{t.ui.navigate}</span>
-          </div>
-          <ChevronDown size={14} className="opacity-50 group-hover:rotate-180 transition-transform" />
-        </button>
-        
-        <div className={`absolute top-full right-0 mt-2 w-full py-2 rounded-2xl border shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top ${isDarkMode ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
-          <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-            {navItems.map((item, i) => (
-              <button 
-                key={item.id} 
-                onClick={() => scrollToModule(item.id)} 
-                className={`w-full text-left px-4 py-2.5 text-xs font-bold border-l-4 border-transparent hover:border-indigo-500 transition-all flex items-center gap-3 ${isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'}`}
-              >
-                <span className="opacity-30 font-mono text-[10px] w-4">{String(i + 1).padStart(2, '0')}</span> 
-                <span className="truncate">{getModuleDisplayName(item)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
 const LayoutModule = React.memo(({ content, update, design, isDarkMode, t, isPreview, checkLimit }) => {  
 const handleAddExtra = makeAddExtra(content, update);  const toggleDownload = () => update({ ...content, showDownload: !content.showDownload });
   const updateLink = (val) => update({ ...content, downloadUrl: val });
@@ -1700,7 +1644,6 @@ const EditorialModule = React.memo(({ content, update, design, isDarkMode, t, is
   const updateBlock = (i, val) => { const newBlocks = [...blocks]; newBlocks[i].content = val; update({ ...content, blocks: newBlocks }); };
   const removeBlock = (i) => update({ ...content, blocks: blocks.filter((_, idx) => idx !== i) });
   
-const handleAddExtra = makeAddExtra(content, update);
 
   const handleImageUpload = (e, index) => { 
     const file = e.target.files[0]; 
@@ -2254,7 +2197,6 @@ const handleAddExtra = makeAddExtra(content, update);
 
 const WebModule = React.memo(({ isDarkMode, design, content, update, t, isPreview }) => {
 const handleAddExtra = makeAddExtra(content, update);
-  const handleWebUpload = (e, idx) => { const file = e.target.files[0]; if (file) { const url =createSafeBlobUrl(file); const newDevices = content.devices ? [...content.devices] : [null, null, null]; newDevices[idx] = url; update({ ...content, devices: newDevices }); } };
   const devices = content.items || [];
   const addDevice = (type) => { const newItem = { id: Date.now(), type, src: null }; update({ ...content, items: [...(content.items || []), newItem] }); };
   const removeDevice = (id) => update({ ...content, items: (content.items || []).filter(item => item.id !== id) });
@@ -3209,8 +3151,7 @@ const Editor = () => {
 
   const [design, setDesign] = useState({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [userPlan, setUserPlan] = useState('FREE');
-  const [showWatermark, setShowWatermark] = useState(true);
+  const [userPlan] = useState('FREE');
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [activeLegalPage, setActiveLegalPage] = useState(null);
   const [limitMessage, setLimitMessage] = useState("");
@@ -3276,13 +3217,9 @@ const Editor = () => {
   });
 
   const [currentFont, setCurrentFont] = useState('Inter');
-  const [showDonations, setShowDonations] = useState(false);
-  const [showLayoutSelector, setShowLayoutSelector] = useState(false);
-  const [showSpacingSelector, setShowSpacingSelector] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false); 
-  const [activeDropIndex, setActiveDropIndex] = useState(null);
   
   const safeLanguage = typeof language === 'string' ? language.toUpperCase() : 'ES';
   const t = TRANSLATIONS[safeLanguage] || TRANSLATIONS['ES']; 
@@ -3290,7 +3227,6 @@ const Editor = () => {
   const [activeAccordion, setActiveAccordion] = useState(null); 
   // Las 20 tipografías de la lista solo se descargan la primera vez que se abre el selector (hasta entonces no se pintan con su fuente).
   const [fontListSeen, setFontListSeen] = useState(false);
-  const [showFontSelector, setShowFontSelector] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -3781,7 +3717,6 @@ useEffect(() => {
              parsed.canvasItems = recoveredCanvas.result;
              parsed.profileContent = recoveredProfile.result;
              localStorage.setItem('brandPortalData', JSON.stringify(parsed));
-             console.log("🛡️ BrandBara: Imágenes rescatadas con éxito tras recarga.");
           }
 
           if (parsed.canvasItems) setCanvasItems(parsed.canvasItems);
@@ -3989,7 +3924,6 @@ const isInitialMount = useRef(true);
     const selectedLayout = DESIGN_STYLES[layoutKey];
     setDesign(prev => ({ ...prev, style: selectedLayout, font: selectedLayout.font }));
     setCurrentFont(selectedLayout.font);
-    setShowLayoutSelector(false);
     setActiveAccordion(null); 
   };
 
@@ -4011,7 +3945,6 @@ const isInitialMount = useRef(true);
     setMobileMenuOpen(false);
     setTimeout(() => { 
         if (type !== 'profile') {
-            const newModule = document.getElementById(`module-${canvasItems[insertIndex]?.id}`); 
             if (scrollContainer) scrollContainer.scrollBy({ top: 300, behavior: 'smooth' }); 
         }
     }, 100);
@@ -4081,7 +4014,6 @@ const isInitialMount = useRef(true);
     const style = design.style || DESIGN_STYLES.crystal;
     const palette = design.palette || COLOR_PALETTES[0];
     const spacingClass = design.spacing?.value || 'mb-16';
-    const font = design.font || 'Inter';
     const alignmentClass = style.align || 'text-left';
     const currentBg = isDarkMode ? (style.cardBgDark || 'bg-[#161b26]') : style.cardBg;
     
