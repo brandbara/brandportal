@@ -29,7 +29,7 @@ export const HOSTS_IGNORADOS = ['w3.org', 'sitemaps.org', 'openfontlicense.org',
 // Si se añade una nueva: ¿envía datos a un tercero? ¿guarda cookies o almacenamiento? ¿cambia lo que decimos en Privacidad o Cookies?
 export const DEPENDENCIAS_REVISADAS = {
   '@supabase/supabase-js': 'Cliente de Supabase (tercero «supabase»)',
-  'browser-image-compression': 'Comprime imágenes en el navegador; no envía nada a terceros',
+  'browser-image-compression': 'Comprime imágenes en el navegador. OJO: en modo worker descarga por defecto su código de cdn.jsdelivr.net (tercero no declarado); en App.jsx se le indica nuestra propia copia (libURL) y una prueba lo vigila',
   'dompurify': 'Limpia HTML en el navegador; no envía nada a terceros',
   'idb-keyval': 'Guarda imágenes del borrador en el navegador (IndexedDB); declarado en Cookies §1',
   'lucide-react': 'Iconos; se incluyen en nuestra web',

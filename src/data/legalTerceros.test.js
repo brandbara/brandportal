@@ -37,6 +37,15 @@ test('todo servicio externo que aparece en el código está registrado en legalT
   );
 });
 
+test('la compresión de imágenes usa nuestra copia del código del worker y no un CDN externo', () => {
+  // browser-image-compression, con useWebWorker, descarga su propio código de cdn.jsdelivr.net salvo que se le dé libURL.
+  // Eso enviaría la IP del usuario a un tercero no declarado en Privacidad.
+  const app = leer('src', 'App.jsx');
+  assert.ok(app.includes("browser-image-compression/dist/browser-image-compression.js?url"), 'App.jsx debe importar nuestra copia del código del worker (?url)');
+  assert.ok(/libURL\s*:/.test(app), 'La compresión debe recibir libURL para no descargar su código de jsDelivr');
+  assert.ok(!/jsdelivr/i.test(app.replace(/\/\/.*$/gm, '')), 'App.jsx no debe apuntar a jsDelivr');
+});
+
 test('toda librería instalada está revisada desde el punto de vista legal', () => {
   const deps = Object.keys(JSON.parse(leer('package.json')).dependencies || {});
   const sinRevisar = deps.filter((d) => !(d in DEPENDENCIAS_REVISADAS));

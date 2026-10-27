@@ -14,7 +14,6 @@ import {
  Fingerprint, Target, Shield, Award, Zap, Heart, Star, Lightbulb, Smile, Flag, Key,
   FileArchive, DownloadCloud, Loader2, Save, Hourglass, LogIn
 } from 'lucide-react';
-import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
 import { FONTS, fontStack } from './data/fonts.js';
@@ -3545,7 +3544,17 @@ setProfileContent({
             const file = new File([blob], "temp_image", { type: blob.type });
             const options = { maxSizeMB: 0.8, maxWidthOrHeight: 1920, useWebWorker: true };
             try {
-              blob = await imageCompression(file, options);
+              // La librería de compresión (~50 KB) solo se descarga al subir la primera imagen, no al abrir la web.
+              // Con useWebWorker la librería descarga por su cuenta su código desde cdn.jsdelivr.net (un tercero que
+              // recibiría la IP del usuario y que no declaramos): se le indica nuestra propia copia (libURL), que Vite
+              // incluye en la compilación y mantiene siempre a la versión instalada.
+              // Si algo de esto no se pudiera cargar, entra en el catch y se sube la original.
+              const [{ default: imageCompression }, { default: libURL }] = await Promise.all([
+                import('browser-image-compression'),
+                import('browser-image-compression/dist/browser-image-compression.js?url'),
+              ]);
+              // El worker se crea desde un blob: ahí una ruta relativa no se resuelve, hace falta la dirección completa
+              blob = await imageCompression(file, { ...options, libURL: new URL(libURL, window.location.href).href });
             } catch (compressError) {
               console.error("Error comprimiendo, se usará la original.", compressError);
             }
