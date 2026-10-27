@@ -17,6 +17,7 @@ import {
 import imageCompression from 'browser-image-compression';
 import { supabase } from './supabaseClient';
 import { TRANSLATIONS } from './data/translations';
+import { FONTS, fontStack } from './data/fonts.js';
 import { LEGAL_CONTENT } from './data/legal';
 import { LEGAL_VERSION, LEGAL_ENTITY, LEGAL_DATE } from './data/legalEntity';
 import { deleteMyAccount } from './utils/account';
@@ -45,7 +46,6 @@ const COLOR_PALETTES = [
 
 const PRESET_COLORS = ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#fee2e2', '#ffedd5', '#fef3c7', '#d9f99d', '#dbeafe', '#e0e7ff', '#fae8ff', '#fce7f3'];
 const SPACING_OPTIONS = { compact: { id: 'compact', name: 'Compact', value: 'mb-8' }, normal: { id: 'normal', name: 'Normal', value: 'mb-16' }, relaxed: { id: 'relaxed', name: 'Relaxed', value: 'mb-32' } };
-const FONTS = ['Inter', 'Montserrat', 'Open Sans', 'Roboto', 'Space Mono', 'Nunito', 'Outfit', 'Work Sans'];
 const DESIGN_STYLES = {
   crystal: { 
     name: 'Pure Crystal', 
@@ -110,16 +110,6 @@ const SOCIAL_SIZES = {
   laptop: { w: 'w-[400px] sm:w-[460px]', h: 'h-[250px] sm:h-[280px]', dim: '1440 x 900 px' }, 
   tablet: { w: 'w-[200px] sm:w-[240px]', h: 'h-[280px] sm:h-[320px]', dim: '834 x 1112 px' },
   mobile: { w: 'w-[120px] sm:w-[140px]', h: 'h-[240px] sm:h-[280px]', dim: '390 x 844 px' },
-};
-
-const FONT_DESCRIPTIONS = {
-  'Inter': 'Una tipografía sans-serif diseñada específicamente para interfaces de usuario, con un enfoque en la legibilidad máxima en pantallas.',
-  'Roboto': 'Tiene una naturaleza dual: esqueleto mecánico y formas geométricas abiertas y amigables. Excelente para lectura rápida.',
-  'Open Sans': 'Una tipografía humanista con una estética neutra pero amigable. Optimizada para impresión, web y móvil.',
-  'Montserrat': 'Inspirada en los carteles y señales de Buenos Aires. Una sans-serif geométrica con gran personalidad para titulares.',
-  'Space Mono': 'Una tipografía monoespaciada original y ecléctica, perfecta para marcas tecnológicas o con carácter editorial moderno.',
-  'Nunito': 'Una sans-serif bien equilibrada con terminaciones redondeadas que aporta calidez y cercanía a la marca.',
-  'Outfit': 'Una tipografía geométrica sans-serif diseñada para marcas modernas. Limpia, versátil y con ligaduras únicas.'
 };
 
 // ==========================================
@@ -1575,11 +1565,11 @@ const handleAddExtra = makeAddExtra(content, update);
                     placeholder={t?.ui?.typeName || "Escribe el nombre..."}
                   />
               ) : (
-                  <h2 className={`text-5xl font-black tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: currentFontName }}>{currentFontName}</h2>
+                  <h2 className={`text-5xl font-black tracking-tight mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`} style={{ fontFamily: fontStack(currentFontName) }}>{currentFontName}</h2>
               )}
               
               <EditableText 
-                text={isCustom ? (content.customFontDesc || t.ui.customFontDescDefault) : (t.ui.fontDescriptions?.[currentFontName] || FONT_DESCRIPTIONS[currentFontName])} 
+                text={isCustom ? (content.customFontDesc || t.ui.customFontDescDefault) : (t.ui.fontDescriptions?.[currentFontName])} 
                 className={`text-base leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`} 
                 isDarkMode={isDarkMode}
                 isPreview={isPreview}
@@ -1625,8 +1615,8 @@ const handleAddExtra = makeAddExtra(content, update);
 
       {!isCustom && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-b py-8 border-slate-200 dark:border-white/10 mb-8">
-            <div><h5 className="text-[10px] font-bold uppercase tracking-widest mb-4 opacity-50">Alfabeto</h5><p className="text-3xl break-all leading-relaxed" style={{ fontFamily: currentFontName }}>Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz</p></div>
-            <div><h5 className="text-[10px] font-bold uppercase tracking-widest mb-4 opacity-50">Numeros & Simbolos</h5><p className="text-3xl break-all leading-relaxed" style={{ fontFamily: currentFontName }}>1234567890<br/>!@#$%^&*()_+=?</p></div>
+            <div><h5 className="text-[10px] font-bold uppercase tracking-widest mb-4 opacity-50">Alfabeto</h5><p className="text-3xl break-all leading-relaxed" style={{ fontFamily: fontStack(currentFontName) }}>Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz</p></div>
+            <div><h5 className="text-[10px] font-bold uppercase tracking-widest mb-4 opacity-50">Numeros & Simbolos</h5><p className="text-3xl break-all leading-relaxed" style={{ fontFamily: fontStack(currentFontName) }}>1234567890<br/>!@#$%^&*()_+=?</p></div>
         </div>
       )}
 
@@ -1753,7 +1743,7 @@ const handleAddExtra = makeAddExtra(content, update);
                 placeholder={t?.ui?.writeInspiring || "Escribe algo inspirador..."}
                 className={`w-full bg-transparent resize-none outline-none leading-relaxed transition-all placeholder:opacity-30 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
                 style={{ 
-                  fontFamily: design.font, 
+                  fontFamily: fontStack(design.font), 
                   minHeight: '100px',
                   fontSize: layout === 'stack' ? '1.25rem' : '1rem' 
                 }}
@@ -4524,10 +4514,10 @@ onResetCanvas={() => {
                       <div className="flex items-center gap-3"><Type size={16} /><span className="text-xs font-bold uppercase tracking-widest">{currentFont}</span></div>
                       <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'font' ? 'rotate-180' : ''}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'font' ? 'max-h-[500px]' : 'max-h-0'}`}>
-                      <div className={`p-2 space-y-1 border-t ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                    <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'font' ? 'max-h-[420px]' : 'max-h-0'}`}>
+                      <div className={`p-2 space-y-1 border-t max-h-[420px] overflow-y-auto custom-scrollbar ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
                         {FONTS.map(f => (
-                          <button key={f} onClick={() => { setCurrentFont(f); setDesign(prev => ({ ...prev, font: f })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${currentFont === f ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`} style={{ fontFamily: f }}>{f}</button>
+                          <button key={f} onClick={() => { setCurrentFont(f); setDesign(prev => ({ ...prev, font: f })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${currentFont === f ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`} style={{ fontFamily: fontStack(f) }}>{f}</button>
                         ))}
                       </div>
                     </div>
@@ -4647,7 +4637,7 @@ onResetCanvas={() => {
     <main 
         className="flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden" 
         style={{ 
-          fontFamily: currentFont, 
+          fontFamily: fontStack(currentFont), 
           backgroundColor: isDarkMode ? (design.customBgDark || '#0a0c10') : (design.customBgLight || '#f8fafc') 
         }}
       >        
