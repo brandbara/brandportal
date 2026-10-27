@@ -3294,6 +3294,8 @@ const Editor = () => {
   const t = TRANSLATIONS[safeLanguage] || TRANSLATIONS['ES']; 
   
   const [activeAccordion, setActiveAccordion] = useState(null); 
+  // Las 20 tipografías de la lista solo se descargan la primera vez que se abre el selector (hasta entonces no se pintan con su fuente).
+  const [fontListSeen, setFontListSeen] = useState(false);
   const [showFontSelector, setShowFontSelector] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -3997,7 +3999,7 @@ const isInitialMount = useRef(true);
     setActiveAccordion(null); 
   };
 
-  const toggleAccordion = (id) => { setActiveAccordion(activeAccordion === id ? null : id); };
+  const toggleAccordion = (id) => { if (id === 'font') setFontListSeen(true); setActiveAccordion(activeAccordion === id ? null : id); };
 
   const handleToolClick = (type) => {
     if (type === 'profile') { setIsProfileOpen(true); return; }
@@ -4076,7 +4078,9 @@ const isInitialMount = useRef(true);
 
   // Diseño activo memorizado (antes se creaba un objeto nuevo por módulo en cada render)
   const designStyle = design.style || DESIGN_STYLES.crystal;
-  const designFont = design.font || 'Inter';
+  // Única fuente de verdad de la tipografía: la del diseño guardado con el portal. `currentFont` solo se usa para borradores
+  // antiguos que no la guardaron en el diseño. Antes el lienzo usaba solo `currentFont`, que en el portal público se quedaba en Inter.
+  const designFont = design.font || currentFont || 'Inter';
   const activeDesign = React.useMemo(() => ({ ...designStyle, font: designFont }), [designStyle, designFont]);
 
   const renderCanvasItem = (item, index) => {
@@ -4511,13 +4515,13 @@ onResetCanvas={() => {
                   {/* Font Selector */}
                   <div className={`rounded-xl border transition-colors ${isDarkMode ? 'border-white/5 bg-[#151924]' : 'border-slate-200 bg-slate-50'}`}>
                     <button onClick={() => toggleAccordion('font')} className={`w-full flex items-center justify-between p-4 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                      <div className="flex items-center gap-3"><Type size={16} /><span className="text-xs font-bold uppercase tracking-widest">{currentFont}</span></div>
+                      <div className="flex items-center gap-3"><Type size={16} /><span className="text-xs font-bold uppercase tracking-widest">{designFont}</span></div>
                       <ChevronDown size={14} className={`transition-transform duration-300 ${activeAccordion === 'font' ? 'rotate-180' : ''}`} />
                     </button>
                     <div className={`overflow-hidden transition-all duration-300 ${activeAccordion === 'font' ? 'max-h-[420px]' : 'max-h-0'}`}>
                       <div className={`p-2 space-y-1 border-t max-h-[420px] overflow-y-auto custom-scrollbar ${isDarkMode ? 'border-white/5' : 'border-slate-200'}`}>
                         {FONTS.map(f => (
-                          <button key={f} onClick={() => { setCurrentFont(f); setDesign(prev => ({ ...prev, font: f })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${currentFont === f ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`} style={{ fontFamily: fontStack(f) }}>{f}</button>
+                          <button key={f} onClick={() => { setCurrentFont(f); setDesign(prev => ({ ...prev, font: f })); setActiveAccordion(null); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors ${designFont === f ? 'bg-indigo-100 text-indigo-600 font-bold dark:bg-indigo-500/20 dark:text-indigo-400' : (isDarkMode ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-600 hover:bg-white')}`} style={fontListSeen ? { fontFamily: fontStack(f) } : undefined}>{f}</button>
                         ))}
                       </div>
                     </div>
@@ -4637,7 +4641,7 @@ onResetCanvas={() => {
     <main 
         className="flex-1 flex flex-col relative transition-colors duration-700 overflow-x-hidden" 
         style={{ 
-          fontFamily: fontStack(currentFont), 
+          fontFamily: fontStack(designFont), 
           backgroundColor: isDarkMode ? (design.customBgDark || '#0a0c10') : (design.customBgLight || '#f8fafc') 
         }}
       >        
