@@ -28,13 +28,23 @@ Entra en <https://console.cloud.google.com> con la cuenta de Google que quieras 
    - Página principal: `https://brandbara.com`
    - Política de privacidad: `https://brandbara.com/legal/privacidad`
    - Condiciones del servicio: `https://brandbara.com/legal/terminos`
-   - Dominios autorizados: `brandbara.com` y `supabase.co`
+   - Dominios autorizados: solo `brandbara.com` (Google rechaza `supabase.co` porque es un dominio público; no hace falta: la dirección de retorno de Supabase va en el cliente, paso 6)
 4. En **Acceso a los datos** (ámbitos) deja **solo** los básicos: `openid`, `.../auth/userinfo.email` y `.../auth/userinfo.profile`. No añadas ningún otro: con ellos no hace falta verificación de Google.
 5. En **Público** pulsa **Publicar aplicación** (pasar de «En pruebas» a «En producción»). Si se queda en pruebas, solo pueden entrar 100 personas dadas de alta a mano y las sesiones caducan a los 7 días.
 6. En **Clientes** → **Crear cliente** → tipo **Aplicación web**, nombre `BrandBara web`:
    - Orígenes autorizados de JavaScript: `https://brandbara.com`
    - URI de redirección autorizados: `https://ioktkbuualxcjsulbefb.supabase.co/auth/v1/callback`
 7. Al crear el cliente verás el **ID de cliente** y el **Secreto**. Cópialos y pégalos tú mismo en la parte 2. No los pegues en ningún chat ni los guardes en el repositorio.
+
+## Parte 1b · Verificar la marca (para que Google muestre «BrandBara» y tu logotipo)
+
+Sin esto, la pantalla de Google dice «Google permitirá que ioktkbuualxcjsulbefb.supabase.co acceda a esta información sobre ti»: queda feo y genera desconfianza. La verificación de marca es **gratuita** y no cambia lo que Google comprueba de tus datos (seguimos usando solo ámbitos básicos). **Hecha el 27-oct-2026** (tardó unos minutos).
+
+1. Entra en <https://search.google.com/search-console> con la misma cuenta de Google que creó el proyecto → **Añadir propiedad** → tipo **Dominio** → `brandbara.com`. Te dará un registro TXT que empieza por `google-site-verification=`.
+2. El dominio está comprado en Vercel y usa sus servidores de nombres: Vercel → **Domains** → `brandbara.com` → **DNS Records** → **Add**: tipo `TXT`, nombre vacío (raíz), valor el registro de Google. Vuelve a Search Console y pulsa **Verificar** («Propiedad verificada»). **No borres ese registro TXT**: si desaparece, la propiedad deja de estar verificada.
+3. Google Cloud → **Google Auth Platform → Branding**: sube el logotipo (PNG cuadrado de 120 × 120 px y menos de 1 MB; sale de `public/apple-touch-icon.png`) y guarda. Subirlo es lo que activa la verificación de marca.
+4. Pulsa el icono **Información y resumen** (arriba a la derecha) → **Verificar la marca**. Tarda unos minutos. Cuando diga «se verificó la información de tu marca», pulsa **Publicar desarrollo de la marca** (hay 7 días para publicarlo).
+5. Resultado: la pantalla de consentimiento muestra el nombre y el logotipo de BrandBara. Si cambias el nombre, el logotipo o los dominios, Google pide verificar de nuevo (pasos 3 y 4).
 
 ## Parte 2 · Supabase (panel del proyecto `ioktkbuualxcjsulbefb`)
 
@@ -47,7 +57,7 @@ Entra en <https://console.cloud.google.com> con la cuenta de Google que quieras 
 
 ## Parte 3 · Correo propio para el enlace (Resend)
 
-1. Crea una cuenta en <https://resend.com> y añade el dominio `brandbara.com`. Te dará unos registros DNS (SPF y DKIM) que se copian en el sitio donde compraste el dominio. Elige la región de envío **UE (Irlanda)** si te la ofrece.
+1. Crea una cuenta en <https://resend.com> y añade el dominio `brandbara.com`. Te dará unos registros DNS (SPF y DKIM) que se copian donde está el dominio: en Vercel → **Domains** → `brandbara.com` → **DNS Records**. Elige la región de envío **UE (Irlanda)** si te la ofrece.
 2. Crea una **API key** de envío.
 3. En Supabase, **Authentication → Emails → SMTP Settings**: activa el SMTP propio con
    - Servidor: `smtp.resend.com`, puerto `465`
