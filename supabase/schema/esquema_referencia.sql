@@ -27,6 +27,7 @@
 --   20261026132627 lectura_de_propios_archivos   -> supabase/migrations/
 --   20261026150713 beta_plazas_y_cola            -> supabase/migrations/
 --   20261026155048 aceptacion_terminos           -> supabase/migrations/
+--   20261027090300 limite_intentos_contrasena_portal -> supabase/migrations/
 --
 -- Si cambias la base de datos, añade una migración en supabase/migrations/
 -- Y actualiza este archivo para que siga reflejando el estado real.
@@ -87,6 +88,16 @@ create table public.terms_acceptances (
   constraint terms_acceptances_version_check check (length(version) <= 20 and version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\.[0-9]+)?$'),
   constraint terms_acceptances_user_version_key unique (user_id, version)
 );
+
+-- Intentos fallidos de contraseña de portales protegidos (límite de intentos). Solo guarda la dirección
+-- del portal y la hora (ninguna IP ni dato personal). Solo la escribe get_portal_secure(); se limpia sola.
+create table public.portal_password_failures (
+  id        uuid primary key default gen_random_uuid(),
+  slug      text not null,
+  failed_at timestamptz not null default now()
+);
+create index portal_password_failures_slug_at_idx on public.portal_password_failures (slug, failed_at);
+create index portal_password_failures_at_idx on public.portal_password_failures (failed_at);
 
 
 -- ---------------------------------------------------------------------
@@ -162,7 +173,8 @@ begin
 end;
 $function$;
 
--- Lectura pública de un portal (con comprobación de contraseña).
+-- Lectura pública de un portal (con comprobación de contraseña y límite de intentos:
+-- 8 fallos en 10 minutos bloquean ese portal hasta que pase la ventana; ver migración limite_intentos_contrasena_portal).
 CREATE OR REPLACE FUNCTION public.get_portal_secure(p_slug text, p_password text DEFAULT NULL::text)
  RETURNS json
  LANGUAGE plpgsql
@@ -171,6 +183,11 @@ CREATE OR REPLACE FUNCTION public.get_portal_secure(p_slug text, p_password text
 AS $function$
 declare
   portal_record record;
+  v_fails int;
+  v_oldest timestamptz;
+  v_retry int;
+  c_max_fails constant int := 8;
+  c_window constant interval := interval '10 minutes';
 begin
   select * into portal_record from public.portals where slug = p_slug;
 
@@ -179,9 +196,31 @@ begin
   end if;
 
   if portal_record.is_protected and (auth.uid() is null or auth.uid() != portal_record.user_id) then
+    -- Demasiados fallos recientes en este portal: se bloquea todo intento hasta que pase la ventana.
+    select count(*), min(failed_at) into v_fails, v_oldest
+      from public.portal_password_failures
+      where slug = p_slug and failed_at > now() - c_window;
+
+    if v_fails >= c_max_fails then
+      v_retry := greatest(1, ceil(extract(epoch from (v_oldest + c_window - now())))::int);
+      return json_build_object(
+        'status', 'locked',
+        'is_protected', true,
+        'user_id', portal_record.user_id,
+        'brand_name', portal_record.brand_name,
+        'rate_limited', true,
+        'retry_after', v_retry
+      );
+    end if;
+
     if portal_record.password_hash is null
        or p_password is null
        or portal_record.password_hash != p_password then
+      -- Solo cuenta como fallo un intento con contraseña escrita (abrir el portal sin escribir nada no).
+      if p_password is not null then
+        insert into public.portal_password_failures (slug) values (p_slug);
+        delete from public.portal_password_failures where failed_at < now() - interval '1 hour';
+      end if;
       return json_build_object(
         'status', 'locked',
         'is_protected', true,
@@ -435,6 +474,7 @@ alter table public.profiles     enable row level security;
 alter table public.portals      enable row level security;
 alter table public.app_settings enable row level security;   -- sin políticas: solo las funciones la leen
 alter table public.terms_acceptances enable row level security;
+alter table public.portal_password_failures enable row level security;   -- sin políticas: solo get_portal_secure() la usa
 
 -- Portales: el dueño los gestiona, y solo crea/modifica si tiene plaza (status 'active').
 create policy "Owners manage portals" on public.portals
@@ -474,6 +514,9 @@ revoke all on public.app_settings from anon, authenticated;
 -- terms_acceptances: la web solo puede LEER lo propio (RLS); escribir, solo con accept_terms().
 revoke all on public.terms_acceptances from anon, authenticated;
 grant select on public.terms_acceptances to authenticated;
+
+-- portal_password_failures: cerrada del todo para la web (la escribe la función, que es SECURITY DEFINER).
+revoke all on public.portal_password_failures from anon, authenticated;
 
 -- portals: se mantienen los permisos por defecto; la protección real es RLS
 -- (solo existe política para 'authenticated' y solo sobre la fila propia).

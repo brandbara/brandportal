@@ -25,6 +25,7 @@ import { downloadFile } from './utils/download';
 import { hasAcceptedTerms, acceptTerms, needsTermsAcceptance } from './utils/terms.js';
 import { fetchAuthProviders, shouldShowGoogle } from './utils/authProviders.js';
 import { isValidEmail, authErrorKind, readAuthRedirectError, redirectErrorKind, stripAuthRedirectError } from './utils/authFlow.js';
+import { rateLimitMinutes } from './utils/portalAccess.js';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
@@ -4208,7 +4209,9 @@ const isInitialMount = useRef(true);
                 showToast(t.ui.passwordCheckError);
                 setIsLoadingPortal(false);
             } else if (!data || data.status === 'locked') {
-                showToast(t.ui.passwordWrong);
+                // El servidor frena los intentos repetidos (8 fallos en 10 min): se avisa con claridad en vez de "incorrecta"
+                const waitMin = rateLimitMinutes(data);
+                showToast(waitMin ? t.ui.passwordRateLimited.replace('{m}', String(waitMin)) : t.ui.passwordWrong);
                 setAccessInput("");
                 setIsLoadingPortal(false);
             } else if (data.status === 'success') {
