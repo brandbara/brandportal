@@ -27,6 +27,7 @@ import { hasAcceptedTerms, acceptTerms, needsTermsAcceptance } from './utils/ter
 import { fetchAuthProviders, shouldShowGoogle } from './utils/authProviders.js';
 import { isValidEmail, authErrorKind, readAuthRedirectError, redirectErrorKind, stripAuthRedirectError } from './utils/authFlow.js';
 import { rateLimitMinutes } from './utils/portalAccess.js';
+import { DRAFT_KEY, safeGet, safeSet, safeRemove, safeGetJSON, safeSetJSON } from './utils/storage.js';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { set as idbSet, get as idbGet, clear as idbClear, del as idbDelete } from 'idb-keyval';
@@ -3205,13 +3206,9 @@ const Editor = () => {
   const [slugCheckTimeout, setSlugCheckTimeout] = useState(null);
 
   const [language, setLanguage] = useState(() => {
-    try {
-      const savedData = localStorage.getItem('brandPortalData');
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        if (parsed.language) return parsed.language;
-      }
-    } catch (e) { /* sin datos guardados válidos: se usa el idioma del navegador */ }
+    // Sin borrador válido (o con el almacenamiento bloqueado) se usa el idioma del navegador
+    const savedLanguage = safeGetJSON(DRAFT_KEY)?.language;
+    if (savedLanguage) return savedLanguage;
     const browserLang = (navigator.language || navigator.userLanguage || 'ES').toLowerCase();
     return browserLang.startsWith('es') ? 'ES' : 'EN';
   });
@@ -3263,7 +3260,7 @@ const Editor = () => {
     } finally {
       setCurrentUser(null);
       setIsAuthenticated(false);
-      localStorage.removeItem('brandPortalData');
+      safeRemove(DRAFT_KEY);
       setProfileContent({});
       setDesign({ style: DESIGN_STYLES.crystal, palette: COLOR_PALETTES[0], font: 'Inter', canvasBg: 'bg-slate-50', spacing: SPACING_OPTIONS.normal });
 setCurrentFont('Inter');
@@ -3553,7 +3550,8 @@ const savePortalData = async (isManual = false) => {
       language, 
       currentFont 
     };
-    localStorage.setItem('brandPortalData', JSON.stringify(dataToSave));
+    // Si el almacenamiento está bloqueado o lleno solo se pierde la copia local: el guardado en el servidor continúa
+    safeSetJSON(DRAFT_KEY, dataToSave);
 
     // 2. Comprobación de usuario
     if (!isManual && (!isAuthenticated || !currentUser)) return;
@@ -3621,7 +3619,7 @@ if (processedProfile.hasChanges) {
   setProfileContent(prev => replaceUrls(prev, processedProfile.urlMap));
 }
 if (processedCanvas.hasChanges || processedProfile.hasChanges) {
-  localStorage.setItem('brandPortalData', JSON.stringify({ canvasItems: stripBlobUrls(replaceUrls(canvasItems, processedCanvas.urlMap)), design, profileContent: stripBlobUrls(replaceUrls(profileContent, processedProfile.urlMap)), isDarkMode, language, currentFont }));
+  safeSetJSON(DRAFT_KEY, { canvasItems: stripBlobUrls(replaceUrls(canvasItems, processedCanvas.urlMap)), design, profileContent: stripBlobUrls(replaceUrls(profileContent, processedProfile.urlMap)), isDarkMode, language, currentFont });
 }
 
 setSaveStatus('saved');
@@ -3704,7 +3702,7 @@ const [canvasItems, setCanvasItems] = useState(() => getInitialCanvas(t));
 
 useEffect(() => {
     const loadData = async () => {
-      const savedData = localStorage.getItem('brandPortalData');
+      const savedData = safeGet(DRAFT_KEY);
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
@@ -3716,7 +3714,7 @@ useEffect(() => {
           if (recoveredCanvas.hasChanges || recoveredProfile.hasChanges) {
              parsed.canvasItems = recoveredCanvas.result;
              parsed.profileContent = recoveredProfile.result;
-             localStorage.setItem('brandPortalData', JSON.stringify(parsed));
+             safeSetJSON(DRAFT_KEY, parsed);
           }
 
           if (parsed.canvasItems) setCanvasItems(parsed.canvasItems);
@@ -3730,7 +3728,7 @@ useEffect(() => {
         }
       }
       
-      const cookiesStatus = localStorage.getItem('brandbara_cookies_status');
+      const cookiesStatus = safeGet('brandbara_cookies_status');
       if (!cookiesStatus) {
         const timer = setTimeout(() => setShowCookieBanner(true), 1500);
         return () => clearTimeout(timer);
@@ -3741,7 +3739,7 @@ useEffect(() => {
   }, []);
 
   const handleCookieAction = (status) => {
-    localStorage.setItem('brandbara_cookies_status', status);
+    safeSet('brandbara_cookies_status', status);
     setShowCookieBanner(false);
   };
 
@@ -5038,7 +5036,7 @@ const LEGAL_PAGE_LABELS = {
 const LegalDocPage = () => {
   const { page: pageSlug } = useParams();
   const key = LEGAL_PAGE_SLUGS[pageSlug];
-  const saved = (() => { try { return JSON.parse(localStorage.getItem('brandPortalData') || '{}'); } catch { return {}; } })();
+  const saved = safeGetJSON(DRAFT_KEY) || {};
   const [lang, setLang] = useState(() => (String(saved.language || navigator.language || 'es').toLowerCase().startsWith('en') ? 'EN' : 'ES'));
   const dark = saved.isDarkMode === true;
   const labels = LEGAL_PAGE_LABELS[lang];
