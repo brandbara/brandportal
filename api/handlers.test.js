@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import portalMeta from './portal-meta.js';
-import og from './og.js';
+import { handleOg as og } from './_lib/ogHandler.js';
+import ogFunction from './og.js';
 import { JPEG_24x16, PNG_40x20, STORAGE, SUPABASE, capeoRpc } from './_lib/fixtures.js';
 import { previewVersion, extractPreview } from './_lib/preview.js';
 
@@ -131,8 +132,23 @@ test('og: portal inexistente o dirección rara = redirección a la imagen genér
     for (const slug of ['no-existe', '../x', 'A B', '']) {
       const res = await image(slug);
       assert.equal(res.status, 302, slug);
-      assert.equal(res.headers.get('location'), 'https://brandbara.com/og-image.png');
+      assert.equal(res.headers.get('location'), '/og-image.png');
     }
     assert.equal(calls.filter((u) => u.includes('get_portal_secure')).length, 1, 'solo el slug válido consulta');
   });
+});
+
+test('og (función de Node.js de Vercel): traduce req/res clásicos y entrega el PNG con sus cabeceras', async () => {
+  await withWorld(world, async () => {
+    const out = { headers: {} };
+    const res = { setHeader: (k, v) => { out.headers[k] = v; }, end: (buf) => { out.body = buf; } };
+    await ogFunction({ url: '/api/og?slug=capeo&v=abc', headers: { host: 'brandbara.com', 'x-forwarded-host': 'brandbara.com' } }, res);
+    assert.equal(out.statusCode ?? res.statusCode, 200);
+    assert.equal(out.headers['content-type'], 'image/png');
+    assert.deepEqual(Array.from(out.body.subarray(0, 4)), [0x89, 0x50, 0x4e, 0x47]);
+    const redirect = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end() {} };
+    await ogFunction({ url: '/api/og?slug=no-existe', headers: { host: 'brandbara.com' } }, redirect);
+    assert.equal(redirect.statusCode, 302);
+    assert.equal(redirect.headers.location, '/og-image.png');
+  }, { storage: files });
 });

@@ -1,53 +1,15 @@
 // GET /api/og?slug=<enlace>  ->  imagen PNG 1200×630 con el nombre, el logotipo y la portada del portal.
 // La dirección de esta imagen la escribe api/portal-meta.js en las etiquetas que leen WhatsApp, Telegram, Slack...
-import { fetchOwnImage, fetchPortalPreview, readEnv } from './_lib/network.js';
-import { isValidSlug } from './_lib/preview.js';
-import { renderCardPng } from './_lib/render.js';
+//
+// IMPORTANTE: esta función se ejecuta en el entorno Node.js de Vercel, NO en "edge". El generador de imágenes
+// (@vercel/og 0.8.6) compila WebAssembly desde bytes al arrancar y el entorno edge de Vercel lo prohíbe
+// («Wasm code generation disallowed by embedder»): allí siempre salía la imagen genérica. Una prueba lo vigila.
+import { handleOg } from './_lib/ogHandler.js';
 
-export const config = { runtime: 'edge' };
-
-const FALLBACK = '/og-image.png';
-
-// `reason` (código corto, nunca el mensaje de error) queda en una cabecera para saber por qué salió la imagen genérica.
-const redirectToGeneric = (req, seconds = 60, reason = 'generic', detail = '') => {
-  if (new URL(req.url).searchParams.get('debug') === '1') {
-    return new Response(JSON.stringify({ reason, detail: String(detail).slice(0, 600) }), { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
-  }
-  return new Response(null, {
-    status: 302,
-    headers: { location: new URL(FALLBACK, req.url).href, 'cache-control': `public, s-maxage=${seconds}`, 'x-og-reason': reason },
-  });
-};
-
-export default async function handler(req) {
-  const slug = new URL(req.url).searchParams.get('slug') || '';
-  // Nada de personalizar con direcciones raras: se devuelve la imagen genérica de BrandBara.
-  if (!isValidSlug(slug)) return redirectToGeneric(req, 3600, 'bad-slug');
-
-  const env = readEnv(process.env);
-  const preview = await fetchPortalPreview(slug, env);
-  if (preview.kind === 'none') return redirectToGeneric(req, 60, 'no-portal', JSON.stringify({ hasUrl: Boolean(env.supabaseUrl), hasKey: Boolean(env.anonKey) }));
-
-  // Un portal con contraseña solo enseña su nombre: ni portada ni logotipo.
-  const [hero, logo] = preview.kind === 'ok'
-    ? await Promise.all([fetchOwnImage(preview.hero, env.supabaseUrl), fetchOwnImage(preview.logo, env.supabaseUrl)])
-    : [null, null];
-
-  try {
-    const { png, degraded } = await renderCardPng(preview, { hero, logo });
-    // Si faltó alguna imagen que debería estar, la copia guardada dura poco para reintentar pronto.
-    const complete = !degraded && (!preview.hero || hero) && (!preview.logo || logo);
-    return new Response(png, {
-      headers: {
-        'content-type': 'image/png',
-        'cache-control': complete
-          ? 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
-          : 'public, max-age=60, s-maxage=60',
-        'x-robots-tag': 'noindex',
-      },
-    });
-  } catch (error) {
-    console.error('og: no se pudo dibujar la tarjeta:', error && error.message);
-    return redirectToGeneric(req, 60, 'render-failed', error && ((error.stack || error.message) + ' || first: ' + (error.firstError || '')));
-  }
+export default async function handler(req, res) {
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'brandbara.com';
+  const response = await handleOg(new Request(new URL(req.url, `https://${String(host).split(',')[0].trim()}`)));
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => res.setHeader(key, value));
+  res.end(Buffer.from(await response.arrayBuffer()));
 }

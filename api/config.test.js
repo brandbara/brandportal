@@ -93,8 +93,15 @@ test('las funciones de Vercel solo están en api/ y los archivos auxiliares vive
   const entries = fs.readdirSync(new URL('api/', root), { withFileTypes: true });
   const funciones = entries.filter((e) => e.isFile() && /\.js$/.test(e.name) && !/\.test\.js$/.test(e.name)).map((e) => e.name).sort();
   assert.deepEqual(funciones, ['og.js', 'portal-meta.js']);
-  for (const f of funciones) {
-    const code = fs.readFileSync(new URL(`api/${f}`, root), 'utf8');
-    assert.ok(/runtime:\s*'edge'/.test(code), `${f} debe ejecutarse en el entorno edge`);
-  }
+});
+
+test('portal-meta se ejecuta en edge (rápido, sin imágenes) y og en Node.js: el generador de imágenes no funciona en edge', () => {
+  const read = (f) => fs.readFileSync(new URL(`api/${f}`, root), 'utf8');
+  assert.ok(/runtime:\s*'edge'/.test(read('portal-meta.js')));
+  const og = read('og.js').replace(/\/\/.*$/gm, '');
+  // En edge, Vercel prohíbe compilar WebAssembly desde bytes y @vercel/og 0.8.6 lo hace al arrancar (probado en producción):
+  // la imagen salía siempre genérica. Si se cambia de versión o de entorno, hay que volver a probarlo en Vercel.
+  assert.ok(!/runtime:\s*'edge'/.test(og), 'api/og.js no debe declarar runtime edge');
+  assert.ok(/export default async function handler\(req, res\)/.test(og), 'api/og.js usa la firma clásica (req, res) de Node.js');
+  assert.ok(/handleOg\(/.test(og));
 });

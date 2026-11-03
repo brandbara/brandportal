@@ -29,9 +29,9 @@ export default [
     },
   },
   {
-    // Funciones de Vercel (api/): se ejecutan en el entorno "edge" (como un navegador, más process.env)
+    // Funciones de Vercel (api/): entorno "edge" (como un navegador) o Node.js; ambos con process.env
     files: ['api/**/*.js'],
-    languageOptions: { globals: { ...globals.browser, process: 'readonly' } },
+    languageOptions: { globals: { ...globals.browser, process: 'readonly', Buffer: 'readonly' } },
   },
   {
     // Pruebas automáticas (Node)
