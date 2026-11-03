@@ -11,6 +11,17 @@
   ],
   "rewrites": [
     {
+      "source": "/:slug([a-z0-9-]+)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|SkypeUriPreview|Pinterest|redditbot|vkShare|Mastodon|Cardyb|Embedly|Iframely|Viber|Mattermost).*"
+        }
+      ],
+      "destination": "/api/portal-meta?slug=:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -25,6 +25,8 @@ Archivos `.woff2` procedentes de los paquetes npm `@fontsource/*`. Las 20 tienen
 | Lora | `@fontsource/lora` 5.3.0 | OFL-1.1 |
 | Rubik | `@fontsource/rubik` 5.3.0 | OFL-1.1 |
 
+Además, `api/_lib/fontData.js` incluye (en base64) **Inter Bold 700** en formato WOFF, subconjuntos `latin` y `latin-ext`, del mismo paquete `@fontsource/inter` 5.3.0 (OFL-1.1), solo para dibujar las tarjetas de vista previa al compartir un portal. Se usa WOFF y no WOFF2 porque el generador de imágenes no lee WOFF2.
+
 Solo se incluyen los subconjuntos `latin` y `latin-ext` y los pesos que usa BrandBara (ver `src/fonts.css`). Cada archivo solo se descarga cuando la página usa esa fuente, ese peso y esos caracteres (`unicode-range`).
 
 **Para añadir una tipografía:**
