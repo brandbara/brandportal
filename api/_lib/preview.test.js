@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  buildMetaHtml, cleanName, drawableName, escapeHtml, extractPreview, fitInside, isValidSlug, luminance,
+  CARD_FORMAT, buildMetaHtml, cleanName, drawableName, escapeHtml, extractPreview, fitInside, isValidSlug, luminance,
   normalizeHex, ownImageUrl, previewVersion, sniffImage, toDataUri,
 } from './preview.js';
 import { JPEG_24x16, PNG_40x20, SUPABASE, STORAGE, capeoRpc } from './fixtures.js';
@@ -110,6 +110,7 @@ test('la versión de la imagen cambia cuando cambia lo que se ve y no si no camb
   assert.notEqual(previewVersion(a), previewVersion({ ...a, name: 'Capeo 2' }));
   assert.notEqual(previewVersion(a), previewVersion({ ...a, logo: `${STORAGE}otro.png` }));
   assert.match(previewVersion(a), /^[a-z0-9]{1,8}$/);
+  assert.ok(Number.isInteger(CARD_FORMAT) && CARD_FORMAT >= 2, 'el formato de tarjeta forma parte de la huella');
 });
 
 test('se reconocen PNG y JPEG por sus primeros bytes y se leen sus medidas; lo demás se rechaza', () => {

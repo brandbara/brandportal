@@ -137,8 +137,10 @@ export const extractPreview = (rpc, supabaseUrl) => {
 
 // Huella corta y estable de lo que se ve en la tarjeta. Va en la dirección de la imagen para que, si el dueño
 // cambia su logo o su nombre, las plataformas vean una dirección nueva y no sigan enseñando la imagen antigua.
+// CARD_FORMAT: subirlo cuando cambie el diseño o el tamaño de la tarjeta, para que las plataformas pidan la imagen nueva.
+export const CARD_FORMAT = 2;
 export const previewVersion = (p) => {
-  const text = [p.kind, p.name, p.lang, p.hero, p.logo, p.background, p.accent].join('|');
+  const text = [CARD_FORMAT, p.kind, p.name, p.lang, p.hero, p.logo, p.background, p.accent].join('|');
   let h = 2166136261;
   for (const ch of text) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
   return h.toString(36);
