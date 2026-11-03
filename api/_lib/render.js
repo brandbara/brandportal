@@ -52,6 +52,11 @@ export const renderCardPng = async (preview, images) => {
     return { png: await draw(images), degraded: false };
   } catch (error) {
     console.error('og: fallo al dibujar con imágenes, se reintenta sin ellas:', error && error.message);
-    return { png: await draw({}), degraded: true };
+    try {
+      return { png: await draw({}), degraded: true };
+    } catch (second) {
+      second.firstError = error && (error.stack || error.message);
+      throw second;
+    }
   }
 };

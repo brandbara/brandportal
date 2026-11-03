@@ -8,20 +8,25 @@ export const config = { runtime: 'edge' };
 
 const FALLBACK = '/og-image.png';
 
-const redirectToGeneric = (req, seconds = 60) =>
-  new Response(null, {
+// `reason` (código corto, nunca el mensaje de error) queda en una cabecera para saber por qué salió la imagen genérica.
+const redirectToGeneric = (req, seconds = 60, reason = 'generic', detail = '') => {
+  if (new URL(req.url).searchParams.get('debug') === '1') {
+    return new Response(JSON.stringify({ reason, detail: String(detail).slice(0, 600) }), { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  }
+  return new Response(null, {
     status: 302,
-    headers: { location: new URL(FALLBACK, req.url).href, 'cache-control': `public, s-maxage=${seconds}` },
+    headers: { location: new URL(FALLBACK, req.url).href, 'cache-control': `public, s-maxage=${seconds}`, 'x-og-reason': reason },
   });
+};
 
 export default async function handler(req) {
   const slug = new URL(req.url).searchParams.get('slug') || '';
   // Nada de personalizar con direcciones raras: se devuelve la imagen genérica de BrandBara.
-  if (!isValidSlug(slug)) return redirectToGeneric(req, 3600);
+  if (!isValidSlug(slug)) return redirectToGeneric(req, 3600, 'bad-slug');
 
   const env = readEnv(process.env);
   const preview = await fetchPortalPreview(slug, env);
-  if (preview.kind === 'none') return redirectToGeneric(req);
+  if (preview.kind === 'none') return redirectToGeneric(req, 60, 'no-portal', JSON.stringify({ hasUrl: Boolean(env.supabaseUrl), hasKey: Boolean(env.anonKey) }));
 
   // Un portal con contraseña solo enseña su nombre: ni portada ni logotipo.
   const [hero, logo] = preview.kind === 'ok'
@@ -43,6 +48,6 @@ export default async function handler(req) {
     });
   } catch (error) {
     console.error('og: no se pudo dibujar la tarjeta:', error && error.message);
-    return redirectToGeneric(req);
+    return redirectToGeneric(req, 60, 'render-failed', error && ((error.stack || error.message) + ' || first: ' + (error.firstError || '')));
   }
 }
