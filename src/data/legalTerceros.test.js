@@ -23,7 +23,7 @@ const archivos = (dir, acc = []) => {
 test('todo servicio externo que aparece en el código está registrado en legalTerceros.js', () => {
   const conocidos = [...TERCEROS.flatMap((t) => t.hosts), ...HOSTS_IGNORADOS];
   const encontrados = new Map();
-  const ficheros = [...archivos(path.join(RAIZ, 'src')), ...archivos(path.join(RAIZ, 'public')), path.join(RAIZ, 'index.html'), path.join(RAIZ, 'vercel.json')];
+  const ficheros = [...archivos(path.join(RAIZ, 'src')), ...archivos(path.join(RAIZ, 'public')), ...archivos(path.join(RAIZ, 'api')), path.join(RAIZ, 'index.html'), path.join(RAIZ, 'vercel.json')];
   for (const f of ficheros) {
     for (const m of fs.readFileSync(f, 'utf8').matchAll(/https?:\/\/((?:[a-z0-9-]+\.)+[a-z]{2,})/gi)) {
       encontrados.set(m[1].toLowerCase(), path.relative(RAIZ, f));

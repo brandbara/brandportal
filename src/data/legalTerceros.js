@@ -36,4 +36,5 @@ export const DEPENDENCIAS_REVISADAS = {
   'react': 'Interfaz',
   'react-dom': 'Interfaz',
   'react-router-dom': 'Rutas',
+  '@vercel/og': 'Dibuja en nuestro servidor (Vercel) la tarjeta de vista previa al compartir un portal (api/og.js). Licencias MPL-2.0 (satori, resvg-wasm) sin modificar. OJO: por defecto, si le falta una letra o un emoji, pide la tipografía a fonts.googleapis.com o el emoji a cdn.jsdelivr.net (terceros no declarados); no ocurre porque los textos se limpian antes y api/_lib/render.js bloquea esas conexiones; pruebas en api/_lib/render.test.js lo vigilan',
 };
