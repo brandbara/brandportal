@@ -150,7 +150,7 @@ test('etiquetas de un portal público: título, descripción, imagen propia, noi
   assert.ok(html.includes(`content="https://brandbara.com/api/og?slug=capeo&amp;v=${previewVersion(preview)}"`));
   assert.ok(html.includes('<meta name="twitter:card" content="summary_large_image">'));
   assert.ok(html.includes('<meta name="robots" content="noindex">'));
-  assert.ok(html.includes('og:image:width" content="1200"') && html.includes('og:image:height" content="630"'));
+  assert.ok(html.includes('og:image:width" content="600"') && html.includes('og:image:height" content="315"'));
   assert.ok(html.includes('<a href="https://brandbara.com/capeo">Abrir el portal de Capeo</a>'));
   assert.ok(html.includes('lang="es"') && html.includes('content="es_ES"'));
   assert.ok(!html.includes('dueno@example.com'));

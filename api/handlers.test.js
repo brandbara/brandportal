@@ -106,7 +106,7 @@ test('og: devuelve un PNG con caché larga cuando están todas las imágenes', a
     assert.match(res.headers.get('cache-control'), /s-maxage=3600/);
     const png = new Uint8Array(await res.arrayBuffer());
     assert.deepEqual(Array.from(png.slice(0, 4)), [0x89, 0x50, 0x4e, 0x47]);
-    assert.equal(new DataView(png.buffer).getUint32(16), 1200);
+    assert.equal(new DataView(png.buffer, png.byteOffset).getUint32(16), 600);
   }, { storage: files });
 });
 

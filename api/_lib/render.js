@@ -1,6 +1,6 @@
 // Dibuja la tarjeta como PNG. Es la única parte que usa el generador de imágenes (@vercel/og: satori + resvg).
 import { ImageResponse } from '@vercel/og';
-import { buildCard, CARD_HEIGHT, CARD_WIDTH } from './card.js';
+import { buildCard, OUTPUT_HEIGHT, OUTPUT_WIDTH } from './card.js';
 import { INTER_700_LATIN, INTER_700_LATIN_EXT } from './fontData.js';
 
 // Cinturón de seguridad: la librería de imágenes, si le falta una letra o un emoji, intenta bajarlo de Google Fonts o de
@@ -44,7 +44,7 @@ export const renderCardPng = async (preview, images) => {
   installThirdPartyGuard();
   const draw = async (imgs) => {
     const res = new ImageResponse(buildCard(preview, imgs), {
-      width: CARD_WIDTH, height: CARD_HEIGHT, fonts: getFonts(),
+      width: OUTPUT_WIDTH, height: OUTPUT_HEIGHT, fonts: getFonts(),
     });
     return new Uint8Array(await res.arrayBuffer());
   };
@@ -52,11 +52,6 @@ export const renderCardPng = async (preview, images) => {
     return { png: await draw(images), degraded: false };
   } catch (error) {
     console.error('og: fallo al dibujar con imágenes, se reintenta sin ellas:', error && error.message);
-    try {
-      return { png: await draw({}), degraded: true };
-    } catch (second) {
-      second.firstError = error && (error.stack || error.message);
-      throw second;
-    }
+    return { png: await draw({}), degraded: true };
   }
 };

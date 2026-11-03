@@ -3,8 +3,14 @@
 import { BRANDBARA_WORDMARK_SVG, BRANDBARA_WORDMARK_SIZE } from './brandData.js';
 import { drawableName, fitInside, luminance, normalizeHex, toDataUri } from './preview.js';
 
+// La tarjeta se diseña en 1200 × 630 y se entrega a la mitad (600 × 315, el mínimo que Facebook admite para tarjeta grande):
+// con una foto de portada, el PNG de 1200 × 630 pesaba ~1 MB y WhatsApp puede no enseñar imágenes tan pesadas
+// (se recomienda menos de ~300 KB). A la mitad pesa una cuarta parte y se ve bien en un chat.
 export const CARD_WIDTH = 1200;
 export const CARD_HEIGHT = 630;
+export const OUTPUT_SCALE = 0.5;
+export const OUTPUT_WIDTH = CARD_WIDTH * OUTPUT_SCALE;
+export const OUTPUT_HEIGHT = CARD_HEIGHT * OUTPUT_SCALE;
 const BRAND_DARK = '#0f111a';
 const PAD = 64;
 
@@ -77,7 +83,7 @@ export const buildCard = (preview, images = {}) => {
     }, [{ type: 'img', props: { src: wordmarkUri, width: wm.width, height: wm.height, style: { width: wm.width, height: wm.height } } }]),
   ]);
 
-  return h('div', {
+  const card = h('div', {
     position: 'relative', display: 'flex', width: CARD_WIDTH, height: CARD_HEIGHT, backgroundColor: base,
     fontFamily: 'Inter, InterExt',
   }, [
@@ -86,5 +92,10 @@ export const buildCard = (preview, images = {}) => {
       position: 'absolute', top: 0, left: 0, width: CARD_WIDTH, height: CARD_HEIGHT, display: 'flex',
       flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', padding: PAD,
     }, [h('div', { display: 'flex', minHeight: 1 }, top), bottom]),
+  ]);
+
+  // Envoltorio a tamaño de salida: la tarjeta completa se reduce con una transformación (el texto sigue siendo vectorial).
+  return h('div', { display: 'flex', position: 'relative', width: OUTPUT_WIDTH, height: OUTPUT_HEIGHT, overflow: 'hidden', backgroundColor: base }, [
+    h('div', { display: 'flex', position: 'absolute', top: 0, left: 0, width: CARD_WIDTH, height: CARD_HEIGHT, transform: `scale(${OUTPUT_SCALE})`, transformOrigin: 'top left' }, [card]),
   ]);
 };
